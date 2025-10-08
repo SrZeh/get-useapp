@@ -203,6 +203,11 @@ export default function VitrineScreen() {
     });
   }, [items, search, category, city, neighborhood]);
 
+  const filteredNotMine = useMemo(() => {
+  if (!me) return filtered;            // visitante vê tudo
+  return filtered.filter((it) => it.ownerUid !== me);
+}, [filtered, me]);
+
 
   
 
@@ -380,7 +385,7 @@ export default function VitrineScreen() {
     >
       <ThemedView style={{ flex: 1 }}>
         <FlatList
-          data={filtered}
+          data={filteredNotMine}
           keyExtractor={(it) => it.id}
           renderItem={renderItem}
           // 🔑 tudo abaixo faz a página inteira rolar:

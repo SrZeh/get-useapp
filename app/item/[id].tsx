@@ -44,8 +44,11 @@ type Item = {
   city?: string;
   neighborhood?: string;
   ratingAvg?: number;
-  ratingCount?: number;
   ownerUid?: string;
+  ratingCount?: number;
+  ratingSum?: number;
+  ownerRatingCount?: number;
+  ownerRatingSum?: number;
 };
 
 type Review = {
@@ -66,9 +69,9 @@ export default function ItemDetailScreen() {
   const [item, setItem] = useState<Item | null>(null);
 
   // --- calendar state ---
-  const [booked, setBooked] = useState<Set<string>>(new Set()); // dias já bloqueados (paid)
-  const [startISO, setStartISO] = useState<string | null>(null); // check-in (inclusive)
-  const [endISOInc, setEndISOInc] = useState<string | null>(null); // check-out (UI inclusivo)
+  const [booked, setBooked] = useState<Set<string>>(new Set());
+  const [startISO, setStartISO] = useState<string | null>(null);
+  const [endISOInc, setEndISOInc] = useState<string | null>(null);
   const [markedDates, setMarkedDates] = useState<Record<string, any>>({});
 
   // --- reviews ---
@@ -157,11 +160,9 @@ export default function ItemDetailScreen() {
   // Marcações do calendário (booked + seleção)
   useEffect(() => {
     const md: Record<string, any> = {};
-    // desabilita dias já pagos
     booked.forEach((d) => {
       md[d] = { ...(md[d] || {}), disabled: true, disableTouchEvent: true };
     });
-    // seleção do usuário
     if (startISO && endISOInc) {
       const days = enumerateInclusive(startISO, endISOInc);
       days.forEach((d, idx) => {
@@ -193,7 +194,7 @@ export default function ItemDetailScreen() {
     return () => unsub();
   }, [id]);
 
-  // Reservas elegíveis do usuário p/ avaliar (returned/closed)
+  // Reservas elegíveis do usuário p/ avaliar
   useEffect(() => {
     (async () => {
       if (!uid) return;
@@ -202,6 +203,7 @@ export default function ItemDetailScreen() {
           collection(db, "reservations"),
           where("renterUid", "==", uid),
           where("itemId", "==", id),
+          // ajuste se seu fluxo usar outros status para "concluída"
           where("status", "in", ["returned", "closed"])
         );
         const snap = await getDocs(qRes);
@@ -236,6 +238,19 @@ export default function ItemDetailScreen() {
     }
     setStartISO(a);
     setEndISOInc(b);
+  }
+
+  function calcAvg(sum?: number, count?: number) {
+    if (!count || !sum) return null;
+    if (count <= 0) return null;
+    return Math.max(0, Math.min(5, sum / count));
+  }
+  function renderStars(avg: number) {
+    const rounded = Math.round(avg * 2) / 2;
+    const full = Math.floor(rounded);
+    const half = rounded - full >= 0.5;
+    const empty = 5 - full - (half ? 1 : 0);
+    return "★".repeat(full) + (half ? "☆" : "") + "✩".repeat(empty);
   }
 
   // cálculo resumo reserva
@@ -297,8 +312,10 @@ export default function ItemDetailScreen() {
     }
   }
 
+  // ✅ PATCH: força token atualizado e checa e-mail verificado antes de criar a reserva
   async function requestReservation() {
-    if (!uid) return Alert.alert("Sessão", "Faça login para reservar.");
+    const u = auth.currentUser;
+    if (!u) return Alert.alert("Sessão", "Faça login para reservar.");
     if (!item) return;
     if (!startISO || !endExclusive) return Alert.alert("Datas", "Selecione check-in e check-out.");
     if (daysCount < minDays) return Alert.alert("Mínimo", `Este item exige ao menos ${minDays} dia(s).`);
@@ -307,19 +324,32 @@ export default function ItemDetailScreen() {
     }
 
     try {
+      // garante que o token já contenha email_verified=true
+      await u.reload();
+      if (!u.emailVerified) {
+        Alert.alert(
+          "E-mail não verificado",
+          "Confirme seu e-mail para solicitar reservas."
+        );
+        router.push("/(auth)/verify-email");
+        return;
+      }
+      await u.getIdToken(true); // 🔑 força refresh do token para as Regras
+
       await addDoc(collection(db, "reservations"), {
         itemId: item.id,
         itemTitle: item.title ?? "",
         itemOwnerUid: item.ownerUid ?? "",
-        renterUid: uid,
-        startDate: startISO,    // inclusivo
-        endDate: endExclusive,  // EXCLUSIVO (check-out)
+        renterUid: u.uid,                  // use o UID fresco
+        startDate: startISO,               // inclusivo
+        endDate: endExclusive,             // exclusivo (check-out)
         days: daysCount,
         total: total,
-        status: "requested",
+        status: "requested",               // exigido pelas regras
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       });
+
       Alert.alert("Pedido enviado!", "Aguarde o dono aceitar para efetuar o pagamento.");
       router.back();
     } catch (e: any) {
@@ -394,7 +424,6 @@ export default function ItemDetailScreen() {
               onDayPress={onDayPress}
               markedDates={markedDates}
               markingType="period"
-              // 👇 mais clean e focado no mês atual
               current={todayISO}
               minDate={todayISO}
               hideExtraDays

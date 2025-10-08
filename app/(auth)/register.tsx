@@ -1,8 +1,9 @@
+// app/(auth)/register.tsx
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { auth, db } from '@/lib/firebase';
 import { Link, router } from 'expo-router';
-import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { createUserWithEmailAndPassword, sendEmailVerification } from 'firebase/auth';
 import { doc, serverTimestamp, setDoc } from 'firebase/firestore';
 import { useMemo, useState } from 'react';
 import { Alert, KeyboardAvoidingView, Platform, TextInput, TouchableOpacity, useColorScheme, View } from 'react-native';
@@ -44,7 +45,14 @@ export default function RegisterScreen() {
       // 1) cria usuário (agora você está autenticado)
       const cred = await createUserWithEmailAndPassword(auth, email.trim(), password);
 
-      // 2) grava o perfil no /users/{uid} — permitido pelas regras (uid == u)
+      // 2) dispara e-mail de verificação
+      try {
+        await sendEmailVerification(cred.user);
+      } catch (err) {
+        console.warn('Falha ao enviar e-mail de verificação:', err);
+      }
+
+      // 3) grava o perfil no /users/{uid}
       const cpfNum = cpf.replace(/\D/g, '');
       await setDoc(doc(db, 'users', cred.user.uid), {
         name: name.trim(),
@@ -54,6 +62,10 @@ export default function RegisterScreen() {
         email: email.trim(),
         photoURL: null,
         role: 'free',
+        // flags de verificação
+        emailVerified: false,
+        phoneVerified: false,
+        // reputação/limites
         ratingAvg: 5, ratingCount: 0,
         strikes: 0, blockedAt: null,
         publicItemsCount: 0,
@@ -63,10 +75,9 @@ export default function RegisterScreen() {
         updatedAt: serverTimestamp(),
       }, { merge: true });
 
-      Alert.alert('Conta criada!', 'Bem-vindo(a).');
-      router.replace('/(tabs)');
+      Alert.alert('Conta criada!', 'Enviamos um e-mail de verificação. Confirme para continuar.');
+      router.replace('/(auth)/verify-email');
     } catch (e: any) {
-      // se ainda der "permission-denied", é quase sempre regras do appdb não publicadas
       Alert.alert('Erro ao registrar', e?.message ?? String(e));
     }
   };
@@ -79,7 +90,7 @@ export default function RegisterScreen() {
       <ThemedView style={{ flex: 1, padding: 16, justifyContent: 'center' }}>
         <ThemedText type="title">Criar conta</ThemedText>
         <View style={{ gap: 12, marginTop: 16 }}>
-          <TextInput placeholder="Nome" placeholderTextColor={placeholderColor} onChangeText={setName} value={name} style={inputStyle} />
+          <TextInput placeholder="Nome completo" placeholderTextColor={placeholderColor} onChangeText={setName} value={name} style={inputStyle} />
           <TextInput placeholder="CPF" placeholderTextColor={placeholderColor} keyboardType="number-pad" onChangeText={setCpf} value={cpf} style={inputStyle} />
           <TextInput placeholder="Telefone" placeholderTextColor={placeholderColor} keyboardType="phone-pad" onChangeText={setPhone} value={phone} style={inputStyle} />
           <TextInput placeholder="Endereço" placeholderTextColor={placeholderColor} onChangeText={setAddress} value={address} style={inputStyle} />
@@ -88,7 +99,7 @@ export default function RegisterScreen() {
         </View>
 
         <TouchableOpacity style={{
-          marginTop: 16, backgroundColor: isDark ? "#2563eb" : "#1d4ed8",
+          marginTop: 16, backgroundColor: isDark ? "#08af0e" : "#08af0e",
           paddingVertical: 14, borderRadius: 12, alignItems: "center"
         }} onPress={onRegister}>
           <ThemedText type="defaultSemiBold" style={{ color: "#fff" }}>Criar conta</ThemedText>

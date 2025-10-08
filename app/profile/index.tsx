@@ -11,7 +11,14 @@ import { ActivityIndicator, Image, TouchableOpacity, View } from 'react-native';
 type UserDoc = {
   name: string; email: string; cpf?: string; phone?: string; address?: string;
   photoURL?: string | null; ratingAvg?: number; ratingCount?: number; transactionsTotal?: number;
+
+  // ⬇️ flags usadas nas telas de verificação
+  emailVerified?: boolean;
+  phoneVerified?: boolean;
 };
+
+
+
 
 export default function ProfileScreen() {
   const uid = auth.currentUser?.uid;
@@ -63,6 +70,9 @@ export default function ProfileScreen() {
         )}
         <ThemedText type="subtitle">{u?.name ?? "(Sem nome)"}</ThemedText>
         <ThemedText>{u?.email}</ThemedText>
+        <ThemedText style={{ marginTop: 8 }}>
+          E-mail: {u?.emailVerified ? "verificado ✅" : "não verificado ❌"}
+        </ThemedText>
 
         <ThemedText className="mt-2">
           {u?.cpf ? "CPF verificado" : "CPF não verificado"}

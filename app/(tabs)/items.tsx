@@ -34,7 +34,33 @@ type Item = {
   photos?: string[];
   available?: boolean;
   createdAt?: any;
+
+  // ⭐ Campos de avaliação do produto (agregado)
+  ratingCount?: number;
+  ratingSum?: number;
+
+  // ⭐ Campos de avaliação do dono (denormalizados no item)
+  ownerRatingCount?: number;
+  ownerRatingSum?: number;
 };
+
+// Helpers de avaliação
+function calcAvg(sum?: number, count?: number) {
+  if (!count || !sum) return null;
+  if (count <= 0) return null;
+  const avg = sum / count;
+  // clamp 0..5
+  return Math.max(0, Math.min(5, avg));
+}
+
+function renderStars(avg: number) {
+  // arredonda para meia estrela
+  const rounded = Math.round(avg * 2) / 2;
+  const full = Math.floor(rounded);
+  const half = rounded - full >= 0.5;
+  const empty = 5 - full - (half ? 1 : 0);
+  return "★".repeat(full) + (half ? "☆" : "") + "✩".repeat(empty);
+}
 
 export default function ItemsScreen() {
   const [items, setItems] = useState<Item[]>([]);
@@ -94,11 +120,14 @@ export default function ItemsScreen() {
               photos: x.photos ?? [],
               available: x.available ?? true,
               createdAt: x.createdAt ?? serverTimestamp(),
+              ratingCount: x.ratingCount ?? 0,
+              ratingSum: x.ratingSum ?? 0,
+              ownerRatingCount: x.ownerRatingCount ?? 0,
+              ownerRatingSum: x.ownerRatingSum ?? 0,
             };
           });
 
-          // 🔸 Fallback para itens “legados” que guardaram `owner` (não `ownerUid`)
-          // Busca 1x e mescla (sem stream) — remove depois que migrar seus docs.
+          // 🔸 Fallback para itens “legados” com `owner` (não `ownerUid`)
           if (data.length === 0) {
             try {
               const qLegacy = query(
@@ -116,11 +145,14 @@ export default function ItemsScreen() {
                   photos: x.photos ?? [],
                   available: x.available ?? true,
                   createdAt: x.createdAt ?? serverTimestamp(),
+                  ratingCount: x.ratingCount ?? 0,
+                  ratingSum: x.ratingSum ?? 0,
+                  ownerRatingCount: x.ownerRatingCount ?? 0,
+                  ownerRatingSum: x.ownerRatingSum ?? 0,
                 } as Item;
               });
               if (legacy.length) data = legacy;
             } catch (e: any) {
-              // se precisar de índice, o console vai apontar o link
               if (String(e?.message).includes("requires an index")) {
                 console.warn("[Items] Crie o índice sugerido pelo Firestore para owner/createdAt.");
               } else {
@@ -173,6 +205,10 @@ export default function ItemsScreen() {
           photos: x.photos ?? [],
           available: x.available ?? true,
           createdAt: x.createdAt ?? serverTimestamp(),
+          ratingCount: x.ratingCount ?? 0,
+          ratingSum: x.ratingSum ?? 0,
+          ownerRatingCount: x.ownerRatingCount ?? 0,
+          ownerRatingSum: x.ownerRatingSum ?? 0,
         };
       });
       setItems(data);
@@ -231,7 +267,7 @@ export default function ItemsScreen() {
           style={{
             paddingVertical: 8,
             paddingHorizontal: 12,
-            backgroundColor: isDark ? "#00ce08" : "#00ce08",
+            backgroundColor: "#00ce08",
             borderRadius: 10,
           }}
         >
@@ -260,10 +296,19 @@ export default function ItemsScreen() {
           ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
           renderItem={({ item }) => (
             <View style={cardStyle}>
-              <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+              {/* Cabeçalho do card */}
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: 12,
+                }}
+              >
                 <ThemedText type="subtitle" style={{ flexShrink: 1 }}>
                   {item.title}
                 </ThemedText>
+
                 <View
                   style={{
                     paddingVertical: 4,
@@ -275,6 +320,37 @@ export default function ItemsScreen() {
                   <ThemedText style={{ color: item.available ? "#00ff80" : "#6b7280" }}>
                     {item.available ? "Disponível" : "Alugado"}
                   </ThemedText>
+                </View>
+              </View>
+
+              {/* Avaliações */}
+              <View style={{ marginTop: 6, gap: 4 }}>
+                {/* Produto */}
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                  <ThemedText type="defaultSemiBold">Produto:</ThemedText>
+                  {(() => {
+                    const avg = calcAvg(item.ratingSum, item.ratingCount);
+                    if (!avg) return <ThemedText>—</ThemedText>;
+                    return (
+                      <ThemedText>
+                        {renderStars(avg)} {avg.toFixed(1)} ({item.ratingCount})
+                      </ThemedText>
+                    );
+                  })()}
+                </View>
+
+                {/* Dono (denormalizado no item) */}
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                  <ThemedText type="defaultSemiBold">Dono:</ThemedText>
+                  {(() => {
+                    const avg = calcAvg(item.ownerRatingSum, item.ownerRatingCount);
+                    if (!avg) return <ThemedText>—</ThemedText>;
+                    return (
+                      <ThemedText>
+                        {renderStars(avg)} {avg.toFixed(1)} ({item.ownerRatingCount})
+                      </ThemedText>
+                    );
+                  })()}
                 </View>
               </View>
 
