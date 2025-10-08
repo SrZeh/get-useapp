@@ -3,9 +3,9 @@ import * as admin from "firebase-admin";
 import { App as AdminApp, initializeApp } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
 import { setGlobalOptions } from "firebase-functions/v2";
+import { onDocumentCreated } from "firebase-functions/v2/firestore";
 import { HttpsError, onCall, onRequest } from "firebase-functions/v2/https";
 import Stripe from "stripe";
-import { onDocumentCreated } from "firebase-functions/v2/firestore";
 
 
 
@@ -334,13 +334,13 @@ export const createCheckoutSession = onCall(
       const session = await stripe.checkout.sessions.create({
         mode: "payment",
         // se quiser Pix agora e a sua conta estiver habilitada: ["card","pix"]
-        payment_method_types: ["card"],
+        payment_method_types: ["card", "pix"],
         success_url: `${successUrl}?res=${reservationId}`,
         cancel_url: `${cancelUrl}?res=${reservationId}`,
         line_items: [{
           quantity: 1,
           price_data: {
-            currency: "BRL",
+            currency: "brl",
             product_data: {
               name: r.itemTitle ?? "Aluguel de item",
               metadata: { reservationId: String(reservationId) },
