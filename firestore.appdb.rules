@@ -1,0 +1,123 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isAuthed() { return request.auth != null; }
+    function uid() { return request.auth.uid; }
+
+    // Confere se a reserva é do item, do usuário atual e já foi encerrada (para reviews)
+    function validReviewReservation(itemId, resId) {
+      let p = /databases/$(database)/documents/reservations/$(resId);
+      return exists(p)
+        && get(p).data.itemId == itemId
+        && get(p).data.renterUid == uid()
+        && (get(p).data.status == "returned" || get(p).data.status == "closed");
+    }
+
+    // -------- USERS (perfil) --------
+    match /users/{u} {
+      // cada um só lê/escreve o próprio perfil
+      allow read, create, update: if isAuthed() && uid() == u;
+      allow delete: if false;
+    }
+
+    // -------- ITENS (vitrine) + subcoleções --------
+    match /items/{itemId} {
+      // leitura pública se published == true; dono sempre pode
+      allow read: if resource.data.published == true
+                  || (isAuthed() && resource.data.ownerUid == uid());
+
+      // criar/editar/apagar: apenas dono autenticado
+      allow create: if isAuthed() && request.resource.data.ownerUid == uid();
+      allow update, delete: if isAuthed() && resource.data.ownerUid == uid();
+
+      // calendário: somente leitura no cliente; escrita via Functions/Admin
+      match /bookedDays/{dayId} {
+        allow read: if true;
+        allow write: if false;
+      }
+
+      // avaliações
+      match /reviews/{revId} {
+        allow read: if true;
+        allow create: if isAuthed()
+          && request.resource.data.renterUid == uid()
+          && request.resource.data.rating is number
+          && request.resource.data.rating >= 1
+          && request.resource.data.rating <= 5
+          && request.resource.data.reservationId is string
+          && validReviewReservation(itemId, request.resource.data.reservationId);
+        allow update, delete: if false;
+      }
+    }
+
+    // -------- RESERVAS + CHAT --------
+    match /reservations/{resId} {
+
+      // participante desta reserva?
+      function isPartyHere() {
+        return isAuthed() && (
+          resource.data.itemOwnerUid == uid() ||
+          resource.data.renterUid == uid()
+        );
+      }
+
+      // Para subcoleções: olha o doc pai
+      function partyOfReservation() {
+        let p = /databases/$(database)/documents/reservations/$(resId);
+        return exists(p) && isAuthed() && (
+          get(p).data.itemOwnerUid == uid() || get(p).data.renterUid == uid()
+        );
+      }
+
+      // ---- READ ----
+      allow read: if isPartyHere();
+
+      // ---- CREATE ----
+      // somente o locatário pode criar sua reserva (status inicial = requested)
+      allow create: if isAuthed()
+        && request.resource.data.renterUid == uid()
+        && request.resource.data.status == "requested";
+
+      // ---- UPDATE ----
+      // Somente participantes e com transições válidas
+      allow update: if isPartyHere() && validReservationTransition();
+
+      // Transições válidas pelo CLIENTE (pagamento/repasse ficam no servidor)
+      function validReservationTransition() {
+        let before = resource.data.status;
+        let after  = request.resource.data.status;
+        let owner  = resource.data.itemOwnerUid;
+        let renter = resource.data.renterUid;
+
+        return
+          // Dono decide aceitar/recusar
+          (before == "requested" && after == "accepted" && uid() == owner) ||
+          (before == "requested" && after == "rejected" && uid() == owner) ||
+          // Locatário pode cancelar antes do pagamento
+          (before == "requested" && after == "canceled" && uid() == renter) ||
+          // Cancelar mesmo após aceito (política sua) — sem marcar pago/payout
+          ((before == "accepted") && after == "canceled" && (uid() == renter || uid() == owner)) ||
+          // Permite updates que NÃO trocam status
+          (before == after);
+      }
+
+      // ---- DELETE ----
+      allow delete: if isPartyHere() &&
+        (resource.data.status == "requested" ||
+         resource.data.status == "rejected" ||
+         resource.data.status == "canceled");
+
+      // ---- CHAT ----
+      match /messages/{msgId} {
+        allow read: if partyOfReservation();
+        allow create: if partyOfReservation()
+          && request.resource.data.senderUid == uid()
+          && request.resource.data.text is string
+          && request.resource.data.text.size() > 0
+          && request.resource.data.text.size() <= 2000;
+        allow update, delete: if false;
+      }
+    }
+  }
+}

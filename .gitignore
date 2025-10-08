@@ -1,0 +1,50 @@
+# SOs
+.DS_Store
+Thumbs.db
+
+# Node
+node_modules/
+npm-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+package-lock.json
+
+# Build/Dist
+dist/
+build/
+out/
+
+# Expo / React Native
+.expo/
+.expo-shared/
+.expo-go/
+web-build/
+ios/
+android/
+
+# IDEs
+.vscode/
+.idea/
+
+# Firebase
+.firebase/
+firebase-debug.log
+firestore-debug.log
+storage-debug.log
+functions/node_modules/
+functions/lib/
+functions/.eslintcache
+
+# Ambiente/Segredos
+.env
+.env.*
+*.env
+*.env.*
+.env.local
+.env.development.local
+.env.production.local
+.env.test.local
+
+# Testes/coverage
+coverage/
+jest-html-reporters-*
