@@ -5,13 +5,17 @@ import { getFirestore } from "firebase-admin/firestore";
 import { setGlobalOptions } from "firebase-functions/v2";
 import { HttpsError, onCall, onRequest } from "firebase-functions/v2/https";
 import Stripe from "stripe";
+import { onDocumentCreated } from "firebase-functions/v2/firestore";
+
+
 
 const adminApp: AdminApp = initializeApp();
 setGlobalOptions({ region: "southamerica-east1", maxInstances: 10 });
 
+// Firestore (usar o DB "appdb")
 const db = getFirestore(adminApp, "appdb");
 
-// ---------- Helpers ----------
+// ----------------- Helpers -----------------
 function assertString(x: unknown, name: string): asserts x is string {
   if (typeof x !== "string" || x.trim() === "") {
     throw new HttpsError("invalid-argument", `${name} inválido/ausente.`);
@@ -42,6 +46,16 @@ function eachDateKeysExclusive(startISO: string, endISO: string): string[] {
 }
 const TS = () => admin.firestore.FieldValue.serverTimestamp();
 
+function toCents(x: any): number {
+  if (typeof x === "number") return Math.round(x * 100);
+  if (typeof x === "string") {
+    const s = x.replace(/[^\d.,-]/g, "").replace(/\.(?=\d{3}(,|$))/g, "").replace(",", ".");
+    const n = Number(s);
+    if (Number.isFinite(n)) return Math.round(n * 100);
+  }
+  return 0;
+}
+
 function getStripe(): Stripe {
   const key = process.env.STRIPE_SECRET_KEY;
   if (!key) {
@@ -50,6 +64,7 @@ function getStripe(): Stripe {
       "STRIPE_SECRET_KEY ausente. Defina com: firebase functions:secrets:set STRIPE_SECRET_KEY"
     );
   }
+  // sem apiVersion explicit para evitar conflitos de tipagem
   return new Stripe(key);
 }
 
@@ -118,6 +133,23 @@ export const getAccountStatus = onCall(
       charges_enabled: (acct as any).charges_enabled ?? false,
       requirements: (acct as any).requirements ?? null,
     };
+  }
+);
+
+export const createExpressLoginLink = onCall(
+  { region: "southamerica-east1", secrets: ["STRIPE_SECRET_KEY"] },
+  async ({ auth }) => {
+    const uid = auth?.uid;
+    if (!uid) throw new HttpsError("unauthenticated", "Faça login.");
+
+    const userRef = db.doc(`users/${uid}`);
+    const snap = await userRef.get();
+    const acctId = snap.exists ? (snap.data() as any)?.stripeAccountId : undefined;
+    assertString(acctId, "stripeAccountId");
+
+    const stripe = getStripe();
+    const link = await stripe.accounts.createLoginLink(acctId);
+    return { url: link.url };
   }
 );
 
@@ -240,7 +272,7 @@ export const cancelAcceptedReservation = onCall(async ({ auth, data }) => {
 });
 
 // =====================================================
-// === Stripe Checkout                               ===
+// === Stripe Checkout (Destination Charges)         ===
 // =====================================================
 export const createCheckoutSession = onCall(
   { region: "southamerica-east1", secrets: ["STRIPE_SECRET_KEY"] },
@@ -269,69 +301,75 @@ export const createCheckoutSession = onCall(
       if (r.renterUid !== uid) throw new HttpsError("permission-denied", "Somente o locatário pode pagar.");
       if (r.status !== "accepted") throw new HttpsError("failed-precondition", "Reserva não está 'accepted'.");
 
+      // totalCents e fee
+      const daysCount = (() => {
+        try { return eachDateKeysExclusive(r.startDate, r.endDate).length; }
+        catch { return Number(r.days) || 1; }
+      })();
+      let totalCents = Number.isInteger(r.totalCents) ? Number(r.totalCents) : 0;
+      if (!totalCents) {
+        const base = Number(r.priceCents) || toCents(r.total) || 0;
+        totalCents = base * (Number.isFinite(daysCount) ? daysCount : 1);
+      }
+      if (!Number.isInteger(totalCents) || totalCents <= 0) {
+        throw new HttpsError("failed-precondition", "totalCents inválido.");
+      }
+      const platformFeeCents = Math.floor(totalCents * 0.10);
+
+      // precisa existir a conta do dono
       let ownerStripeAccountId: string | undefined = r.ownerStripeAccountId;
       if (!ownerStripeAccountId && r.itemOwnerUid) {
         const ownerSnap = await db.doc(`users/${r.itemOwnerUid}`).get();
         ownerStripeAccountId = ownerSnap.exists ? (ownerSnap.data() as any)?.stripeAccountId : undefined;
         if (ownerStripeAccountId) await resRef.update({ ownerStripeAccountId, updatedAt: TS() });
       }
-
-      const daysCount = (() => {
-        try { return eachDateKeysExclusive(r.startDate, r.endDate).length; }
-        catch { return Number(r.days) || 1; }
-      })();
-
-      function toCents(x: any): number {
-        if (typeof x === "number") return Math.round(x * 100);
-        if (typeof x === "string") {
-          const s = x.replace(/[^\d.,-]/g, "").replace(/\.(?=\d{3}(,|$))/g, "").replace(",", ".");
-          const n = Number(s);
-          if (Number.isFinite(n)) return Math.round(n * 100);
-        }
-        return 0;
+      if (!ownerStripeAccountId) {
+        throw new HttpsError(
+          "failed-precondition",
+          "Conecte sua conta Stripe para receber (faça o onboarding do Express)."
+        );
       }
-
-      let totalCents = Number.isInteger(r.totalCents) ? Number(r.totalCents) : 0;
-      if (!totalCents) totalCents = toCents(r.total) || (Number(r.priceCents) * (Number.isFinite(daysCount) ? daysCount : 1)) || 0;
-      if (!Number.isInteger(totalCents) || totalCents <= 0) throw new HttpsError("failed-precondition", "totalCents inválido.");
-
-      const platformFeeCents = Math.floor(totalCents * 0.10);
-      const transferGroup = reservationId;
 
       const stripe = getStripe();
       const session = await stripe.checkout.sessions.create({
         mode: "payment",
+        // se quiser Pix agora e a sua conta estiver habilitada: ["card","pix"]
         payment_method_types: ["card"],
         success_url: `${successUrl}?res=${reservationId}`,
         cancel_url: `${cancelUrl}?res=${reservationId}`,
-        line_items: [
-          {
-            quantity: 1,
-            price_data: {
-              currency: "BRL",
-              product_data: { name: r.itemTitle ?? "Aluguel de item", metadata: { reservationId: String(reservationId) } },
-              unit_amount: totalCents,
+        line_items: [{
+          quantity: 1,
+          price_data: {
+            currency: "BRL",
+            product_data: {
+              name: r.itemTitle ?? "Aluguel de item",
+              metadata: { reservationId: String(reservationId) },
             },
+            unit_amount: totalCents,
           },
-        ],
+        }],
         payment_intent_data: {
-          transfer_group: transferGroup,
+          // DESTINATION CHARGE
+          transfer_data: { destination: ownerStripeAccountId },
+          application_fee_amount: platformFeeCents,
           metadata: {
             reservationId: String(reservationId),
             totalCents: String(totalCents),
             platformFeeCents: String(platformFeeCents),
-            ...(ownerStripeAccountId ? { ownerStripeAccountId: String(ownerStripeAccountId) } : {}),
+            ownerStripeAccountId: String(ownerStripeAccountId),
           },
         },
-        metadata: { reservationId: String(reservationId), transfer_group: transferGroup, ...(ownerStripeAccountId ? { ownerStripeAccountId: String(ownerStripeAccountId) } : {}) },
+        metadata: {
+          reservationId: String(reservationId),
+          ownerStripeAccountId: String(ownerStripeAccountId),
+        },
         locale: "pt-BR",
       });
 
       await resRef.update({
         checkoutSessionId: session.id,
         totalCents,
-        ...(ownerStripeAccountId ? { ownerStripeAccountId } : {}),
-        transferGroup,
+        ownerStripeAccountId,
         platformFeeCents,
         updatedAt: TS(),
       });
@@ -345,7 +383,7 @@ export const createCheckoutSession = onCall(
 );
 
 // =====================================================
-// === Fallback: confirmar sessão e marcar como paid  ===
+// === Confirmar sessão manualmente (fallback)        ===
 // =====================================================
 export const confirmCheckoutSession = onCall(
   { region: "southamerica-east1", secrets: ["STRIPE_SECRET_KEY"] },
@@ -440,22 +478,33 @@ export const stripeWebhook = onRequest(
 
         if (!reservationId) {
           console.warn("[Webhook] Sem reservationId");
-          res.json({ received: true });
-          return;
+          res.json({ received: true }); return;
         }
 
         const resRef = db.doc(`reservations/${reservationId}`);
         const snap = await resRef.get();
         if (!snap.exists) {
           console.warn("[Webhook] Reserva não encontrada:", reservationId);
-          res.json({ received: true });
-          return;
+          res.json({ received: true }); return;
         }
 
         const r = snap.data() as any;
         if (r.status === "paid") {
-          res.json({ received: true });
-          return;
+          res.json({ received: true }); return;
+        }
+
+        // opcional: coletar método de pagamento para mensagem de previsão
+        let paymentMethodType: string | null = null;
+        if (paymentIntentId) {
+          const pi = await stripe.paymentIntents.retrieve(paymentIntentId);
+          const chargeId = typeof pi.latest_charge === "string"
+            ? pi.latest_charge
+            : (pi.latest_charge as Stripe.Charge | null)?.id;
+          if (chargeId) {
+            const charge = await stripe.charges.retrieve(chargeId);
+            // @ts-ignore
+            paymentMethodType = charge.payment_method_details?.type ?? null;
+          }
         }
 
         const days = eachDateKeysExclusive(r.startDate, r.endDate);
@@ -470,30 +519,27 @@ export const stripeWebhook = onRequest(
               if (curr.resId && curr.resId !== reservationId) throw new Error(`Conflito de data ${d}`);
             }
           }
-          
-
-for (const day of days) {
-  const dayRef = bookedCol.doc(day);
-  trx.set(dayRef, {
-    resId: reservationId,
-    renterUid: r.renterUid,
-    itemOwnerUid: r.itemOwnerUid,
-    status: "booked",
-    createdAt: TS(),
-  });
-}
-
-trx.update(resRef, {
-  status: "paid",
-  paidAt: TS(),
-  stripePaymentIntentId: paymentIntentId ?? null,
-  updatedAt: TS(),
-});
-
+          for (const day of days) {
+            const dayRef = bookedCol.doc(day);
+            trx.set(dayRef, {
+              resId: reservationId,
+              renterUid: r.renterUid,
+              itemOwnerUid: r.itemOwnerUid,
+              status: "booked",
+              createdAt: TS(),
+            });
+          }
+          trx.update(resRef, {
+            status: "paid",
+            paidAt: TS(),
+            stripePaymentIntentId: paymentIntentId ?? null,
+            paymentMethodType: paymentMethodType,
+            updatedAt: TS(),
+          });
         });
       }
 
-      res.json({ received: true });
+      res.json({ received: true }); return;
     } catch (e: any) {
       console.error("[Webhook] Handler error:", e?.message, e);
       res.status(500).send("Webhook handler error");
@@ -501,15 +547,17 @@ trx.update(resRef, {
   }
 );
 
-
 // =====================================================
-// === Repasse 90% para o dono (após "Recebido!")     ===
+// === Repasse 90% para o dono (LEGADO)              ===
 // =====================================================
+// Mantenha apenas para reservas antigas feitas em "separate charges & transfers".
+// Para novas reservas (destination charges), NÃO usar.
 export const releasePayoutToOwner = onCall(
   { region: "southamerica-east1", secrets: ["STRIPE_SECRET_KEY"] },
   async ({ auth, data }) => {
     const uid = auth?.uid;
     if (!uid) throw new HttpsError("unauthenticated", "Faça login.");
+
     const { reservationId } = (data ?? {}) as { reservationId?: string };
     assertString(reservationId, "reservationId");
 
@@ -518,24 +566,12 @@ export const releasePayoutToOwner = onCall(
     if (!snap.exists) throw new HttpsError("not-found", "Reserva não encontrada.");
     const r = snap.data() as any;
 
-    if (r.itemOwnerUid !== uid) {
-      throw new HttpsError("permission-denied", "Somente o dono pode sacar.");
-    }
-    if (r.status === "paid_out") {
-      return { ok: true, alreadyPaidOut: true };
-    }
+    if (r.itemOwnerUid !== uid) throw new HttpsError("permission-denied", "Somente o dono pode sacar.");
+    if (r.status === "paid_out") return { ok: true, alreadyPaidOut: true };
 
-    // ✅ pronto para sacar se status já for picked_up
-    // ou se ainda estiver 'paid' mas com pickedUpAt marcado
-    const isReady = r.status === "picked_up" || (r.status === "paid" && !!r.pickedUpAt);
-    if (!isReady) {
-      throw new HttpsError(
-        "failed-precondition",
-        "Aguardando o locatário marcar 'Recebido!' antes do saque."
-      );
-    }
-    if (r.status !== "picked_up") {
-      throw new HttpsError("failed-precondition", "Saque disponível somente após o locatário marcar 'Recebido!'.");
+    // apenas se já retirado
+    if (!(r.status === "picked_up" || (r.status === "paid" && !!r.pickedUpAt))) {
+      throw new HttpsError("failed-precondition", "Aguardando o locatário marcar 'Recebido!'.");
     }
 
     const totalCents = Number(r.totalCents ?? 0);
@@ -547,37 +583,55 @@ export const releasePayoutToOwner = onCall(
     if (!ownerStripeAccountId) {
       const ownerSnap = await db.doc(`users/${r.itemOwnerUid}`).get();
       ownerStripeAccountId = ownerSnap.exists ? (ownerSnap.data() as any)?.stripeAccountId : undefined;
-      if (ownerStripeAccountId) {
-        await resRef.update({ ownerStripeAccountId, updatedAt: TS() });
-      }
+      if (ownerStripeAccountId) await resRef.update({ ownerStripeAccountId, updatedAt: TS() });
     }
-    if (!ownerStripeAccountId) {
-      throw new HttpsError("failed-precondition", "Crie/complete sua conta Stripe para sacar.");
-    }
-
-    const transferAmount = Math.floor(totalCents * 0.90);
-    const transferGroup = r.transferGroup || reservationId;
+    if (!ownerStripeAccountId) throw new HttpsError("failed-precondition", "Conecte sua conta Stripe para sacar.");
 
     const stripe = getStripe();
-    const transfer = await stripe.transfers.create({
-      amount: transferAmount,
-      currency: "BRL",
-      destination: ownerStripeAccountId!,
-      transfer_group: transferGroup,
-      metadata: { reservationId: String(reservationId), role: "owner_payout" },
-    });
+    const paymentIntentId: string | undefined =
+      r.stripePaymentIntentId || r.paymentIntentId || (typeof r.checkoutPaymentIntentId === "string" ? r.checkoutPaymentIntentId : undefined);
+    if (!paymentIntentId) throw new HttpsError("failed-precondition", "paymentIntentId ausente na reserva.");
 
-    await resRef.update({
-      ownerPayoutTransferId: transfer.id,
-      status: "paid_out",
-      paidOutAt: TS(),
-      updatedAt: TS(),
-    });
+    try {
+      const pi = await stripe.paymentIntents.retrieve(paymentIntentId);
+      const chargeId =
+        typeof pi.latest_charge === "string" ? pi.latest_charge : (pi.latest_charge as Stripe.Charge | null)?.id;
+      if (!chargeId) throw new HttpsError("failed-precondition", "Charge ainda não existe para este pagamento.");
 
-    return { ok: true, transferId: transfer.id, amount: transferAmount };
+      const charge = await stripe.charges.retrieve(chargeId);
+      const bt = await stripe.balanceTransactions.retrieve(charge.balance_transaction as string);
+      const availableOnMs = (bt.available_on || 0) * 1000;
+      if (Date.now() < availableOnMs) {
+        const when = new Date(availableOnMs).toISOString();
+        throw new HttpsError("failed-precondition", `Fundos ainda não disponíveis para transferência. Disponível em: ${when}`);
+      }
+
+      const platformFeeCents = Math.floor(totalCents * 0.10);
+      const transferAmount = totalCents - platformFeeCents;
+      if (transferAmount <= 0) throw new HttpsError("failed-precondition", "Valor de transferência <= 0");
+
+      const transfer = await stripe.transfers.create({
+        amount: transferAmount,
+        currency: "BRL",
+        destination: ownerStripeAccountId,
+        source_transaction: charge.id,
+        metadata: { reservationId: String(reservationId), role: "owner_payout_legacy" },
+      });
+
+      await resRef.update({
+        ownerPayoutTransferId: transfer.id,
+        status: "paid_out",
+        paidOutAt: TS(),
+        updatedAt: TS(),
+      });
+
+      return { ok: true, transferId: transfer.id, amount: transferAmount };
+    } catch (err: any) {
+      const msg = err?.raw?.message || err?.message || "Erro Stripe";
+      throw new HttpsError("failed-precondition", msg);
+    }
   }
 );
-
 
 // =====================================================
 // === Locatário marca "Recebido!" (picked_up)        ===
@@ -599,13 +653,11 @@ export const markPickup = onCall(
     if (r.renterUid !== uid) {
       throw new HttpsError("permission-denied", "Somente o locatário pode confirmar recebimento.");
     }
-    // permite repetir sem erro
     if (r.status === "picked_up") return { ok: true, already: true };
     if (r.status !== "paid") {
       throw new HttpsError("failed-precondition", "Reserva precisa estar 'paid' para marcar recebido.");
     }
 
-    // marca recebimento + vincula item
     await resRef.set(
       { status: "picked_up", pickedUpAt: TS(), pickedUpBy: uid, updatedAt: TS() },
       { merge: true }
@@ -619,82 +671,120 @@ export const markPickup = onCall(
   }
 );
 
-
-
 // =====================================================
-// === Stripe Express: link de login do dono          ===
-// =====================================================
-export const createExpressLoginLink = onCall(
-  { region: "southamerica-east1", secrets: ["STRIPE_SECRET_KEY"] },
-  async ({ auth }) => {
-    const uid = auth?.uid;
-    if (!uid) throw new HttpsError("unauthenticated", "Faça login.");
-
-    const userRef = db.doc(`users/${uid}`);
-    const snap = await userRef.get();
-    const acctId = snap.exists ? (snap.data() as any)?.stripeAccountId : undefined;
-    assertString(acctId, "stripeAccountId");
-
-    const stripe = getStripe();
-    const link = await stripe.accounts.createLoginLink(acctId);
-    return { url: link.url };
-  }
-);
-
-// =====================================================
-// === Confirmar devolução (dono)                     ===
+// === Confirmar devolução (sem foto)                 ===
 // =====================================================
 export const confirmReturn = onCall(
-  { region: "southamerica-east1", secrets: ["STRIPE_SECRET_KEY"] },
+  { region: "southamerica-east1" },
   async ({ auth, data }) => {
     const uid = auth?.uid;
     if (!uid) throw new HttpsError("unauthenticated", "Faça login.");
 
-    const { reservationId, photoUrl } = (data ?? {}) as { reservationId?: string; photoUrl?: string };
+    const { reservationId } = (data ?? {}) as { reservationId?: string };
     if (typeof reservationId !== "string" || !reservationId.trim()) {
       throw new HttpsError("invalid-argument", "reservationId inválido/ausente.");
     }
-    if (typeof photoUrl !== "string" || !photoUrl.trim()) {
-      throw new HttpsError("invalid-argument", "photoUrl inválido/ausente.");
-    }
 
     const resRef = db.doc(`reservations/${reservationId}`);
-    const resSnap = await resRef.get();
-    if (!resSnap.exists) throw new HttpsError("not-found", "Reserva não encontrada.");
-    const r = resSnap.data() as any;
+    const snap = await resRef.get();
+    if (!snap.exists) throw new HttpsError("not-found", "Reserva não encontrada.");
+    const r = snap.data() as any;
 
-    if (r.itemOwnerUid !== uid) throw new HttpsError("permission-denied", "Somente o dono pode confirmar devolução.");
-    if (!(r.status === "paid_out" || (r.status === "paid" && r.pickedUpAt))) {
-      throw new HttpsError("failed-precondition", "Reserve precisa estar 'paid_out' ou ter sido retirada.");
+    if (r.itemOwnerUid !== uid) {
+      throw new HttpsError("permission-denied", "Somente o dono pode confirmar devolução.");
+    }
+    if (!(r.status === "picked_up" || r.status === "paid_out")) {
+      throw new HttpsError("failed-precondition", "Reserva precisa estar 'picked_up' ou 'paid_out'.");
     }
 
     const itemRef = db.doc(`items/${r.itemId}`);
 
     await db.runTransaction(async (trx) => {
-      const itemSnap = await trx.get(itemRef);
-      const old = itemSnap.exists ? (itemSnap.data() as any) : {};
-      const oldPhotos: string[] = Array.isArray(old.photos) ? old.photos : [];
-      const newPhotos = [photoUrl, ...oldPhotos.filter((p) => p && p !== photoUrl)].slice(0, 10);
-
+      // libera o item
       trx.set(
         itemRef,
-        { photos: newPhotos, currentReservationId: null, lastReturnedAt: TS(), updatedAt: TS() },
+        { currentReservationId: null, lastReturnedAt: TS(), updatedAt: TS() },
         { merge: true }
       );
 
+      // marca devolvido e libera reviews para o locatário
       trx.update(resRef, {
         status: "returned",
         returnedAt: TS(),
-        returnPhotoUrl: photoUrl,
         reviewsOpen: {
           renterCanReviewOwner: true,
-          ownerCanReviewRenter: true,
           renterCanReviewItem: true,
+          ownerCanReviewRenter: false, // deixe true se quiser que o dono avalie o locatário
         },
         updatedAt: TS(),
       });
     });
 
     return { ok: true };
+  }
+);
+
+// =====================================================
+// === Trigger: agregação ao criar review de item     ===
+// =====================================================
+export const onItemReviewCreated = onDocumentCreated(
+  {
+    region: "southamerica-east1",
+    document: "items/{itemId}/reviews/{revId}",
+  },
+  async (event) => {
+    const snap = event.data;
+    if (!snap) return;
+
+    const rev = snap.data() as any;
+    const { itemId, revId } = event.params as any;
+
+    const rating = Number(rev?.rating) || 0;
+    const ownerUid = String(rev?.itemOwnerUid || "");
+    const renterUid = String(rev?.renterUid || "");
+    const reservationId = String(rev?.reservationId || revId || "");
+    if (!itemId || !rating || !ownerUid || !reservationId) return;
+
+    await db.runTransaction(async (trx) => {
+      // ---- ITEM: média e contagem
+      const itemRef = db.doc(`items/${itemId}`);
+      const itemSnap = await trx.get(itemRef);
+      const item = itemSnap.exists ? (itemSnap.data() as any) : {};
+      const ic = Number(item.ratingCount || 0) + 1;
+      const is = Number(item.ratingSum || 0) + rating;
+      const ia = Math.round((is / ic) * 10) / 10;
+      trx.set(
+        itemRef,
+        { ratingCount: ic, ratingSum: is, ratingAvg: ia, lastReviewAt: TS() },
+        { merge: true }
+      );
+
+      // ---- DONO (locador): média e contagem (sem comentários)
+      const userRef = db.doc(`users/${ownerUid}`);
+      const userSnap = await trx.get(userRef);
+      const u = userSnap.exists ? (userSnap.data() as any) : {};
+      const uc = Number(u.ratingCount || 0) + 1;
+      const us = Number(u.ratingSum || 0) + rating;
+      const ua = Math.round((us / uc) * 10) / 10;
+      trx.set(
+        userRef,
+        { ratingCount: uc, ratingSum: us, ratingAvg: ua, updatedAt: TS() },
+        { merge: true }
+      );
+
+      // ---- Registro curto no perfil do dono (sem comentário)
+      const shortRef = db.doc(`users/${ownerUid}/ratingsReceived/${reservationId}`);
+      trx.set(
+        shortRef,
+        {
+          rating,
+          reservationId,
+          itemId,
+          renterUid,
+          createdAt: TS(),
+        },
+        { merge: false }
+      );
+    });
   }
 );

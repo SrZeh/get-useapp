@@ -4,6 +4,10 @@ import { ThemedView } from "@/components/themed-view";
 import { auth, db } from "@/lib/firebase";
 import { router } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
+// + NOVOS IMPORTS
+import * as ImagePicker from "expo-image-picker";
+import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage";
+
 import {
   collection,
   deleteDoc,
@@ -32,6 +36,56 @@ async function callFn<TReq, TRes>(name: string, data: TReq): Promise<TRes> {
   return res.data;
 }
 
+// --- helpers novos ---
+// Mostra a mensagem de previsão de depósito conforme o método (usa campo salvo pelo webhook)
+function depositMessage(paymentMethodType?: string | null) {
+  if (paymentMethodType === "pix" || paymentMethodType === "boleto") {
+    return "Depósito automático em até 2 dias úteis pela Stripe.";
+  }
+  if (paymentMethodType === "card") {
+    return "Depósito automático em até 30 dias (cartão BR) pela Stripe.";
+  }
+  return "Depósito automático conforme regras do método de pagamento.";
+}
+
+// Garante onboarding do dono (abre o fluxo se faltar). Retorna true se já estiver ok.
+async function ensureOwnerOnboarded(): Promise<boolean> {
+  const st = await callFn<{}, { hasAccount: boolean; charges_enabled: boolean; payouts_enabled: boolean }>("getAccountStatus", {});
+  if (!st?.hasAccount || !st?.charges_enabled || !st?.payouts_enabled) {
+    const { url } = await callFn<{ refreshUrl: string; returnUrl: string }, { url: string }>("createAccountLink", {
+      // pode apontar para sua tela/sucesso local
+      refreshUrl: "http://localhost:8081/",
+      returnUrl: "http://localhost:8081/",
+    });
+    await WebBrowser.openBrowserAsync(url);
+    return false;
+  }
+  return true;
+}
+
+// Pede uma foto com ImagePicker, sobe no Storage e devolve URL pública
+async function pickAndUploadReturnPhoto(reservationId: string): Promise<string | null> {
+  const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+  if (perm.status !== "granted") {
+    Alert.alert("Permissão", "Precisamos de acesso à galeria para enviar a foto.");
+    return null;
+  }
+  const pick = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, quality: 0.8 });
+  if (pick.canceled || !pick.assets?.length) return null;
+
+  const uri = pick.assets[0].uri;
+  const resp = await fetch(uri);
+  const blob = await resp.blob();
+
+  const storage = getStorage();
+  const path = `returns/${reservationId}/${Date.now()}.jpg`;
+  const ref = storageRef(storage, path);
+  await uploadBytes(ref, blob, { contentType: "image/jpeg" });
+  const url = await getDownloadURL(ref);
+  return url;
+}
+
+
 // ---------- tipos ----------
 type Res = {
   id: string;
@@ -53,6 +107,7 @@ type Res = {
   itemOwnerUid?: string;
   createdAt?: any;
   paidAt?: any;
+  paymentMethodType?: string | null; 
   pickedUpAt?: any;
 };
 
@@ -119,8 +174,7 @@ function OwnerInbox() {
   const uid = auth.currentUser?.uid ?? "";
   const [rows, setRows] = useState<Res[]>([]);
   const [busyId, setBusyId] = useState<string | null>(null);
-  const [busyLogin, setBusyLogin] = useState(false);
-  const [busyPayoutId, setBusyPayoutId] = useState<string | null>(null);
+  const [busyAction, setBusyAction] = useState<string | null>(null);
 
   useEffect(() => {
     if (!uid) return;
@@ -189,30 +243,46 @@ function OwnerInbox() {
     }
   };
 
-  // abre painel Express do dono
-  async function openStripeDashboard() {
+  // Onboarding para receber (dono)
+  async function syncStripe() {
     try {
-      setBusyLogin(true);
-      const { url } = await callFn<{}, { url: string }>("createExpressLoginLink", {});
-      await WebBrowser.openBrowserAsync(url);
+      setBusyAction("sync");
+      const st = await callFn<{}, { hasAccount: boolean; charges_enabled: boolean; payouts_enabled: boolean }>("getAccountStatus", {});
+      if (!st?.hasAccount || !st?.charges_enabled || !st?.payouts_enabled) {
+        const { url } = await callFn<{ refreshUrl: string; returnUrl: string }, { url: string }>("createAccountLink", {
+          refreshUrl: "http://localhost:8081/",
+          returnUrl: "http://localhost:8081/",
+        });
+        await WebBrowser.openBrowserAsync(url);
+      } else {
+        Alert.alert("Stripe", "Conta já pronta para receber.");
+      }
     } catch (e: any) {
       Alert.alert("Stripe", e?.message ?? String(e));
     } finally {
-      setBusyLogin(false);
+      setBusyAction(null);
     }
   }
 
-  async function payout(reservationId: string) {
+  // Confirmar devolução (sem foto)
+  async function confirmReturn(reservationId: string) {
     try {
-      setBusyPayoutId(reservationId);
-      await callFn<{ reservationId: string }, any>("releasePayoutToOwner", { reservationId });
-      Alert.alert("Saque solicitado", "Transferência enviada pela Stripe.");
+      setBusyAction(`return:${reservationId}`);
+      await callFn<{ reservationId: string }, any>("confirmReturn", { reservationId });
+      Alert.alert("Devolução", "Devolução confirmada. Avaliações liberadas para o locatário.");
     } catch (e: any) {
-      Alert.alert("Não foi possível sacar", e?.message ?? String(e));
+      Alert.alert("Devolução", e?.message ?? "Falha ao confirmar devolução.");
     } finally {
-      setBusyPayoutId(null);
+      setBusyAction(null);
     }
   }
+
+  const noteDeposit = (r: Res) => {
+    const t = (r as any).paymentMethodType as string | undefined;
+    if (t === "pix" || t === "boleto") return "Depósito automático em até 2 dias úteis pela Stripe.";
+    if (t === "card") return "Depósito automático em até 30 dias (cartão BR).";
+    return "Depósito automático conforme o método de pagamento.";
+  };
 
   const btn = (label: string, onPress: () => void, disabled?: boolean) => (
     <TouchableOpacity
@@ -244,45 +314,41 @@ function OwnerInbox() {
               r.status === "requested" ? (
                 <View style={{ gap: 12 }}>
                   <View style={{ flexDirection: "row", gap: 16 }}>
-                    {btn(
-                      busyId === r.id ? "..." : "Aceitar",
-                      () => accept(r.id),
-                      busyId === r.id
-                    )}
-                    {btn(
-                      busyId === r.id ? "..." : "Recusar",
-                      () => reject(r.id),
-                      busyId === r.id
-                    )}
+                    {btn(busyId === r.id ? "..." : "Aceitar", () => accept(r.id), busyId === r.id)}
+                    {btn(busyId === r.id ? "..." : "Recusar", () => reject(r.id), busyId === r.id)}
                   </View>
-                  {btn(
-                    busyId === r.id ? "..." : "Excluir reserva",
-                    () => removeReq(r.id),
-                    busyId === r.id
-                  )}
+                  {btn(busyId === r.id ? "..." : "Excluir reserva", () => removeReq(r.id), busyId === r.id)}
                 </View>
               ) : r.status === "accepted" ? (
-                <ThemedText>Esperando pagamento na plataforma…</ThemedText>
+                <View style={{ gap: 8 }}>
+                  {btn(busyAction === "sync" ? "Verificando..." : "Sincronizar conta Stripe para receber", syncStripe, busyAction === "sync")}
+                  <ThemedText style={{ fontSize: 12, opacity: 0.7 }}>{noteDeposit(r)}</ThemedText>
+                </View>
               ) : r.status === "paid" ? (
-                <ThemedText>Pago 💙 — aguardando o locatário marcar "Recebido!".</ThemedText>
+                <View style={{ gap: 8 }}>
+                  <ThemedText>Pago 💙 — aguardando o locatário marcar "Recebido!".</ThemedText>
+                  <ThemedText style={{ fontSize: 12, opacity: 0.7 }}>{noteDeposit(r)}</ThemedText>
+                </View>
               ) : r.status === "picked_up" ? (
-                <View style={{ gap: 12 }}>
+                <View style={{ gap: 8 }}>
                   {btn(
-                    busyPayoutId === r.id ? "..." : "Sacar 90%",
-                    () => payout(r.id),
-                    busyPayoutId === r.id
+                    busyAction === `return:${r.id}` ? "Confirmando..." : "Confirmar devolução",
+                    () => confirmReturn(r.id),
+                    busyAction === `return:${r.id}`
                   )}
-                  {btn(busyLogin ? "..." : "Abrir Stripe", () => openStripeDashboard(), busyLogin)}
                 </View>
               ) : r.status === "paid_out" ? (
                 <View style={{ gap: 8 }}>
-                  <ThemedText>Pago ao dono ✅</ThemedText>
-                  {btn(busyLogin ? "..." : "Abrir Stripe", () => openStripeDashboard(), busyLogin)}
+                  <ThemedText>Repasse ao dono concluído ✅</ThemedText>
+                  {btn(
+                    busyAction === `return:${r.id}` ? "Confirmando..." : "Confirmar devolução",
+                    () => confirmReturn(r.id),
+                    busyAction === `return:${r.id}`
+                  )}
                 </View>
               ) : r.status === "returned" ? (
                 <View style={{ gap: 8 }}>
                   <ThemedText>Devolvido ✅ — avaliações liberadas.</ThemedText>
-                  {btn(busyLogin ? "..." : "Abrir Stripe", () => openStripeDashboard(), busyLogin)}
                 </View>
               ) : null
             }
@@ -292,6 +358,8 @@ function OwnerInbox() {
     </ScrollView>
   );
 }
+
+
 
 // ---------- Aba do LOCATÁRIO ----------
 function MyReservations() {
@@ -333,7 +401,7 @@ function MyReservations() {
     try {
       setBusyPickId(reservationId);
       await callFn<{ reservationId: string }, any>("markPickup", { reservationId });
-      Alert.alert("Recebido!", "Agora o dono já pode sacar os 90%.");
+      Alert.alert("Recebido!", "Após o uso, lembre-se de devolver o item no prazo e avaliar, avaliações tornam nossa comunidade segura e confiável!");
     } catch (e: any) {
       Alert.alert("Não foi possível marcar", e?.message ?? String(e));
     } finally {
@@ -368,37 +436,39 @@ function MyReservations() {
           <Card
             key={r.id}
             r={r}
-            actions={
-              r.status === "accepted" && !r.paidAt ? (
-                btn("Pagar", () =>
-                  router.push({ pathname: "/transaction/[id]/pay", params: { id: r.id } as any })
-                )
-              ) : r.status === "paid" ? (
-                btn(
-                  busyPickId === r.id ? "..." : "Recebido!",
-                  
-                  () => markReceived(r.id),
-                  busyPickId === r.id
-                 
+        actions={
+  r.status === "accepted" && !r.paidAt ? (
+    btn("Pagar", () =>
+      router.push({ pathname: "/transaction/[id]/pay", params: { id: r.id } as any })
+    )
+  ) : r.status === "paid" ? (
+    btn(
+      busyPickId === r.id ? "..." : "Recebido!",
+      () => markReceived(r.id),
+      busyPickId === r.id
+    )
+  ) : r.status === "rejected" ? (
+    <View style={{ gap: 8 }}>
+      <ThemedText style={{ color: "#ef4444" }}>Seu pedido foi recusado</ThemedText>
+      {btn("Excluir", () => removeMine(r.id, r.status))}
+    </View>
+  ) : ["requested", "canceled"].includes(r.status) ? (
+    btn("Excluir", () => removeMine(r.id, r.status))
+  ) : r.status === "picked_up" ? (
+    <ThemedText style={{ fontSize: 12, opacity: 0.7 }}>
+      Obrigado! A devolução agora pode ser confirmada pelo dono.
+    </ThemedText>
+  ) : r.status === "returned" && ((r as any).reviewsOpen?.renterCanReviewOwner ?? true) ? (
+    btn("Avaliar experiência", () =>
+      router.push({ pathname: "/review/[transactionId]", params: { transactionId: r.id } as any })
+    )
+  ) : r.status === "paid_out" ? (
+    <ThemedText type="defaultSemiBold">Pagamento repassado ao dono ✅</ThemedText>
+  ) : null
+}
 
-                )
-              ) : r.status === "rejected" ? (
-                <View style={{ gap: 8 }}>
-                  <ThemedText style={{ color: "#ef4444" }}>Seu pedido foi recusado</ThemedText>
-                  {btn("Excluir", () => removeMine(r.id, r.status))}
-                </View>
-              ) : ["requested", "canceled"].includes(r.status) ? (
-                btn("Excluir", () => removeMine(r.id, r.status))
-                ) : r.status === "picked_up" ? (
-                <TouchableOpacity
-                  onPress={() => callFn<{reservationId:string}, any>("releasePayoutToOwner", { reservationId: r.id })}
-                >
-                  <ThemedText type="defaultSemiBold">Sacar</ThemedText>
-                </TouchableOpacity>
-              ) : r.status === "paid_out" ? (
-                <ThemedText type="defaultSemiBold">Já sacado</ThemedText>
-              ) : null
-            }
+
+
           />
         ))
       )}
