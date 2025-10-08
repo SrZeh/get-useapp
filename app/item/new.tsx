@@ -1,3 +1,4 @@
+// app/item/new.tsx
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { auth, db, storage } from "@/lib/firebase";
@@ -18,6 +19,7 @@ import {
   TouchableOpacity,
   View,
   useColorScheme,
+  Switch,
 } from "react-native";
 
 const CATEGORIES = [
@@ -61,6 +63,8 @@ export default function NewItemScreen() {
   const [condition, setCondition] = useState<string>("Usado");
   const [minRentalDays, setMinRentalDays] = useState("1");
   const [dailyRate, setDailyRate] = useState("");
+  const [isFree, setIsFree] = useState(false);
+
 
   // novos
   const [city, setCity] = useState("");
@@ -141,10 +145,15 @@ export default function NewItemScreen() {
       Alert.alert("Valor inválido", "Dias mínimos deve ser maior que 0.");
       return;
     }
-    const rate = dailyRate.trim() ? Number(dailyRate.replace(",", ".")) : NaN;
-    if (!Number.isFinite(rate) || rate <= 0) {
-      Alert.alert("Valor inválido", "Informe a diária do item (número maior que 0).");
-      return;
+
+    let rate = 0;
+    if (!isFree) {
+      const parsed = dailyRate.trim() ? Number(dailyRate.replace(",", ".")) : NaN;
+      if (!Number.isFinite(parsed) || parsed <= 0) {
+        Alert.alert("Valor inválido", "Informe a diária (maior que 0) ou marque Grátis.");
+        return;
+      }
+      rate = parsed;
     }
 
     setSaving(true);
@@ -179,6 +188,7 @@ export default function NewItemScreen() {
         condition: normalize(condition),
         minRentalDays: days,
         dailyRate: rate,
+        isFree,
         photos: photoUrl ? [photoUrl] : [],
         available: true,
 
@@ -288,14 +298,21 @@ export default function NewItemScreen() {
             />
 
             {/* Diária do item */}
-            <TextInput
-              placeholder="Valor da diária (ex.: 25,00)"
-              placeholderTextColor={placeholderColor}
-              value={dailyRate}
-              onChangeText={setDailyRate}
-              keyboardType={Platform.OS === "ios" ? "decimal-pad" : "numeric"}
-              style={textInputBase}
-            />
+            {!isFree && (
+              <TextInput
+                placeholder="Valor da diária (ex.: 25,00)"
+                placeholderTextColor={placeholderColor}
+                value={dailyRate}
+                onChangeText={setDailyRate}
+                keyboardType={Platform.OS === "ios" ? "decimal-pad" : "numeric"}
+                style={textInputBase}
+              />
+            )}
+
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+              <Switch value={isFree} onValueChange={setIsFree} />
+              <ThemedText>Emprestar de graça</ThemedText>
+            </View>
 
             {/* Cidade / Bairro */}
             <TextInput

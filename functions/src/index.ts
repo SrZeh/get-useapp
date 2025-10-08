@@ -636,40 +636,93 @@ export const releasePayoutToOwner = onCall(
 // =====================================================
 // === Locatário marca "Recebido!" (picked_up)        ===
 // =====================================================
-export const markPickup = onCall(
-  { region: "southamerica-east1" },
-  async ({ auth, data }) => {
-    const uid = auth?.uid;
-    if (!uid) throw new HttpsError("unauthenticated", "Faça login.");
+export const markPickup = onCall({ region: "southamerica-east1" }, async ({ auth, data }) => {
+  const uid = auth?.uid;
+  if (!uid) throw new HttpsError("unauthenticated", "Faça login.");
 
-    const { reservationId } = (data ?? {}) as { reservationId?: string };
-    assertString(reservationId, "reservationId");
+  const { reservationId } = (data ?? {}) as { reservationId?: string };
+  assertString(reservationId, "reservationId");
 
-    const resRef = db.doc(`reservations/${reservationId}`);
-    const snap = await resRef.get();
-    if (!snap.exists) throw new HttpsError("not-found", "Reserva não encontrada.");
-    const r = snap.data() as any;
+  const resRef = db.doc(`reservations/${reservationId}`);
+  const snap = await resRef.get();
+  if (!snap.exists) throw new HttpsError("not-found", "Reserva não encontrada.");
+  const r = snap.data() as any;
 
-    if (r.renterUid !== uid) {
-      throw new HttpsError("permission-denied", "Somente o locatário pode confirmar recebimento.");
-    }
-    if (r.status === "picked_up") return { ok: true, already: true };
-    if (r.status !== "paid") {
-      throw new HttpsError("failed-precondition", "Reserva precisa estar 'paid' para marcar recebido.");
-    }
-
-    await resRef.set(
-      { status: "picked_up", pickedUpAt: TS(), pickedUpBy: uid, updatedAt: TS() },
-      { merge: true }
-    );
-    await db.doc(`items/${r.itemId}`).set(
-      { currentReservationId: reservationId, lastPickedUpAt: TS(), updatedAt: TS() },
-      { merge: true }
-    );
-
-    return { ok: true };
+  if (r.renterUid !== uid) {
+    throw new HttpsError("permission-denied", "Somente o locatário pode confirmar recebimento.");
   }
-);
+  if (r.status === "picked_up") return { ok: true, already: true };
+
+  // ===== Fluxo GRÁTIS =====
+  if (r.isFree === true) {
+    if (r.status !== "accepted") {
+      throw new HttpsError("failed-precondition", "Reserva (grátis) precisa estar 'accepted'.");
+    }
+
+    assertString(r.itemId, "itemId");
+    assertISODate(r.startDate, "startDate");
+    assertISODate(r.endDate, "endDate");
+
+    const days = eachDateKeysExclusive(r.startDate, r.endDate);
+    const bookedCol = db.collection("items").doc(r.itemId).collection("bookedDays");
+
+    await db.runTransaction(async (trx) => {
+      // checa conflito
+      for (const d of days) {
+        const dRef = bookedCol.doc(d);
+        const dSnap = await trx.get(dRef);
+        if (dSnap.exists) {
+          const curr = dSnap.data();
+          if (curr?.resId && curr.resId !== reservationId) {
+            throw new HttpsError("already-exists", `Conflito no dia ${d}`);
+          }
+        }
+      }
+      // bloqueia dias
+      for (const d of days) {
+        trx.set(bookedCol.doc(d), {
+          resId: reservationId,
+          renterUid: r.renterUid,
+          itemOwnerUid: r.itemOwnerUid,
+          status: "booked",
+          createdAt: TS(),
+        });
+      }
+      // marca pickup
+      trx.update(resRef, {
+        status: "picked_up",
+        pickedUpAt: TS(),
+        pickedUpBy: uid,
+        updatedAt: TS(),
+      });
+      // marca no item
+      trx.set(
+        db.doc(`items/${r.itemId}`),
+        { currentReservationId: reservationId, lastPickedUpAt: TS(), updatedAt: TS() },
+        { merge: true }
+      );
+    });
+
+    return { ok: true, flow: "free", blockedDays: days.length };
+  }
+
+  // ===== Fluxo PAGO (original) =====
+  if (r.status !== "paid") {
+    throw new HttpsError("failed-precondition", "Reserva precisa estar 'paid' para marcar recebido.");
+  }
+
+  await resRef.set(
+    { status: "picked_up", pickedUpAt: TS(), pickedUpBy: uid, updatedAt: TS() },
+    { merge: true }
+  );
+  await db.doc(`items/${r.itemId}`).set(
+    { currentReservationId: reservationId, lastPickedUpAt: TS(), updatedAt: TS() },
+    { merge: true }
+  );
+
+  return { ok: true, flow: "paid" };
+});
+
 
 // =====================================================
 // === Confirmar devolução (sem foto)                 ===

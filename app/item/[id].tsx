@@ -49,6 +49,7 @@ type Item = {
   ratingSum?: number;
   ownerRatingCount?: number;
   ownerRatingSum?: number;
+  isFree?: boolean; 
 };
 
 type Review = {
@@ -257,7 +258,7 @@ export default function ItemDetailScreen() {
   const endExclusive = endISOInc ? nextDay(endISOInc) : null;
   const daysCount = startISO && endExclusive ? diffDaysExclusive(startISO, endExclusive) : 0;
   const minDays = item?.minRentalDays ?? 1;
-  const rate = item?.dailyRate ?? 0;
+  const rate = item?.isFree ? 0 : (item?.dailyRate ?? 0);  
   const total = daysCount > 0 ? rate * daysCount : 0;
 
   // estrelas
@@ -345,6 +346,7 @@ export default function ItemDetailScreen() {
         endDate: endExclusive,             // exclusivo (check-out)
         days: daysCount,
         total: total,
+        isFree: !!item.isFree,
         status: "requested",               // exigido pelas regras
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
@@ -446,6 +448,9 @@ export default function ItemDetailScreen() {
               </ThemedText>
               <ThemedText>
                 Dias: {daysCount} {daysCount === 1 ? "dia" : "dias"} {item.minRentalDays ? `(mín: ${minDays})` : ""}
+              </ThemedText>
+              <ThemedText type="defaultSemiBold" style={{ marginTop: 8 }}>
+                {item.isFree ? "Grátis" : `${item.dailyRate != null ? `R$ ${item.dailyRate}` : "—"} / dia`}
               </ThemedText>
               <ThemedText>Diária: {item.dailyRate != null ? `R$ ${item.dailyRate}` : "—"}</ThemedText>
               <ThemedText type="defaultSemiBold">Total: {total ? `R$ ${total}` : "—"}</ThemedText>
