@@ -9,6 +9,9 @@ import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAuth } from "@/src/providers/AuthProvider";
 
+// 👉 importa o provider dos coachmarks
+import { CoachmarksProvider } from "@/providers/CoachmarksProvider";
+
 export default function TabLayout() {
   const scheme = useColorScheme() ?? "light";
   const palette = Colors[scheme];
@@ -17,60 +20,60 @@ export default function TabLayout() {
   const showTabs = !!user;
 
   return (
-    <Tabs
-      initialRouteName="index"
-      screenOptions={{
-        headerShown: true,
-        headerTitleAlign: "left",
-        headerRight: () => <AuthHeaderRight />,
-        headerStyle: { backgroundColor: palette.background },
-        headerTintColor: palette.text,
-        headerTitleStyle: { color: palette.text },
+    // 👉 envolve as Tabs com o provider
+    <CoachmarksProvider>
+      <Tabs
+        initialRouteName="index"
+        screenOptions={{
+          headerShown: true,
+          headerTitleAlign: "left",
+          headerRight: () => <AuthHeaderRight />,
+          headerStyle: { backgroundColor: palette.background },
+          headerTintColor: palette.text,
+          headerTitleStyle: { color: palette.text },
 
-        tabBarActiveTintColor: tint,
-        tabBarInactiveTintColor: palette.tabIconDefault,
-        tabBarStyle: {
-          backgroundColor: palette.background,
-          borderTopColor: "transparent",
-          display: showTabs ? "flex" : "none",
-        },
-        tabBarButton: HapticTab,
-      }}
-    >
-      
-
-      <Tabs.Screen
-        name="items"
-        options={{
-          title: "Meus Itens",
-          tabBarIcon: ({ color }) => (
-            <IconSymbol size={28} name="shippingbox.fill" color={color} />
-          ),
-          // evita botão quando deslogado
-          tabBarButton: (props) => (showTabs ? <HapticTab {...props} /> : null),
+          tabBarActiveTintColor: tint,
+          tabBarInactiveTintColor: palette.tabIconDefault,
+          tabBarStyle: {
+            backgroundColor: palette.background,
+            borderTopColor: "transparent",
+            display: showTabs ? "flex" : "none",
+          },
+          tabBarButton: HapticTab,
         }}
-      />
+      >
+        <Tabs.Screen
+          name="items"
+          options={{
+            title: "Meus Itens",
+            tabBarIcon: ({ color }) => (
+              <IconSymbol size={28} name="shippingbox.fill" color={color} />
+            ),
+            tabBarButton: (props) => (showTabs ? <HapticTab {...props} /> : null),
+          }}
+        />
 
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: "Get & Use",
-          tabBarIcon: ({ color }) => (
-            <IconSymbol size={28} name="house.fill" color={color} />
-          ),
-        }}
-      />
+        <Tabs.Screen
+          name="index"
+          options={{
+            title: "Get & Use",
+            tabBarIcon: ({ color }) => (
+              <IconSymbol size={28} name="house.fill" color={color} />
+            ),
+          }}
+        />
 
-      <Tabs.Screen
-        name="transactions"
-        options={{
-          title: "Transações",
-          tabBarIcon: ({ color }) => (
-            <IconSymbol size={28} name="arrow.2.squarepath" color={color} />
-          ),
-          tabBarButton: (props) => (showTabs ? <HapticTab {...props} /> : null),
-        }}
-      />
-    </Tabs>
+        <Tabs.Screen
+          name="transactions"
+          options={{
+            title: "Transações",
+            tabBarIcon: ({ color }) => (
+              <IconSymbol size={28} name="arrow.2.squarepath" color={color} />
+            ),
+            tabBarButton: (props) => (showTabs ? <HapticTab {...props} /> : null),
+          }}
+        />
+      </Tabs>
+    </CoachmarksProvider>
   );
 }

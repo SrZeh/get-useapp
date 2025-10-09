@@ -1,9 +1,8 @@
 // lib/firebase.ts
 import { getApp, getApps, initializeApp } from "firebase/app";
-import { getAuth, initializeAuth, type Auth } from "firebase/auth";
-import { getFirestore, initializeFirestore, type Firestore } from "firebase/firestore";
+import { getAuth, type Auth } from "firebase/auth";
+import { initializeFirestore, setLogLevel, type Firestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
-import { Platform } from "react-native";
 
 const firebaseConfig = {
   apiKey: "AIzaSyDgl2Bpk86KmwKvs_z83p5ZADlBaz9LwRk",
@@ -15,38 +14,28 @@ const firebaseConfig = {
   measurementId: "G-X8P30NJSGN",
 };
 
-const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
+export const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 
-// ---------- AUTH (Web vs Nativo) ----------
-export const auth: Auth = (() => {
-  if (Platform.OS === "web") return getAuth(app);
-  const { getReactNativePersistence } = require("firebase/auth");
-  const AsyncStorage = require("@react-native-async-storage/async-storage").default;
-  try {
-    return initializeAuth(app, { persistence: getReactNativePersistence(AsyncStorage) });
-  } catch {
-    return getAuth(app);
-  }
-})();
+// AUTH — simples e compatível com sua versão (sem react-native submódulo)
+export const auth: Auth = getAuth(app);
 
-// ---------- FIRESTORE (usar banco nomeado: appdb) ----------
+// FIRESTORE — RN/Expo: long-polling para acabar com “Write stream transport errored”
 export const db: Firestore = (() => {
   try {
-    // 1ª chamada com settings (força long polling no RN) + databaseId "appdb"
-    return initializeFirestore(
-      app,
-      { experimentalForceLongPolling: true },
-      "appdb"
-    );
+    return initializeFirestore(app, {
+      experimentalAutoDetectLongPolling: true,
+      // Se ainda spammar, troque pela linha abaixo:
+      // experimentalForceLongPolling: true,
+    });
   } catch (e) {
-    console.warn("initializeFirestore falhou, tentando getFirestore:", e);
-    // fallback também apontando para "appdb"
-    return getFirestore(app, "appdb");
+    console.warn("initializeFirestore falhou, reutilizando instância existente:", e);
+    const { getFirestore } = require("firebase/firestore");
+    return getFirestore(app);
   }
 })();
 
-// ---------- STORAGE ----------
-export const storage = getStorage(app);
+// (opcional) reduzir ruído do console
+setLogLevel("error");
 
-// (opcional p/ checar em runtime)
-// console.log("[client Firestore DB]", (db as any)?._databaseId?.database ?? "(default)");
+// STORAGE
+export const storage = getStorage(app);
