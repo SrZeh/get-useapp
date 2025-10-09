@@ -4,6 +4,8 @@ import { ThemedView } from "@/components/themed-view";
 import { auth, db } from "@/lib/firebase";
 import { router } from "expo-router";
 import type { DocumentSnapshot } from "firebase/firestore";
+import { useOnboardingVisibility } from "@/hooks/useOnboarding";
+import { OnboardingModal } from "@/components/onboarding/OnboardingModal";
 import {
   collection,
   getDocs,
@@ -90,6 +92,8 @@ export default function VitrineScreen() {
   const lastDocRef = useRef<DocumentSnapshot | null>(null);
   const isFetchingRef = useRef(false);
 
+  
+
   const inputStyle = useMemo(
     () => ({
       borderWidth: 1, borderRadius: 10, padding: 12, fontSize: 16,
@@ -99,6 +103,9 @@ export default function VitrineScreen() {
     }),
     [isDark]
   );
+
+  const { visible: showOnboarding, loading: onboardingLoading, markSeen } = useOnboardingVisibility();
+
   const placeholderColor = isDark ? "#9aa0a6" : "#6b7280";
 
   // -------- Query da vitrine (publicados) --------
@@ -414,6 +421,10 @@ export default function VitrineScreen() {
           }
           showsVerticalScrollIndicator={false}
         />
+        {showOnboarding && (
+          <OnboardingModal visible={true} onClose={(opts) => markSeen(opts)} />
+        )}
+
       </ThemedView>
     </KeyboardAvoidingView>
   );

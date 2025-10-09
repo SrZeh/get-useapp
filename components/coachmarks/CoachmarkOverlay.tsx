@@ -1,10 +1,10 @@
 // =====================================
 // File: components/coachmarks/CoachmarkOverlay.tsx
 // =====================================
-import React, { useMemo } from "react";
-import { Dimensions, Modal, Pressable, StyleSheet, View } from "react-native";
 import { ThemedText } from "@/components/themed-text";
 import { useCoachmarksContext } from "@/providers/CoachmarksProvider";
+import React, { useMemo } from "react";
+import { Dimensions, Modal, Pressable, StyleSheet, View } from "react-native";
 
 export function CoachmarkOverlay() {
 const { visible, rect, step, next } = useCoachmarksContext();

@@ -1,8 +1,16 @@
 // lib/firebase.ts
 import { getApp, getApps, initializeApp } from "firebase/app";
 import { getAuth, type Auth } from "firebase/auth";
-import { initializeFirestore, setLogLevel, type Firestore } from "firebase/firestore";
+import { getFirestore } from "firebase/firestore";
+import {
+  initializeFirestore,
+  setLogLevel,
+  type Firestore,
+} from "firebase/firestore";
 import { getStorage } from "firebase/storage";
+import { Platform } from "react-native";
+
+
 
 const firebaseConfig = {
   apiKey: "AIzaSyDgl2Bpk86KmwKvs_z83p5ZADlBaz9LwRk",
@@ -14,27 +22,20 @@ const firebaseConfig = {
   measurementId: "G-X8P30NJSGN",
 };
 
+
+
 export const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 
-// AUTH — simples e compatível com sua versão (sem react-native submódulo)
+// AUTH
 export const auth: Auth = getAuth(app);
 
-// FIRESTORE — RN/Expo: long-polling para acabar com “Write stream transport errored”
-export const db: Firestore = (() => {
-  try {
-    return initializeFirestore(app, {
-      experimentalAutoDetectLongPolling: true,
-      // Se ainda spammar, troque pela linha abaixo:
-      // experimentalForceLongPolling: true,
-    });
-  } catch (e) {
-    console.warn("initializeFirestore falhou, reutilizando instância existente:", e);
-    const { getFirestore } = require("firebase/firestore");
-    return getFirestore(app);
-  }
-})();
+// FIRESTORE — agora no DB nomeado "appdb"
+export const db: Firestore =
+  Platform.OS === "web"
+    ? getFirestore(app, "appdb") // ⬅️ web usa getFirestore no banco nomeado
+    : initializeFirestore(app, { experimentalAutoDetectLongPolling: true }, "appdb");
 
-// (opcional) reduzir ruído do console
+// menos ruído
 setLogLevel("error");
 
 // STORAGE

@@ -1,14 +1,14 @@
 // app/_layout.tsx
+import { OnboardingProvider } from "@/providers/OnboardingProvider";
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
-import { OnboardingProvider } from "@/providers/OnboardingProvider";
 
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { CoachmarksProvider } from '@/providers/CoachmarksProvider';
 import { Platform, View } from 'react-native';
 import { AuthProvider } from '../src/providers/AuthProvider';
-import { CoachmarksProvider } from '@/providers/CoachmarksProvider';
 
 export const unstable_settings = {
   anchor: '(tabs)',
@@ -49,7 +49,7 @@ export default function RootLayout() {
             <OnboardingProvider>
               <CoachmarksProvider>
             <Stack>
-              <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+              <Stack.Screen name="(tabs)" options={{ headerShown: false, title: 'Teste' }} />
               <Stack.Screen name="transaction/[id]/pay" options={{ headerShown: true, title: 'Pagamento' }} />
               <Stack.Screen name="transaction/[id]/chat" options={{ headerShown: true, title: 'Chat' }} />
               <Stack.Screen name="transaction/[id]/return" options={{ headerShown: true, title: 'Devolução' }} />
