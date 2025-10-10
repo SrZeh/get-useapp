@@ -1,11 +1,14 @@
 // functions/src/index.ts
 import * as admin from "firebase-admin";
 import { App as AdminApp, initializeApp } from "firebase-admin/app";
-import { getFirestore } from "firebase-admin/firestore";
+import { getFirestore, FieldValue } from "firebase-admin/firestore";
 import { setGlobalOptions } from "firebase-functions/v2";
 import { onDocumentCreated } from "firebase-functions/v2/firestore";
 import { HttpsError, onCall, onRequest } from "firebase-functions/v2/https";
 import Stripe from "stripe";
+
+
+import { computeFees } from "./fees";
 
 
 
@@ -301,78 +304,95 @@ export const createCheckoutSession = onCall(
       if (r.renterUid !== uid) throw new HttpsError("permission-denied", "Somente o locatário pode pagar.");
       if (r.status !== "accepted") throw new HttpsError("failed-precondition", "Reserva não está 'accepted'.");
 
-      // totalCents e fee
+      // === cálculo do valor base (anúncio) ===
       const daysCount = (() => {
         try { return eachDateKeysExclusive(r.startDate, r.endDate).length; }
         catch { return Number(r.days) || 1; }
       })();
-      let totalCents = Number.isInteger(r.totalCents) ? Number(r.totalCents) : 0;
-      if (!totalCents) {
-        const base = Number(r.priceCents) || toCents(r.total) || 0;
-        totalCents = base * (Number.isFinite(daysCount) ? daysCount : 1);
-      }
-      if (!Number.isInteger(totalCents) || totalCents <= 0) {
-        throw new HttpsError("failed-precondition", "totalCents inválido.");
-      }
-      const platformFeeCents = Math.floor(totalCents * 0.10);
 
-      // precisa existir a conta do dono
+      // Se já existir baseAmountCents na reserva, respeitamos; senão derivamos de priceCents * days
+      let baseCents = Number(r.baseAmountCents);
+      if (!Number.isInteger(baseCents) || baseCents <= 0) {
+        const unit = Number(r.priceCents) || toCents(r.total) || 0;
+        baseCents = unit * (Number.isFinite(daysCount) ? daysCount : 1);
+      }
+      if (!Number.isInteger(baseCents) || baseCents <= 0) {
+        throw new HttpsError("failed-precondition", "Valor base inválido.");
+      }
+
+      // breakdown: 5% serviço + sobretaxa Stripe (3,99% + R$0,39 gross-up)
+      const { serviceFee, surcharge, appFeeFromBase, ownerPayout, totalToCustomer } =
+        computeFees(baseCents, { stripePct: 0.0399, stripeFixedCents: 39 });
+
+      // garantir que temos o accountId do dono salvo (para etapas futuras/payout)
       let ownerStripeAccountId: string | undefined = r.ownerStripeAccountId;
       if (!ownerStripeAccountId && r.itemOwnerUid) {
         const ownerSnap = await db.doc(`users/${r.itemOwnerUid}`).get();
         ownerStripeAccountId = ownerSnap.exists ? (ownerSnap.data() as any)?.stripeAccountId : undefined;
         if (ownerStripeAccountId) await resRef.update({ ownerStripeAccountId, updatedAt: TS() });
       }
-      if (!ownerStripeAccountId) {
-        throw new HttpsError(
-          "failed-precondition",
-          "Conecte sua conta Stripe para receber (faça o onboarding do Express)."
-        );
-      }
 
       const stripe = getStripe();
       const session = await stripe.checkout.sessions.create({
         mode: "payment",
-        // se quiser Pix agora e a sua conta estiver habilitada: ["card","pix"]
-        payment_method_types: ["card", "pix"],
+        currency: "brl",
+        payment_method_types: ["card", "pix"], // Pix aparece se estiver ativo no Dashboard
         success_url: `${successUrl}?res=${reservationId}`,
         cancel_url: `${cancelUrl}?res=${reservationId}`,
-        line_items: [{
-          quantity: 1,
-          price_data: {
-            currency: "brl",
-            product_data: {
-              name: r.itemTitle ?? "Aluguel de item",
-              metadata: { reservationId: String(reservationId) },
+        line_items: [
+          {
+            quantity: 1,
+            price_data: {
+              currency: "brl",
+              product_data: {
+                name: r.itemTitle ?? "Aluguel de item",
+                metadata: { reservationId: String(reservationId) },
+              },
+              unit_amount: baseCents,
             },
-            unit_amount: totalCents,
           },
-        }],
-        payment_intent_data: {
-          // DESTINATION CHARGE
-          transfer_data: { destination: ownerStripeAccountId },
-          application_fee_amount: platformFeeCents,
-          metadata: {
-            reservationId: String(reservationId),
-            totalCents: String(totalCents),
-            platformFeeCents: String(platformFeeCents),
-            ownerStripeAccountId: String(ownerStripeAccountId),
+          {
+            quantity: 1,
+            price_data: {
+              currency: "brl",
+              product_data: { name: "Taxa de serviço Get & Use (5%)" },
+              unit_amount: serviceFee,
+            },
           },
-        },
+          {
+            quantity: 1,
+            price_data: {
+              currency: "brl",
+              product_data: { name: "Taxa de processamento" },
+              unit_amount: surcharge,
+            },
+          },
+        ],
         metadata: {
           reservationId: String(reservationId),
-          ownerStripeAccountId: String(ownerStripeAccountId),
+          ownerStripeAccountId: String(ownerStripeAccountId ?? ""),
+          baseCents: String(baseCents),
+          serviceFee: String(serviceFee),
+          surcharge: String(surcharge),
+          appFeeFromBase: String(appFeeFromBase),
+          ownerPayout: String(ownerPayout),
         },
         locale: "pt-BR",
       });
 
-      await resRef.update({
+      await resRef.set({
         checkoutSessionId: session.id,
-        totalCents,
+        // mantém totalCents para compat (mas agora total do checkout):
+        totalCents: totalToCustomer,
+        // novo breakdown:
+        baseAmountCents: baseCents,
+        serviceFeeCents: serviceFee,
+        stripeSurchargeCents: surcharge,
+        appFeeFromBaseCents: appFeeFromBase,
+        expectedOwnerPayoutCents: ownerPayout,
         ownerStripeAccountId,
-        platformFeeCents,
         updatedAt: TS(),
-      });
+      }, { merge: true });
 
       return { url: session.url };
     } catch (err: any) {
@@ -381,6 +401,7 @@ export const createCheckoutSession = onCall(
     }
   }
 );
+
 
 // =====================================================
 // === Confirmar sessão manualmente (fallback)        ===
@@ -574,9 +595,9 @@ export const releasePayoutToOwner = onCall(
       throw new HttpsError("failed-precondition", "Aguardando o locatário marcar 'Recebido!'.");
     }
 
-    const totalCents = Number(r.totalCents ?? 0);
-    if (!Number.isInteger(totalCents) || totalCents <= 0) {
-      throw new HttpsError("failed-precondition", "totalCents inválido.");
+    const baseCents = Number(r.baseAmountCents ?? 0);
+    if (!Number.isInteger(baseCents) || baseCents <= 0) {
+      throw new HttpsError("failed-precondition", "baseAmountCents inválido.");
     }
 
     let ownerStripeAccountId: string | undefined = r.ownerStripeAccountId;
@@ -606,13 +627,11 @@ export const releasePayoutToOwner = onCall(
         throw new HttpsError("failed-precondition", `Fundos ainda não disponíveis para transferência. Disponível em: ${when}`);
       }
 
-      const platformFeeCents = Math.floor(totalCents * 0.10);
-      const transferAmount = totalCents - platformFeeCents;
-      if (transferAmount <= 0) throw new HttpsError("failed-precondition", "Valor de transferência <= 0");
+      const transferAmount = Math.round(baseCents * 0.90); // 90% do anúncio
 
       const transfer = await stripe.transfers.create({
         amount: transferAmount,
-        currency: "BRL",
+        currency: "brl",
         destination: ownerStripeAccountId,
         source_transaction: charge.id,
         metadata: { reservationId: String(reservationId), role: "owner_payout_legacy" },
