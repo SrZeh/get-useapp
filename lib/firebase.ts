@@ -1,12 +1,14 @@
 // lib/firebase.ts
 import { getApp, getApps, initializeApp } from "firebase/app";
-import { getAuth, initializeAuth, type Auth } from "firebase/auth";
 import {
-  getFirestore, initializeFirestore,
-  setLogLevel, type Firestore
+  getFirestore,
+  initializeFirestore,
+  setLogLevel,
+  type Firestore,
 } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 import { Platform } from "react-native";
+import { createAuth } from "./auth"; // 👈 resolve para .native.ts ou .web.ts
 
 const firebaseConfig = {
   apiKey: "AIzaSyDgl2Bpk86KmwKvs_z83p5ZADlBaz9LwRk",
@@ -20,30 +22,15 @@ const firebaseConfig = {
 
 export const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 
-// === AUTH ===
-// Web: getAuth(app)
-// Nativo: initializeAuth(app, { persistence: getReactNativePersistence(AsyncStorage) })
-let authInstance: Auth;
-if (Platform.OS === "web") {
-  authInstance = getAuth(app);
-} else {
-  // Importantíssimo: não importe 'firebase/auth/react-native' no topo.
-  const { getReactNativePersistence } = require("firebase/auth/react-native");
-  const AsyncStorage = require("@react-native-async-storage/async-storage").default;
-  authInstance = initializeAuth(app, {
-    persistence: getReactNativePersistence(AsyncStorage),
-  });
-}
-export const auth = authInstance;
+// ✅ Auth sem require dinâmico no arquivo principal
+export const auth = createAuth(app);
 
-// === FIRESTORE — DB nomeado "appdb" ===
+// Firestore nomeado "appdb"
 export const db: Firestore =
   Platform.OS === "web"
     ? getFirestore(app, "appdb")
     : initializeFirestore(app, { experimentalAutoDetectLongPolling: true }, "appdb");
 
-// menos ruído no console
 setLogLevel("error");
 
-// === STORAGE ===
 export const storage = getStorage(app);
