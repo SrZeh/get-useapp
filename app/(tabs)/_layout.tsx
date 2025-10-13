@@ -5,16 +5,17 @@ import { TabIcon } from "@/components/ui/TabIcon";
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { CoachmarksProvider } from "@/providers/CoachmarksProvider";
-import { useTransactionsDot } from "@/src/hooks/usePendingTransactions";
+
+import { OnboardingModal } from "@/components/onboarding/OnboardingModal";
+import { useOnboardingVisibility } from "@/hooks/useOnboarding";
+import { useTransactionsDot } from "@/hooks/useTransactionsDot";
+import { useTermsAccepted } from "@/src/hooks/useTermsAccepted";
 import { useUnreadMessagesDot } from "@/src/hooks/useUnreadMessages";
 import { useAuth } from "@/src/providers/AuthProvider";
 import { Ionicons } from "@expo/vector-icons";
 import { Tabs } from "expo-router";
 import React, { useEffect } from "react";
 import { Platform } from "react-native";
-import { useTermsAccepted } from "@/src/hooks/useTermsAccepted";
-import { OnboardingModal } from "@/components/onboarding/OnboardingModal";
-import { useOnboardingVisibility } from "@/hooks/useOnboarding";
 
 export default function TabLayout() {
   const scheme = useColorScheme() ?? "light";

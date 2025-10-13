@@ -464,6 +464,225 @@ export const createCheckoutSession = onCall(
 );
 
 
+// 🔔 quando cria uma mensagem, incrementa contador do outro participante
+export const onMessageCreated = onDocumentCreated(
+  {
+    region: "southamerica-east1",
+    document: "threads/{threadId}/messages/{msgId}",
+  },
+  async (event) => {
+    const snap = event.data; if (!snap) return;
+    const msg = snap.data() as any;
+    const { threadId } = event.params as any;
+
+    const threadRef = db.collection("threads").doc(threadId);
+    const threadSnap = await threadRef.get();
+    if (!threadSnap.exists) return;
+
+    const t = threadSnap.data() as any;
+    const fromUid = String(msg?.fromUid || "");
+    const participants: string[] = Array.isArray(t?.participants) ? t.participants : [];
+    const others = participants.filter((u) => u && u !== fromUid);
+
+    // atualiza lastMsgAt no thread
+    await threadRef.set({ lastMsgAt: admin.firestore.FieldValue.serverTimestamp() }, { merge: true });
+
+    // incrementa unread do(s) outro(s)
+    const batch = db.batch();
+    for (const uid of others) {
+      const pRef = threadRef.collection("participants").doc(uid);
+      batch.set(
+        pRef,
+        {
+          unreadCount: admin.firestore.FieldValue.increment(1),
+          // não mexe em lastReadAt aqui
+        },
+        { merge: true }
+      );
+    }
+    await batch.commit();
+  }
+);
+
+
+// callable para marcar thread como lida
+export const markThreadRead = onCall({ region: "southamerica-east1" }, async ({ auth, data }) => {
+  const uid = auth?.uid;
+  if (!uid) throw new HttpsError("unauthenticated", "Faça login.");
+  const { threadId } = (data ?? {}) as { threadId?: string };
+  assertString(threadId, "threadId");
+
+  const pRef = db.collection("threads").doc(threadId).collection("participants").doc(uid);
+  await pRef.set(
+    {
+      unreadCount: 0,
+      lastReadAt: admin.firestore.FieldValue.serverTimestamp(),
+    },
+    { merge: true }
+  );
+  return { ok: true };
+});
+
+//---------------------------------------------------------
+
+export const getOrCreateThread = onCall({ region: "southamerica-east1" }, async ({ auth, data }) => {
+  const uid = auth?.uid;
+  if (!uid) throw new HttpsError("unauthenticated", "Faça login.");
+  const { itemId, ownerUid } = (data ?? {}) as { itemId?: string; ownerUid?: string };
+  assertString(itemId, "itemId");
+  assertString(ownerUid, "ownerUid");
+  if (uid === ownerUid) throw new HttpsError("failed-precondition", "Não é possível conversar consigo mesmo.");
+
+  const participants = [uid, ownerUid].sort();
+  const threadId = `${itemId}_${participants[0]}_${participants[1]}`;
+  const tRef = db.doc(`threads/${threadId}`);
+  const tSnap = await tRef.get();
+
+  if (!tSnap.exists) {
+    await tRef.set({
+      itemId,
+      ownerUid,
+      renterUid: uid, // iniciador (tanto faz aqui, só não confundir com reserva)
+      participants,
+      createdAt: TS(),
+      lastMsgAt: TS(),
+    }, { merge: true });
+
+    // zera unread do criador e cria doc do outro
+    await Promise.all([
+      tRef.collection("participants").doc(uid).set({ unreadCount: 0, lastReadAt: TS() }, { merge: true }),
+      tRef.collection("participants").doc(ownerUid).set({ unreadCount: 0 }, { merge: true }),
+    ]);
+  }
+
+  return { threadId };
+});
+
+
+// =====================================================
+// === Cancelar reserva paga com estorno (até 7 dias) ===
+// =====================================================
+export const cancelWithRefund = onCall(
+  { region: "southamerica-east1", secrets: ["STRIPE_SECRET_KEY"] },
+  async ({ auth, data }) => {
+    const uid = auth?.uid;
+    if (!uid) throw new HttpsError("unauthenticated", "Faça login.");
+
+    const { reservationId } = (data ?? {}) as { reservationId?: string };
+    assertString(reservationId, "reservationId");
+
+    const resRef = db.doc(`reservations/${reservationId}`);
+    const snap = await resRef.get();
+    if (!snap.exists) throw new HttpsError("not-found", "Reserva não encontrada.");
+    const r = snap.data() as any;
+
+    // Somente o LOCATÁRIO pode solicitar estorno
+    if (r.renterUid !== uid) throw new HttpsError("permission-denied", "Somente o locatário pode cancelar com estorno.");
+
+    // Precisa ter sido paga
+    if (r.status !== "paid") {
+      // Para 'accepted' (não paga), use o fluxo existente de cancelamento:
+      throw new HttpsError("failed-precondition", "Esta reserva não está paga. Use o cancelamento normal.");
+    }
+
+    // Se já marcou recebido, não pode estornar
+    if (r.pickedUpAt) {
+      throw new HttpsError("failed-precondition", "Não é possível estornar após marcar 'Recebido!'.");
+    }
+
+    // Janela de 7 dias a partir do paidAt
+    const paidAt: Date | null =
+      r.paidAt?.toDate ? r.paidAt.toDate() :
+      (typeof r.paidAt === "string" ? new Date(r.paidAt) : null);
+
+    if (!paidAt || isNaN(paidAt.getTime())) {
+      throw new HttpsError("failed-precondition", "Data de pagamento inválida.");
+    }
+    const nowMs = Date.now();
+    const diffMs = nowMs - paidAt.getTime();
+    const SEVEN_DAYS = 7 * 24 * 60 * 60 * 1000;
+    if (diffMs > SEVEN_DAYS) {
+      throw new HttpsError("failed-precondition", "Prazo de 7 dias para estorno expirado.");
+    }
+
+    // Precisamos do Payment Intent para estornar
+    const paymentIntentId: string | undefined = r.stripePaymentIntentId;
+    if (!paymentIntentId) {
+      throw new HttpsError("failed-precondition", "Pagamento não localizado para estorno.");
+    }
+
+    // Valor total: reembolsar 100% do cobrado
+    const totalCents = Number(r.totalCents ?? 0);
+    if (!Number.isInteger(totalCents) || totalCents <= 0) {
+      // fallback: Stripe aceita refund sem amount (total)
+    }
+
+    // Datas bloqueadas: liberar ao cancelar
+    const daysToFree = (() => {
+      try {
+        const days = eachDateKeysExclusive(String(r.startDate), String(r.endDate));
+        return Array.isArray(days) ? days : [];
+      } catch {
+        return [];
+      }
+    })();
+    const bookedCol = db.collection("items").doc(String(r.itemId)).collection("bookedDays");
+
+    const stripe = getStripe();
+
+    try {
+      // 1) Criar refund no Stripe
+      const refund = await stripe.refunds.create({
+        payment_intent: paymentIntentId,
+        // amount: totalCents > 0 ? totalCents : undefined, // total (opcional: Stripe já faz full-refund se omitir)
+      });
+
+      // 2) Liberar os dias e marcar reserva como cancelada + estornada
+      await db.runTransaction(async (trx) => {
+        const latest = await trx.get(resRef);
+        if (!latest.exists) throw new HttpsError("not-found", "Reserva não encontrada.");
+
+        const curr = latest.data() as any;
+
+        // Se alguém marcou "Recebido!" no meio do caminho, interrompe
+        if (curr.pickedUpAt) {
+          throw new HttpsError("failed-precondition", "A reserva foi marcada como 'Recebida' durante o processo.");
+        }
+
+        // Desbloqueia todos os dias (se existirem)
+        for (const d of daysToFree) {
+          trx.delete(bookedCol.doc(d));
+        }
+
+        // Atualiza a reserva
+        trx.update(resRef, {
+          status: "canceled",
+          canceledBy: uid,
+          canceledAt: TS(),
+          refundId: refund.id,
+          refundStatus: refund.status ?? null,
+          refundCreatedAt: TS(),
+          updatedAt: TS(),
+        });
+      });
+
+      return {
+        ok: true,
+        refundId: refund.id,
+        refundStatus: refund.status,
+        unblockedDays: daysToFree.length,
+      };
+    } catch (err: any) {
+      // Erros Stripe ou Firestore
+      if (err instanceof HttpsError) throw err;
+      const msg = err?.raw?.message || err?.message || "Falha ao estornar";
+      throw new HttpsError("failed-precondition", msg);
+    }
+  }
+);
+
+
+
 // =====================================================
 // === Confirmar sessão manualmente (fallback)        ===
 // =====================================================

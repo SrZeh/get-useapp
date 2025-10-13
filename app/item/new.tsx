@@ -15,11 +15,11 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  Switch,
   TextInput,
   TouchableOpacity,
   View,
   useColorScheme,
-  Switch,
 } from "react-native";
 
 const CATEGORIES = [
@@ -288,6 +288,7 @@ export default function NewItemScreen() {
             />
 
             {/* Mínimo de dias */}
+            <ThemedText>Mínimo de dias para aluguel</ThemedText>
             <TextInput
               placeholder="Dias mínimos de aluguel"
               placeholderTextColor={placeholderColor}

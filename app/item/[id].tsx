@@ -15,7 +15,7 @@ import {
   query,
   runTransaction,
   serverTimestamp,
-  where,
+  where
 } from "firebase/firestore";
 import React, { useEffect, useMemo, useState } from "react";
 import {
@@ -68,6 +68,7 @@ export default function ItemDetailScreen() {
 
   const [loading, setLoading] = useState(true);
   const [item, setItem] = useState<Item | null>(null);
+  const [busyChat, setBusyChat] = useState(false);                // ⬅️ ADD
 
   // --- calendar state ---
   const [booked, setBooked] = useState<Set<string>>(new Set());
@@ -81,6 +82,9 @@ export default function ItemDetailScreen() {
   const [selectedResId, setSelectedResId] = useState<string>("");
   const [rating, setRating] = useState<number>(5);
   const [comment, setComment] = useState<string>("");
+
+
+
 
   const inputStyle = useMemo(
     () => ({
@@ -359,6 +363,10 @@ export default function ItemDetailScreen() {
     }
   }
 
+  
+
+
+
   if (loading || !item) {
     return (
       <ThemedView style={{ flex: 1, padding: 16 }}>
@@ -405,6 +413,8 @@ export default function ItemDetailScreen() {
           {!!item.description && (
             <ThemedText style={{ marginTop: 12 }}>{item.description}</ThemedText>
           )}
+
+          
 
           {/* CALENDÁRIO / RESERVA */}
           <View

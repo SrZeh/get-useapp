@@ -5,8 +5,11 @@ import { auth, db } from "@/lib/firebase";
 import { router } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
 // + NOVOS IMPORTS
+import { markTransactionsSeen } from "@/hooks/useTransactionsDot";
 import * as ImagePicker from "expo-image-picker";
-import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage";
+import { useFocusEffect } from "expo-router";
+import { getDownloadURL, getStorage, ref as storageRef, uploadBytes } from "firebase/storage";
+import { useCallback } from "react";
 
 import {
   collection,
@@ -27,6 +30,33 @@ import {
   TouchableOpacity,
   View
 } from "react-native";
+
+// janela de 7 dias em ms
+const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
+
+function isRefundable(r: Res): boolean {
+  if (r.status !== "paid") return false;
+  if (r.pickedUpAt) return false; // já marcou recebido → não pode
+  const paidAt: Date | null =
+    (r.paidAt as any)?.toDate ? (r.paidAt as any).toDate() :
+    (typeof r.paidAt === "string" ? new Date(r.paidAt) : null);
+  if (!paidAt || isNaN(paidAt.getTime())) return false;
+  return (Date.now() - paidAt.getTime()) <= SEVEN_DAYS_MS;
+}
+
+// chama a Cloud Function cancelWithRefund
+async function cancelWithRefund(reservationId: string) {
+  try {
+    const ok = await callFn<{ reservationId: string }, { ok: boolean; refundId: string; refundStatus: string }>(
+      "cancelWithRefund",
+      { reservationId }
+    );
+    Alert.alert("Cancelada", "Estorno solicitado. Pode levar alguns dias para aparecer no extrato.");
+  } catch (e: any) {
+    Alert.alert("Não foi possível cancelar", e?.message ?? "Tente novamente.");
+  }
+}
+
 
 // ---------- helper para Cloud Functions ----------
 async function callFn<TReq, TRes>(name: string, data: TReq): Promise<TRes> {
@@ -442,11 +472,25 @@ function MyReservations() {
       router.push({ pathname: "/transaction/[id]/pay", params: { id: r.id } as any })
     )
   ) : r.status === "paid" ? (
-    btn(
-      busyPickId === r.id ? "..." : "Recebido!",
-      () => markReceived(r.id),
-      busyPickId === r.id
-    )
+    <View style={{ gap: 8 }}>
+      {btn(
+        busyPickId === r.id ? "..." : "Recebido!",
+        () => markReceived(r.id),
+        busyPickId === r.id
+      )}
+
+      {/* NOVO: cancelar com estorno enquanto for elegível */}
+      {isRefundable(r) && btn(
+        "Cancelar e pedir estorno",
+        () => cancelWithRefund(r.id)
+      )}
+      {!isRefundable(r) && (
+        <ThemedText style={{ fontSize: 12, opacity: 0.7 }}>
+          Estorno disponível por até 7 dias após o pagamento e antes de marcar "Recebido!".
+        </ThemedText>
+      )}
+    </View>
+    
   ) : r.status === "rejected" ? (
     <View style={{ gap: 8 }}>
       <ThemedText style={{ color: "#ef4444" }}>Seu pedido foi recusado</ThemedText>
@@ -478,6 +522,13 @@ function MyReservations() {
 
 // ---------- tela ----------
 export default function TransactionsScreen() {
+  useFocusEffect(
+    useCallback(() => {
+      // marca como visto sempre que a tela entra em foco
+      markTransactionsSeen();
+      return () => {};
+    }, [])
+  );
   const [tab, setTab] = useState<"owner" | "renter">("owner");
   const tabBtn = (k: "owner" | "renter", label: string) => (
     <TouchableOpacity

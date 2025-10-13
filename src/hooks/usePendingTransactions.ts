@@ -1,31 +1,27 @@
-// src/hooks/usePendingTransactions.ts
 import { useEffect, useState } from "react";
-import { collection, onSnapshot, query, where, limit } from "firebase/firestore";
-import { db } from "@/lib/firebase";
-import { useAuth } from "@/src/providers/AuthProvider";
+import { auth, db } from "@/lib/firebase";
+import { collection, onSnapshot, query, where } from "firebase/firestore";
 
+/** retorna true se há alguma transação que requer ação do usuário (ex.: aceitar, pagar, marcar recebido) */
 export function useTransactionsDot() {
-  const { user } = useAuth();
-  const [showDot, setShowDot] = useState(false);
+  const [hasTodo, setHasTodo] = useState(false);
 
   useEffect(() => {
-    if (!user?.uid) return;
-    const q = query(
-      collection(db, "reservations"),
-      where("participants", "array-contains", user.uid),
-      where("status", "in", ["accepted", "paid"]),
-      limit(1)
-    );
-    const unsub = onSnapshot(
-      q,
-      (snap) => setShowDot(!snap.empty),
-      (err) => {
-        console.error("[useTransactionsDot] onSnapshot error:", err);
-        setShowDot(false);
-      }
-    );
-    return unsub;
-  }, [user?.uid]);
+    const uid = auth.currentUser?.uid;
+    if (!uid) { setHasTodo(false); return; }
 
-  return showDot;
+    // duas escutas: como dono (precisa aceitar) e como locatário (precisa pagar/receber)
+    const qOwner = query(collection(db, "reservations"), where("itemOwnerUid", "==", uid), where("status", "==", "requested"));
+    const qRenterToPay = query(collection(db, "reservations"), where("renterUid", "==", uid), where("status", "==", "accepted"));
+    const qRenterToPickup = query(collection(db, "reservations"), where("renterUid", "==", uid), where("status", "==", "paid"));
+
+    const unsubs = [
+      onSnapshot(qOwner, (s) => setHasTodo((prev) => prev || !s.empty)),
+      onSnapshot(qRenterToPay, (s) => setHasTodo((prev) => prev || !s.empty)),
+      onSnapshot(qRenterToPickup, (s) => setHasTodo((prev) => prev || !s.empty)),
+    ];
+    return () => unsubs.forEach((u) => u());
+  }, []);
+
+  return hasTodo;
 }
