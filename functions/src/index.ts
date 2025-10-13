@@ -5,7 +5,10 @@ import { getFirestore, FieldValue } from "firebase-admin/firestore";
 import { setGlobalOptions } from "firebase-functions/v2";
 import { onDocumentCreated } from "firebase-functions/v2/firestore";
 import { HttpsError, onCall, onRequest } from "firebase-functions/v2/https";
+import * as functions from "firebase-functions"; 
+import * as functionsV1 from "firebase-functions/v1";
 import Stripe from "stripe";
+
 
 
 import { computeFees } from "./fees";
@@ -70,6 +73,64 @@ function getStripe(): Stripe {
   // sem apiVersion explicit para evitar conflitos de tipagem
   return new Stripe(key);
 }
+
+// =====================================================
+// === LIMPEZA DE DADOS AO EXCLUIR USUÁRIO (AUTH)    ===
+// =====================================================
+async function deleteWhere(
+  colName: string,
+  field: string,
+  uid: string
+): Promise<number> {
+  const qs = await db.collection(colName).where(field, "==", uid).get();
+  if (qs.empty) return 0;
+  const batch = db.batch();
+  qs.docs.forEach((d) => batch.delete(d.ref));
+  await batch.commit();
+  return qs.size;
+}
+
+async function cleanupUserData(uid: string) {
+  // 1) Perfil (users/{uid})
+  try {
+    await db.collection("users").doc(uid).delete();
+  } catch (_) {}
+
+  // 2) Coleções relacionadas (ajuste/expanda conforme seu schema)
+  // Evita duplicar deleção da mesma doc: (se quiser, pode usar Set de ids)
+  const COLS: Array<{ name: string; field: string }> = [
+    // Itens do usuário (dono)
+    { name: "items", field: "ownerUid" },
+    // Reservas em que participou
+    { name: "reservations", field: "renterUid" },
+    { name: "reservations", field: "itemOwnerUid" },
+    // Mensagens enviadas/recebidas (se existir)
+    { name: "messages", field: "fromUid" },
+    { name: "messages", field: "toUid" },
+  ];
+  for (const c of COLS) {
+    try { await deleteWhere(c.name, c.field, uid); } catch (_) {}
+  }
+
+  // 3) Storage (apagar arquivos do usuário)
+  try {
+    await admin.storage().bucket().deleteFiles({ prefix: `users/${uid}/` });
+  } catch (_) {}
+}
+
+
+
+export const authUserDeleted = functionsV1
+  .region("southamerica-east1")
+  .auth.user()
+  .onDelete(async (user: admin.auth.UserRecord) => {
+    const uid = user.uid;
+    await cleanupUserData(uid);
+  });
+
+
+// =====================================================
+
 
 // =====================================================
 // === CONNECT EXPRESS (onboarding JIT)               ===

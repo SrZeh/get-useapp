@@ -12,12 +12,20 @@ import { Ionicons } from "@expo/vector-icons";
 import { Tabs } from "expo-router";
 import React, { useEffect } from "react";
 import { Platform } from "react-native";
+import { useTermsAccepted } from "@/src/hooks/useTermsAccepted";
+import { OnboardingModal } from "@/components/onboarding/OnboardingModal";
+import { useOnboardingVisibility } from "@/hooks/useOnboarding";
 
 export default function TabLayout() {
   const scheme = useColorScheme() ?? "light";
   const palette = Colors[scheme];
+  // const { user } = useAuth();
+  // const showTabs = !!user;
+
   const { user } = useAuth();
-  const showTabs = !!user;
+  const termsAccepted = useTermsAccepted(user);
+  const showTabs = !!user && termsAccepted === true;
+  const { visible, markSeen } = useOnboardingVisibility(); // já existente, vamos ajustar o hook abaixo
 
   const hasUnread = useUnreadMessagesDot();
   const hasTxTodo = useTransactionsDot();
@@ -31,6 +39,13 @@ export default function TabLayout() {
 
   return (
     <CoachmarksProvider>
+      {/* Onboarding só aparece se logado e ainda pendente */}
+     {!!user && visible && (
+       <OnboardingModal
+         visible
+         onClose={(opts) => markSeen(opts)}
+       />
+     )}
       <Tabs
         initialRouteName="index"
         screenOptions={{

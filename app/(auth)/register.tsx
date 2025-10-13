@@ -96,6 +96,8 @@ export default function RegisterScreen() {
         points: 0,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
+        onboardingSeenAt: null,
+        termsAcceptedAt: null,
       }, { merge: true });
 
       console.log('[REGISTER] done → navigating');

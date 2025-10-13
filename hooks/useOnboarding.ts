@@ -57,8 +57,7 @@ export function useOnboardingVisibility() {
           setVisible(!seen);
           if (!seen) ONBOARDING_SHOWN_THIS_SESSION = true;   // ⬅️ marca sessão
         } else {
-          setVisible(true);
-          ONBOARDING_SHOWN_THIS_SESSION = true;               // ⬅️ marca sessão
+          setVisible(false);
         }
       } finally {
         setLoading(false);
