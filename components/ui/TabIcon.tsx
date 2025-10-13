@@ -1,6 +1,6 @@
 // components/ui/TabIcon.tsx
 import React from "react";
-import { Image, View } from "react-native";
+import { Image, ImageSourcePropType, View } from "react-native";
 
 type IconComponent = React.ComponentType<{
   width?: number | string;
@@ -12,65 +12,67 @@ type IconComponent = React.ComponentType<{
 }>;
 
 type Props = {
-  // aceita componente SVG (via transformer) OU uma string (URL/local) para fallback
-  Icon: IconComponent | string;
+  // Agora aceita: componente, string (URL) ou require() (number/object)
+  Icon: IconComponent | string | ImageSourcePropType;
   color: string;
   size?: number;
   showDot?: boolean;
+  style?: any;
 };
 
-export function TabIcon({ Icon, color, size = 22, showDot }: Props) {
+export function TabIcon({ Icon, color, size = 22, showDot, style }: Props) {
+  const isComponent = typeof Icon === "function";
   const isString = typeof Icon === "string";
-
-  let iconEl: React.ReactNode;
-  if (isString) {
-    iconEl = (
-      <Image
-        source={{ uri: Icon as string }}
-        style={{ width: size, height: size, resizeMode: "contain" }}
-      />
-    );
-  } else {
-    const Comp = Icon as IconComponent;
-    iconEl = (
-      <Comp
-        width={size}
-        height={size}
-        color={color}
-        fill={color}
-        stroke={color}
-      />
-    );
-  }
+  const isNumber = typeof Icon === "number"; // require('...') em RN vira number
+  const isObj = typeof Icon === "object" && Icon !== null; // também cobre require que retorna objeto em web
 
   return (
     <View
-      style={{
-        width: size + 6,
-        height: size + 6,
-        alignItems: "center",
-        justifyContent: "center",
-      }}
+      style={[
+        { width: size + 6, height: size + 6, alignItems: "center", justifyContent: "center" },
+        style,
+      ]}
     >
-      {iconEl}
+      {isComponent ? (
+        // Caso 1: componente (ex.: SVG)
+        (() => {
+          const Comp = Icon as IconComponent;
+          return (
+            <Comp
+              width={size}
+              height={size}
+              color={color}
+              fill={color}
+              stroke={color}
+              style={{ width: size, height: size }}
+            />
+          );
+        })()
+      ) : (
+        // Caso 2: imagem (string URL | require() number | objeto ImageSource)
+        <Image
+          source={
+            isString
+              ? { uri: Icon as string }
+              : ((Icon as unknown) as ImageSourcePropType)
+          }
+          style={{ width: size, height: size, resizeMode: "contain" }}
+        />
+      )}
 
       {showDot ? (
         <View
           style={{
             position: "absolute",
-            top: 0,
-            right: 0,
+            top: 4,
+            right: 8,
             width: 8,
             height: 8,
-            borderRadius: 8,
-            backgroundColor: "#ef4444",
-            borderWidth: 1,
-            borderColor: "#fff",
+            borderRadius: 4,
+            backgroundColor: "#ff3b30",
           }}
         />
       ) : null}
     </View>
   );
 }
-
-export default TabIcon;

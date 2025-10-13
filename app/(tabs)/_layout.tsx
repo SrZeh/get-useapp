@@ -1,103 +1,113 @@
 // app/(tabs)/_layout.tsx
 import AuthHeaderRight from "@/components/AuthHeaderRight";
-import { HapticTab } from "@/components/haptic-tab";
+import { ThemedText } from "@/components/themed-text";
 import { TabIcon } from "@/components/ui/TabIcon";
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { CoachmarksProvider } from "@/providers/CoachmarksProvider";
+import { Link, Tabs } from "expo-router";
+import React from "react";
+import { Image, Pressable } from "react-native";
 
-import HouseIcon from "@/assets/icons/house.svg";
-import BoxIcon from "@/assets/icons/shippingbox.svg";
-import ArrowsIcon from "@/assets/icons/arrows.svg";
+// 👉 Se tiver transformer configurado, use os SVGs como componentes:
+import ArrowsSvg from "@/assets/icons/arrows.svg";
+import HouseSvg from "@/assets/icons/house.svg";
+import ShippingBoxSvg from "@/assets/icons/shippingbox.svg";
 
-import { OnboardingModal } from "@/components/onboarding/OnboardingModal";
-import { useOnboardingVisibility } from "@/hooks/useOnboarding";
-import { useTransactionsDot } from "@/hooks/useTransactionsDot";
-import { useTermsAccepted } from "@/src/hooks/useTermsAccepted";
-import { useUnreadMessagesDot } from "@/src/hooks/useUnreadMessages";
-import { useAuth } from "@/src/providers/AuthProvider";
+// Se quiser (exemplo) usar string/require em alguma tab:
+// const HomePng = require("@/assets/images/home.png");
+// const ItemsUrl = "https://example.com/box.png";
 
-import { Tabs } from "expo-router";
-import React, { useEffect } from "react";
-import { Platform } from "react-native";
+import { useTransactionsDot } from "@/src/hooks/usePendingTransactions";
+
+function TitleLogoLink() {
+  return (
+    <Link href="/" asChild>
+      <Pressable
+        accessibilityRole="link"
+        style={{ flexDirection: "row", alignItems: "center" }}
+        android_ripple={{ borderless: true }}
+      >
+        <Image
+          source={require("@/assets/images/logo.png")}
+          style={{ width: 24, height: 24, marginRight: 8 }}
+          resizeMode="contain"
+        />
+        <ThemedText type="defaultSemiBold">Get &amp; Use</ThemedText>
+      </Pressable>
+    </Link>
+  );
+}
 
 export default function TabLayout() {
   const scheme = useColorScheme() ?? "light";
   const palette = Colors[scheme];
-  // const { user } = useAuth();
-  // const showTabs = !!user;
 
-  const { user } = useAuth();
-  const termsAccepted = useTermsAccepted(user);
-  const showTabs = !!user && termsAccepted === true;
-  const { visible, markSeen } = useOnboardingVisibility(); // já existente, vamos ajustar o hook abaixo
+  const borderTopColor =
+    scheme === "light" ? "rgba(0,0,0,0.08)" : "rgba(255,255,255,0.08)";
 
-  const hasUnread = useUnreadMessagesDot();
-  const hasTxTodo = useTransactionsDot();
-
-  
-
-  const nativeScreenOptions =
-    Platform.OS !== "web" ? ({ tabBarButton: HapticTab as any } as const) : {};
+  const showTxDot = useTransactionsDot();
 
   return (
-    <CoachmarksProvider>
-      {/* Onboarding só aparece se logado e ainda pendente */}
-     {!!user && visible && (
-       <OnboardingModal
-         visible
-         onClose={(opts) => markSeen(opts)}
-       />
-     )}
-      <Tabs
-        initialRouteName="index"
-        screenOptions={{
-          headerShown: true,
-          headerTitleAlign: "left",
-          headerRight: () => <AuthHeaderRight />,
-          headerStyle: { backgroundColor: palette.background },
-          headerTintColor: palette.text,
-          headerTitleStyle: { color: palette.text },
-
-          tabBarActiveTintColor: Colors[scheme].tint,
-          tabBarInactiveTintColor: Colors[scheme].tabIconDefault,
-          tabBarStyle: {
-            backgroundColor: palette.background,
-            borderTopColor: "transparent",
-            display: showTabs ? "flex" : "none",
-          },
-
-          ...nativeScreenOptions,
+    <Tabs
+      screenOptions={{
+        headerShown: true,
+        headerTitleAlign: "left",
+        headerTitle: () => <TitleLogoLink />,
+        headerRight: () => <AuthHeaderRight />,
+        headerStyle: { backgroundColor: palette.background },
+        headerTintColor: palette.text,
+        headerTitleStyle: { color: palette.text },
+        tabBarStyle: {
+          backgroundColor: palette.background,
+          borderTopColor,
+          borderTopWidth: 1,
+        },
+        tabBarActiveTintColor: palette.tint,
+        tabBarInactiveTintColor: palette.icon,
+      }}
+    >
+      {/* ESQUERDA: Meus Itens */}
+      <Tabs.Screen
+        name="items"
+        options={{
+          title: "Meus Itens",
+          tabBarIcon: ({ color, size }) => (
+            <TabIcon
+              Icon={ShippingBoxSvg} // ou: Icon={ItemsUrl} / Icon={require('...')}
+              color={color}
+              size={size ?? 22}
+              showDot={false}
+            />
+          ),
         }}
-      >
-        <Tabs.Screen
-  name="items"
-  options={{
-    title: "Meus Itens",
-    tabBarIcon: ({ color }) => (
-      <TabIcon Icon={BoxIcon} color={color} />
-    ),
-  }}
-/>
-<Tabs.Screen
-  name="index"
-  options={{
-    title: "Get & Use",
-    tabBarIcon: ({ color }) => (
-      <TabIcon Icon={HouseIcon} color={color} showDot={hasUnread} />
-    ),
-  }}
-/>
-<Tabs.Screen
-  name="transactions"
-  options={{
-    title: "Transações",
-    tabBarIcon: ({ color }) => (
-      <TabIcon Icon={ArrowsIcon} color={color} showDot={hasTxTodo} />
-            ),
-          }}
-        />
-      </Tabs>
-    </CoachmarksProvider>
+      />
+
+      {/* MEIO: Home */}
+      <Tabs.Screen
+        name="index"
+        options={{
+          title: "Início",
+          tabBarIcon: ({ color, size }) => (
+            <TabIcon
+              Icon={HouseSvg} // ou: Icon={HomePng} / Icon={"https://..."}
+              color={color}
+              size={size ?? 24}
+              showDot={false}
+            />
+          ),
+        }}
+      />
+
+      {/* DIREITA: Transações */}
+      <Tabs.Screen
+        name="transactions"
+        options={{
+          title: "Transações",
+          tabBarIcon: ({ color, size }) => (
+            <TabIcon Icon={ArrowsSvg} color={color} size={size ?? 22} showDot={!!showTxDot} />
+          ),
+        }}
+      />
+    </Tabs>
   );
 }
