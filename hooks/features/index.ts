@@ -9,4 +9,7 @@ export * from './transactions';
 export * from './auth';
 export * from './messages';
 export * from './items';
+export * from './reservations';
+export * from './reviews';
+export * from './profile';
 

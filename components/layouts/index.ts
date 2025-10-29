@@ -5,4 +5,5 @@
  */
 
 export { HeaderLogo } from './HeaderLogo';
+export { AppContent } from './AppContent';
 

@@ -17,11 +17,15 @@ export type { ItemFormInput, ItemListFilters, ItemListActions, UseItemListResult
 export { useFormValidation } from './useFormValidation';
 export { useRegister, useLogin, useResetPassword } from './useAuth';
 
-// Profile hooks
-export { useUpdateProfile, useLoadProfile } from './useProfile';
+// Profile hooks (re-exported from features)
+export { useUpdateProfile, useLoadProfile } from './features/profile';
 
-// Review hooks
-export { useSubmitReview } from './useReview';
+// Review hooks (re-exported from features)
+export { useSubmitReview } from './features/reviews';
+export type { ReviewFormInput } from './features/reviews';
+
+// Reservation hooks (re-exported from features)
+export { useReservationData } from './features/reservations';
 
 // Location hooks
 export { useLocations } from './useLocations';
