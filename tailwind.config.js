@@ -136,6 +136,10 @@ module.exports = {
       },
       fontFamily: {
         'system': ['-apple-system', 'BlinkMacSystemFont', 'SF Pro', 'SF Pro Display', 'SF Pro Text', 'system-ui', 'sans-serif'],
+        'display': ["'SF Pro Display'", '-apple-system', 'BlinkMacSystemFont', 'SF Pro', 'system-ui', 'sans-serif'],
+        'text': ["'SF Pro Text'", '-apple-system', 'BlinkMacSystemFont', 'SF Pro', 'system-ui', 'sans-serif'],
+        'rounded': ["'SF Pro Rounded'", "'Hiragino Maru Gothic ProN'", 'Meiryo', "'MS PGothic'", 'sans-serif'],
+        'mono': ["'SF Mono'", 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', "'Liberation Mono'", "'Courier New'", 'monospace'],
       },
       borderRadius: {
         '2xs': '4px',

@@ -3,8 +3,9 @@ import { TabIcon } from "@/components/ui/TabIcon";
 import { useThemeColors } from "@/utils";
 import { router, usePathname, useSegments } from "expo-router";
 import React from "react";
-import { View, TouchableOpacity, Text, Platform } from "react-native";
+import { TouchableOpacity, Text, Platform, View, ViewStyle } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { LiquidGlassView } from "@/components/liquid-glass";
 
 import ArrowsSvg from "@/assets/icons/arrows.svg";
 import HouseSvg from "@/assets/icons/house.svg";
@@ -19,6 +20,11 @@ type TabConfig = {
   title: string;
   Icon: React.ComponentType<{ width?: number; height?: number; color?: string }>;
   size?: number;
+};
+
+type GlobalTabBarProps = {
+  style?: ViewStyle;
+  opacity?: number;
 };
 
 const tabs: TabConfig[] = [
@@ -45,13 +51,23 @@ const tabs: TabConfig[] = [
   },
 ];
 
-export function GlobalTabBar() {
+export function GlobalTabBar({ style, opacity }: GlobalTabBarProps = {}) {
   const colors = useThemeColors();
   const pathname = usePathname();
   const segments = useSegments();
   const insets = useSafeAreaInsets();
   const showTxDot = useTransactionsDot();
   const { user } = useAuth();
+
+  // Use a safe default header height
+  // Common header heights: ~44 on iOS, ~56 on Android, ~64 on web
+  // Can be overridden via style prop if needed
+  const headerHeight = Platform.select({
+    ios: 44,
+    android: 56,
+    web: 64,
+    default: 56,
+  }) ?? 56;
 
   const isLoggedIn = !!user;
 
@@ -102,29 +118,42 @@ export function GlobalTabBar() {
   };
 
   return (
-    <View
+    <LiquidGlassView
+      intensity="subtle"
+      tint="system"
+      opacity={opacity}
       style={{
-        backgroundColor: colors.bg.primary,
+        position: 'absolute',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        width: '100%',
+        marginTop: headerHeight,
         borderTopWidth: 1,
         borderTopColor: colors.border.default,
-        paddingBottom: Math.max(insets.bottom, 8),
-        paddingTop: 8,
-        flexDirection: "row",
-        justifyContent: "space-around",
-        alignItems: "center",
-        ...Platform.select({
-          ios: {
-            shadowColor: "#000",
-            shadowOffset: { width: 0, height: -2 },
-            shadowOpacity: 0.1,
-            shadowRadius: 4,
-          },
-          android: {
-            elevation: 8,
-          },
-        }),
+        ...style,
       }}
     >
+      <View
+        style={{
+          paddingBottom: Math.max(insets.bottom, 8),
+          paddingTop: 8,
+          flexDirection: "row",
+          justifyContent: "space-around",
+          alignItems: "center",
+          ...Platform.select({
+            ios: {
+              shadowColor: "#000",
+              shadowOffset: { width: 0, height: -2 },
+              shadowOpacity: 0.1,
+              shadowRadius: 4,
+            },
+            android: {
+              elevation: 8,
+            },
+          }),
+        }}
+      >
       {tabs.map((tab) => {
         const isActive = activeTab === tab.name;
         const tabColor = isActive ? colors.icon.selected : colors.icon.default;
@@ -163,6 +192,7 @@ export function GlobalTabBar() {
           </TouchableOpacity>
         );
       })}
-    </View>
+      </View>
+    </LiquidGlassView>
   );
 }

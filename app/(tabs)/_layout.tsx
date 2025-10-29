@@ -9,6 +9,7 @@ import { Link, Tabs } from "expo-router";
 import React, { useMemo } from "react";
 import { Pressable } from "react-native";
 import { Image } from "expo-image";
+import { LiquidGlassView } from "@/components/liquid-glass";
 
 // 👉 Se tiver transformer configurado, use os SVGs como componentes:
 import ArrowsSvg from "@/assets/icons/arrows.svg";
@@ -50,13 +51,26 @@ function HeaderTitle() {
       style={{
         color: colors.brand.primary,
         fontWeight: "600",
-        textShadowColor: colors.isDark ? 'rgba(0,0,0,0.3)' : 'rgba(0,0,0,0.1)',
+        textShadowColor: 'rgba(0, 0, 0, 0.8)',
         textShadowOffset: { width: 0, height: 2 },
-        textShadowRadius: 4,
+        textShadowRadius: 6,
       }}
     >
       Get&Use
     </ThemedText>
+  );
+}
+
+function HeaderBackground() {
+  return (
+    <LiquidGlassView
+      intensity="subtle"
+      tint="system"
+      style={{
+        flex: 1,
+        borderWidth: 0,
+      }}
+    />
   );
 }
 
@@ -75,7 +89,8 @@ export default function TabLayout() {
     headerTitle: () => <HeaderTitle />,
     headerLeft: () => <LogoIcon />,
     headerRight: () => <AuthHeaderRight />,
-    headerStyle: { backgroundColor: colors.bg.primary },
+    headerBackground: () => <HeaderBackground />,
+    headerTransparent: true,
     headerTintColor: colors.text.primary,
     headerTitleStyle: { color: colors.text.primary },
     tabBarStyle: { display: "none" as const }, // Use GlobalTabBar instead

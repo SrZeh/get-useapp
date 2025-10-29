@@ -89,27 +89,55 @@ export const Colors = {
   },
 };
 
+/**
+ * SF Pro Font Family Configuration
+ * 
+ * SF Pro is Apple's proprietary typeface family:
+ * - SF Pro Display: Optimized for sizes 19pt and larger (headings, titles)
+ * - SF Pro Text: Optimized for sizes 18pt and smaller (body text)
+ * - SF Pro Rounded: Rounded variant (optional, for playful UI)
+ * - SF Mono: Monospaced variant (for code, technical content)
+ * 
+ * Platform-specific implementation:
+ * - iOS: Uses system fonts (SF Pro Display/Text is system default)
+ * - Android: Falls back to Roboto (system) or can use SF Pro if loaded
+ * - Web: Uses system font stack with SF Pro first, falls back gracefully
+ */
 export const Fonts = Platform.select({
   ios: {
-    /** iOS `UIFontDescriptorSystemDesignDefault` */
-    sans: 'system-ui',
+    /** SF Pro Display for headings and large text (19pt+) */
+    sans: 'SF Pro Display',
+    /** SF Pro Text for body text (18pt and below) */
+    text: 'SF Pro Text',
     /** iOS `UIFontDescriptorSystemDesignSerif` */
     serif: 'ui-serif',
-    /** iOS `UIFontDescriptorSystemDesignRounded` */
-    rounded: 'ui-rounded',
-    /** iOS `UIFontDescriptorSystemDesignMonospaced` */
-    mono: 'ui-monospace',
+    /** SF Pro Rounded for playful UI elements */
+    rounded: 'SF Pro Rounded',
+    /** SF Mono for monospaced text (code, technical) */
+    mono: 'SF Mono',
+  },
+  android: {
+    /** Android: Uses system font (Roboto) or SF Pro if loaded */
+    sans: 'SF Pro Display',
+    text: 'SF Pro Text',
+    serif: 'serif',
+    rounded: 'SF Pro Rounded',
+    mono: 'SF Mono',
   },
   default: {
-    sans: 'normal',
+    /** Default: Uses SF Pro with fallbacks */
+    sans: 'SF Pro Display',
+    text: 'SF Pro Text',
     serif: 'serif',
-    rounded: 'normal',
-    mono: 'monospace',
+    rounded: 'SF Pro Rounded',
+    mono: 'SF Mono',
   },
   web: {
-    sans: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
+    /** Web: SF Pro with comprehensive fallback stack for cross-platform support */
+    sans: "'SF Pro Display', -apple-system, BlinkMacSystemFont, 'SF Pro', 'SF Pro Text', system-ui, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
+    text: "'SF Pro Text', -apple-system, BlinkMacSystemFont, 'SF Pro', 'SF Pro Display', system-ui, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
     serif: "Georgia, 'Times New Roman', serif",
     rounded: "'SF Pro Rounded', 'Hiragino Maru Gothic ProN', Meiryo, 'MS PGothic', sans-serif",
-    mono: "SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace",
+    mono: "'SF Mono', SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace",
   },
 });

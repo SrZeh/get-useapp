@@ -17,6 +17,10 @@ html {
 body {
   margin: 0;
   padding: 0;
+  /* SF Pro Font Family - Apple's proprietary typeface */
+  font-family: 'SF Pro Text', -apple-system, BlinkMacSystemFont, 'SF Pro', 'SF Pro Display', system-ui, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 /* CSS Variables - Default values (light mode) */

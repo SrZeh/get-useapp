@@ -157,6 +157,21 @@ overlay:          rgba(0,0,0,0.6)  /* Semi-transparent overlay */
 
 ## Typography
 
+### Font Family: SF Pro
+
+**SF Pro** is Apple's proprietary sans-serif typeface family developed in-house. The project uses SF Pro throughout for a native iOS experience.
+
+**Font Variants:**
+- **SF Pro Display**: Optimized for sizes 19pt and larger (headings, titles, large text)
+- **SF Pro Text**: Optimized for sizes 18pt and below (body text, UI elements)
+- **SF Pro Rounded**: Rounded variant available for playful UI elements (optional)
+- **SF Mono**: Monospaced variant for code and technical content
+
+**Platform Implementation:**
+- **iOS**: Uses system fonts (SF Pro Display/Text is the iOS system default)
+- **Android**: Uses SF Pro if available, gracefully falls back to Roboto
+- **Web**: Uses SF Pro with comprehensive fallback stack (`-apple-system`, `BlinkMacSystemFont`, etc.)
+
 ### Font Hierarchy
 
 ```css

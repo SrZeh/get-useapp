@@ -139,7 +139,7 @@ export function SearchHeader({
       style={[
         {
           paddingHorizontal: screenPadding,
-          paddingTop: 16,
+          paddingTop: 80, // Add top padding to account for transparent header
           paddingBottom: 8,
           width: '100%',
           backgroundColor: palette.background,

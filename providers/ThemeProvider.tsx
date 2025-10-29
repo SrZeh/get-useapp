@@ -89,14 +89,19 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     isLoading,
   }), [themeMode, colorScheme, setThemeMode, isLoading]);
 
-  // Don't render until we've loaded the saved preference
-  // Show a minimal placeholder to prevent flash of wrong theme
-  if (isLoading) {
-    return null; // Could return a minimal loading placeholder
-  }
+  // Always provide context, even during loading
+  // Use system theme as default during loading to prevent "must be used within ThemeProvider" errors
+  const contextValue = isLoading
+    ? {
+        themeMode: 'system' as ThemeMode,
+        colorScheme: (systemColorScheme ?? 'light') as 'light' | 'dark',
+        setThemeMode,
+        isLoading: true,
+      }
+    : value;
 
   return (
-    <ThemeContext.Provider value={value}>
+    <ThemeContext.Provider value={contextValue}>
       {children}
     </ThemeContext.Provider>
   );

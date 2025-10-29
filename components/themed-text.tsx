@@ -1,6 +1,7 @@
-import { StyleSheet, Text, type TextProps, Platform } from 'react-native';
+import { StyleSheet, Text, type TextProps } from 'react-native';
 
 import { useThemeColor } from '@/hooks/use-theme-color';
+import { Fonts } from '@/constants/theme';
 
 /**
  * Typography types aligned with iOS 26 Human Interface Guidelines
@@ -73,18 +74,13 @@ export function ThemedText({
   );
 }
 
-// iOS Font Family Configuration
-const SF_PRO_DISPLAY = Platform.select({
-  ios: 'SF Pro Display',
-  web: "-apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif",
-  default: 'sans-serif',
-});
-
-const SF_PRO_TEXT = Platform.select({
-  ios: 'SF Pro Text',
-  web: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif",
-  default: 'sans-serif',
-});
+/**
+ * Uses Fonts configuration from constants/theme.ts
+ * SF Pro Display for headings and large text (19pt+)
+ * SF Pro Text for body text (18pt and below)
+ */
+const SF_PRO_DISPLAY = Fonts?.sans || 'SF Pro Display';
+const SF_PRO_TEXT = Fonts?.text || 'SF Pro Text';
 
 const styles = StyleSheet.create({
   // Legacy styles (backwards compatibility)

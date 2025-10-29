@@ -81,7 +81,7 @@ import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
 import React, { useMemo } from "react";
 import { Platform, Pressable, View } from "react-native";
-import { Image, ImageBackground } from "expo-image";
+import { Image } from "expo-image";
 import { AuthProvider } from '../src/providers/AuthProvider';
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { useThemeColors } from "@/utils";
@@ -157,20 +157,6 @@ function AppContent() {
             position: 'relative',
           }}
         >
-          {/* Background with icons */}
-          <ImageBackground
-            source={require('@/assets/images/bg-icons.png')}
-            style={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              opacity: 0.3,
-            }}
-            imageStyle={{ opacity: 1 }}
-          />
-          
           {/* Content */}
           <View style={{ flex: 1, position: 'relative' }}>
             <OnboardingProvider>
@@ -199,20 +185,6 @@ function AppContent() {
           position: 'relative',
         }}
       >
-        {/* Background with icons */}
-        <ImageBackground
-          source={require('@/assets/images/bg-icons.png')}
-          style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            opacity: 0.3,
-          }}
-          imageStyle={{ opacity: 1 }}
-        />
-        
         {/* Content */}
         <View style={{ flex: 1, position: 'relative' }}>
           <OnboardingProvider>
