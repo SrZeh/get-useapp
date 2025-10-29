@@ -1,16 +1,32 @@
 /**
  * Barrel file for hook exports
+ * 
+ * Re-exports hooks for backward compatibility and convenience.
+ * Feature-specific hooks are also available directly from their feature directories.
  */
 
-// Re-export other hooks that might be imported from here
+// Core hooks
 export { useColorScheme } from './use-color-scheme';
 export { useThemeColor } from './use-theme-color';
+
+// Item hooks
 export { useUserItems } from './useUserItems';
 export { useItemOperations } from './useItemOperations';
+export { useItemForm } from './useItemForm';
+
+// Auth hooks
 export { useFormValidation } from './useFormValidation';
 export { useRegister, useLogin, useResetPassword } from './useAuth';
+
+// Profile hooks
 export { useUpdateProfile, useLoadProfile } from './useProfile';
-export { useItemForm } from './useItemForm';
+
+// Review hooks
 export { useSubmitReview } from './useReview';
+
+// Location hooks
 export { useLocations } from './useLocations';
+
+// Feature hooks (re-exported for convenience)
+export * from './features';
 

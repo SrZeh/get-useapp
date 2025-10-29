@@ -12,8 +12,8 @@ import { getSpringConfig } from "@/constants/animations";
 import ArrowsSvg from "@/assets/icons/arrows.svg";
 import HouseSvg from "@/assets/icons/house.svg";
 import ShippingBoxSvg from "@/assets/icons/shippingbox.svg";
-import { useTransactionsDot } from "@/src/hooks/usePendingTransactions";
-import { useAuth } from "@/src/providers/AuthProvider";
+import { useTransactionsDot } from "@/hooks/features/transactions";
+import { useAuth } from "@/providers/AuthProvider";
 import * as Haptics from "expo-haptics";
 
 type TabConfig = {

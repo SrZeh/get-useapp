@@ -45,6 +45,13 @@ export * from './reservation';
 // Search Components
 export * from './search';
 
+// Feature Components (by domain)
+export * from './features/auth';
+export * from './features/transactions';
+
+// Layout Components
+export { HeaderLogo } from './layouts/HeaderLogo';
+
 // UI Components
 export * from './ui';
 

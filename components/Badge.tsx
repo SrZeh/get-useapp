@@ -68,11 +68,16 @@ export function Badge({
   const getTextColor = (): string => {
     switch (variant) {
       case 'primary':
-        return colors.text.primary; // Dark text on light green
+        // For brand color, use dark text for better contrast
+        return colors.isDark ? '#ffffff' : '#0a0a0a';
       case 'success':
+        // Success uses brand green, same text color logic
+        return colors.isDark ? '#ffffff' : '#0a0a0a';
       case 'warning':
+        // Warning and error always use white text for contrast on colored backgrounds
+        return '#ffffff';
       case 'error':
-        return '#ffffff'; // White text on colored backgrounds
+        return '#ffffff';
       default:
         return colors.text.primary;
     }

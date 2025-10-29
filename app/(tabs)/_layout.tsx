@@ -1,14 +1,12 @@
 // app/(tabs)/_layout.tsx
-import AuthHeaderRight from "@/components/AuthHeaderRight";
+import { AuthHeaderRight } from "@/components/features/auth";
 import { TabIcon } from "@/components/ui/TabIcon";
 import { ThemedText } from "@/components/themed-text";
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useThemeColors } from "@/utils";
-import { Link, Tabs } from "expo-router";
+import { Tabs } from "expo-router";
 import React, { useMemo } from "react";
-import { Pressable } from "react-native";
-import { Image } from "expo-image";
 import { LiquidGlassView } from "@/components/liquid-glass";
 
 // 👉 Se tiver transformer configurado, use os SVGs como componentes:
@@ -20,27 +18,13 @@ import ShippingBoxSvg from "@/assets/icons/shippingbox.svg";
 // const HomePng = require("@/assets/images/home.png");
 // const ItemsUrl = "https://example.com/box.png";
 
-import { useTransactionsDot } from "@/src/hooks/usePendingTransactions";
-import { useAuth } from "@/src/providers/AuthProvider";
+import { useTransactionsDot } from "@/hooks/features/transactions";
+import { useAuth } from "@/providers/AuthProvider";
+
+import { HeaderLogo } from '@/components/layouts';
 
 function LogoIcon() {
-  return (
-    <Link href="/" asChild>
-      <Pressable
-        accessibilityRole="link"
-        style={{ alignItems: "center", justifyContent: "center", marginLeft: 16 }}
-        android_ripple={{ borderless: true }}
-        accessibilityLabel="Get & Use"
-      >
-        <Image
-          source={require("@/assets/images/logo.png")}
-          style={{ width: 28, height: 28 }}
-          contentFit="contain"
-          transition={200}
-        />
-      </Pressable>
-    </Link>
-  );
+  return <HeaderLogo marginLeft={16} />;
 }
 
 function HeaderTitle() {

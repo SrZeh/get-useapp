@@ -121,10 +121,11 @@ export function useThemeColors(): ThemeColors {
       glow: ExtendedColors.brand.glow,
     },
     semantic: {
-      success: theme.success,
-      error: theme.error,
-      warning: theme.warning,
-      info: theme.info,
+      // Use theme-aware semantic colors for proper contrast
+      success: isDark ? ExtendedColors.success.darkMode : ExtendedColors.success.lightMode,
+      error: isDark ? ExtendedColors.error.darkMode : ExtendedColors.error.lightMode,
+      warning: isDark ? ExtendedColors.warning.darkMode : ExtendedColors.warning.lightMode,
+      info: isDark ? ExtendedColors.info.darkMode : ExtendedColors.info.lightMode,
     },
     icon: {
       default: theme.icon,
@@ -165,20 +166,21 @@ export function useThemeColor(
 
 /**
  * Glass effect background colors with opacity
+ * Uses ExtendedColors for consistency with design system
  */
 export function useGlassColors() {
   const colors = useThemeColors();
   
   return {
     subtle: colors.isDark
-      ? 'rgba(11, 18, 32, 0.65)'
-      : 'rgba(255, 255, 255, 0.7)',
+      ? ExtendedColors.darkMode.glass.subtle
+      : ExtendedColors.lightMode.glass.subtle,
     standard: colors.isDark
-      ? 'rgba(11, 18, 32, 0.75)'
-      : 'rgba(255, 255, 255, 0.8)',
+      ? ExtendedColors.darkMode.glass.standard
+      : ExtendedColors.lightMode.glass.standard,
     strong: colors.isDark
-      ? 'rgba(11, 18, 32, 0.85)'
-      : 'rgba(255, 255, 255, 0.9)',
+      ? ExtendedColors.darkMode.glass.strong
+      : ExtendedColors.lightMode.glass.strong,
     hover: colors.isDark
       ? 'rgba(11, 18, 32, 0.8)'
       : 'rgba(249, 250, 251, 0.9)',
@@ -209,17 +211,17 @@ export function useGlassBorders() {
 
 /**
  * Category chip colors based on selection state
+ * Uses theme-aware colors for WCAG compliance
  */
 export function useChipColors(selected: boolean) {
   const colors = useThemeColors();
   
+  // Theme-aware brand color for chips
+  const brandBgColor = colors.isDark ? ExtendedColors.brand.darkMode : ExtendedColors.brand.lightMode;
+  
   return {
-    bg: selected
-      ? (colors.isDark ? colors.brand.primary : colors.brand.dark)
-      : 'transparent',
-    border: selected
-      ? 'transparent'
-      : colors.border.default,
+    bg: selected ? brandBgColor : 'transparent',
+    border: selected ? 'transparent' : colors.border.default,
     text: selected
       ? (colors.isDark ? colors.text.primary : '#ffffff')
       : colors.text.tertiary,
@@ -231,12 +233,13 @@ export function useChipColors(selected: boolean) {
 
 /**
  * Button variant colors
+ * Uses theme-aware colors for WCAG-compliant contrast
  */
 export function useButtonColors(variant: 'primary' | 'secondary' | 'ghost' | 'outline' | 'destructive') {
   const colors = useThemeColors();
   
   // Theme-aware brand color: use dark green in light mode for contrast, light green in dark mode
-  const brandColor = colors.isDark ? colors.brand.primary : colors.brand.dark;
+  const brandColor = colors.isDark ? ExtendedColors.brand.darkMode : ExtendedColors.brand.lightMode;
   
   const variants = {
     primary: {

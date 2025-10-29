@@ -26,18 +26,20 @@ body {
 /* CSS Variables - Default values (light mode) */
 /* These are overridden by WebStyles.tsx when theme changes */
 :root {
-  /* Brand Colors */
+  /* Brand Colors - Theme-aware */
   --brand-primary: #96ff9a;
   --brand-secondary: #80e685;
+  --brand-tertiary: #6acc6f;
   --brand-dark: #08af0e;
   --brand-light: #b3ffb5;
+  --brand-glow: #ccffe0;
   
   /* Background Colors */
   --bg-primary: #ffffff;
   --bg-secondary: #f9fafb;
   --bg-tertiary: #f3f4f6;
   
-  /* Text Colors */
+  /* Text Colors - High contrast for WCAG AA */
   --text-primary: #0a0a0a;
   --text-secondary: #1f2937;
   --text-tertiary: #4b5563;
@@ -52,16 +54,22 @@ body {
   --input-border: #e5e7eb;
   --input-border-focus: #08af0e;
   --input-text: #0a0a0a;
+  --input-placeholder: rgba(107, 114, 128, 0.6);
   
-  /* Badge Colors */
+  /* Card Colors */
+  --card-bg: #ffffff;
+  
+  /* Badge Colors - Theme-aware for proper contrast */
   --badge-primary-bg: #96ff9a;
   --badge-primary-text: #0a0a0a;
   --badge-success-bg: #08af0e;
-  --badge-success-text: #ffffff;
-  --badge-warning-bg: #f59e0b;
+  --badge-success-text: #0a0a0a;
+  --badge-warning-bg: #d97706;
   --badge-warning-text: #ffffff;
-  --badge-error-bg: #ef4444;
+  --badge-error-bg: #dc2626;
   --badge-error-text: #ffffff;
+  --badge-info-bg: #2563eb;
+  --badge-info-text: #ffffff;
   
   /* Glass Effect Colors */
   --glass-bg-subtle: rgba(255, 255, 255, 0.5);
@@ -79,8 +87,23 @@ body {
   --scrollbar-thumb: rgba(150, 255, 154, 0.3);
   --scrollbar-thumb-hover: rgba(150, 255, 154, 0.5);
   
-  /* Semantic Colors */
-  --error-primary: #ef4444;
+  /* Semantic Colors - Light mode variants for WCAG AA */
+  --success-primary: #08af0e;
+  --success-light: #40ef47;
+  --success-dark: #00ce08;
+  --error-primary: #dc2626;
+  --error-light: #ef4444;
+  --error-dark: #dc2626;
+  --warning-primary: #d97706;
+  --warning-light: #f59e0b;
+  --warning-dark: #d97706;
+  --info-primary: #2563eb;
+  --info-light: #3b82f6;
+  --info-dark: #2563eb;
+  
+  /* Overlay */
+  --overlay-light: rgba(0, 0, 0, 0.4);
+  --overlay-dark: rgba(0, 0, 0, 0.6);
 }
 
 /* Dark mode variable overrides (applied via .dark class) */
@@ -105,9 +128,22 @@ body {
   --input-border: #334155;
   --input-border-focus: #96ff9a;
   --input-text: #e5e7eb;
+  --input-placeholder: rgba(203, 213, 225, 0.5);
   
-  /* Badge Colors - Use same brand colors but adjust text */
+  /* Card Colors */
+  --card-bg: #1e293b;
+  
+  /* Badge Colors - Dark mode variants for WCAG AA */
+  --badge-primary-bg: #96ff9a;
   --badge-primary-text: #0a0a0a; /* Keep dark text on light green bg */
+  --badge-success-bg: #40ef47;
+  --badge-success-text: #0a0a0a;
+  --badge-warning-bg: #fbbf24;
+  --badge-warning-text: #0a0a0a;
+  --badge-error-bg: #f87171;
+  --badge-error-text: #ffffff;
+  --badge-info-bg: #60a5fa;
+  --badge-info-text: #0a0a0a;
   
   /* Glass Effect Colors - Dark mode variants */
   --glass-bg-subtle: rgba(15, 20, 25, 0.5);
@@ -125,8 +161,19 @@ body {
   --scrollbar-thumb: rgba(150, 255, 154, 0.2);
   --scrollbar-thumb-hover: rgba(150, 255, 154, 0.4);
   
-  /* Semantic Colors */
+  /* Semantic Colors - Dark mode variants for WCAG AA */
+  --success-primary: #40ef47;
+  --success-light: #40ef47;
+  --success-dark: #96ff9a;
   --error-primary: #f87171;
+  --error-light: #f87171;
+  --error-dark: #f87171;
+  --warning-primary: #fbbf24;
+  --warning-light: #fbbf24;
+  --warning-dark: #fbbf24;
+  --info-primary: #60a5fa;
+  --info-light: #60a5fa;
+  --info-dark: #60a5fa;
 }
 
 /* Glass Effects - Using CSS variables */

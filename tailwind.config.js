@@ -61,27 +61,39 @@ module.exports = {
           'light-bg': '#ffffff', // White cards on white background with shadow
           'dark-bg': '#1e293b', // Slate-800 for elevation in dark mode
         },
-        // Semantic Colors - Clear and distinct
+        // Semantic Colors - Clear and distinct, theme-aware for WCAG AA
         success: {
-          primary: '#08af0e', // Brand green for trust/success
-          light: '#40ef47', // Lighter variant
+          primary: '#08af0e', // Brand green for trust/success (light mode)
+          light: '#40ef47', // Lighter variant (dark mode)
           dark: '#00ce08', // Darker variant
           soft: '#16a34a', // Softer green (green-600)
+          // Theme-aware variants
+          lightMode: '#08af0e',
+          darkMode: '#40ef47',
         },
         error: {
           primary: '#ef4444', // Clear red (red-500)
-          dark: '#dc2626', // Darker red (red-600)
+          dark: '#dc2626', // Darker red (red-600) - light mode
           light: '#f87171', // Lighter for dark mode (red-400)
+          // Theme-aware variants
+          lightMode: '#dc2626',
+          darkMode: '#f87171',
         },
         warning: {
           primary: '#f59e0b', // Amber (amber-500)
-          dark: '#d97706', // Darker (amber-600)
+          dark: '#d97706', // Darker (amber-600) - light mode
           light: '#fbbf24', // Lighter for dark mode (amber-400)
+          // Theme-aware variants
+          lightMode: '#d97706',
+          darkMode: '#fbbf24',
         },
         info: {
           primary: '#3b82f6', // Modern blue (blue-500)
-          dark: '#2563eb', // Darker (blue-600)
+          dark: '#2563eb', // Darker (blue-600) - light mode
           light: '#60a5fa', // Lighter for dark mode (blue-400)
+          // Theme-aware variants
+          lightMode: '#2563eb',
+          darkMode: '#60a5fa',
         },
         // Neutral/Gray Scale
         neutral: {

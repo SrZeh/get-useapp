@@ -208,12 +208,14 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.md,
     paddingHorizontal: Spacing.sm,
     minHeight: 48, // WCAG minimum touch target
+    overflow: 'hidden', // Ensure border radius is respected
   },
   input: {
     flex: 1,
     fontSize: 17, // iOS body size - using native TextInput, so direct value is acceptable
     lineHeight: 22,
     paddingVertical: Spacing.xs,
+    paddingHorizontal: 0, // Reset horizontal padding for exact alignment
     fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro", system-ui, sans-serif',
   },
   inputWithLeft: {
@@ -225,9 +227,13 @@ const styles = StyleSheet.create({
     paddingRight: 0,
   },
   leftElement: {
+    justifyContent: 'center',
+    alignItems: 'center',
     marginRight: Spacing['2xs'],
   },
   rightElement: {
+    justifyContent: 'center',
+    alignItems: 'center',
     marginLeft: Spacing['2xs'],
   },
   helperContainer: {
