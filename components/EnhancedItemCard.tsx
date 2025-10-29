@@ -28,7 +28,7 @@ type EnhancedItemCardProps = {
   width?: number;
 };
 
-export function EnhancedItemCard({ item, onPress, width }: EnhancedItemCardProps) {
+export const EnhancedItemCard = React.memo(function EnhancedItemCard({ item, onPress, width }: EnhancedItemCardProps) {
   const cardWidth = width || 180;
   const imageHeight = cardWidth * 0.75;
 
@@ -51,6 +51,8 @@ export function EnhancedItemCard({ item, onPress, width }: EnhancedItemCardProps
               style={{ width: '100%', height: imageHeight }}
               contentFit="cover"
               transition={200}
+              cachePolicy="memory-disk"
+              recyclingKey={item.photos[0]}
             />
           ) : (
             <View
@@ -129,5 +131,19 @@ export function EnhancedItemCard({ item, onPress, width }: EnhancedItemCardProps
       </LiquidGlassView>
     </AnimatedCard>
   );
-}
+}, (prevProps, nextProps) => {
+  // Custom comparison function for better performance
+  return (
+    prevProps.item.id === nextProps.item.id &&
+    prevProps.item.photos?.[0] === nextProps.item.photos?.[0] &&
+    prevProps.item.dailyRate === nextProps.item.dailyRate &&
+    prevProps.item.available === nextProps.item.available &&
+    prevProps.item.verified === nextProps.item.verified &&
+    prevProps.item.title === nextProps.item.title &&
+    prevProps.item.city === nextProps.item.city &&
+    prevProps.item.neighborhood === nextProps.item.neighborhood &&
+    prevProps.onPress === nextProps.onPress &&
+    prevProps.width === nextProps.width
+  );
+});
 

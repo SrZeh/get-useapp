@@ -7,7 +7,8 @@ import { router } from 'expo-router';
 import { doc, getDoc } from 'firebase/firestore';
 import { signOut } from 'firebase/auth';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Image, Platform, ScrollView, TouchableOpacity, View, useColorScheme } from 'react-native';
+import { ActivityIndicator, Alert, Platform, ScrollView, TouchableOpacity, View, useColorScheme } from 'react-native';
+import { Image } from 'expo-image';
 import { LiquidGlassView } from '@/components/liquid-glass';
 import { Button } from '@/components/Button';
 import { useTheme } from '@/providers/ThemeProvider';
@@ -129,7 +130,11 @@ export default function ProfileScreen() {
             {u?.photoURL ? (
               <Image 
                 source={{ uri: u.photoURL }} 
-                style={{ width: 120, height: 120, borderRadius: 60, borderWidth: 3, borderColor: '#96ff9a' }} 
+                style={{ width: 120, height: 120, borderRadius: 60, borderWidth: 3, borderColor: '#96ff9a' }}
+                contentFit="cover"
+                transition={200}
+                cachePolicy="memory-disk"
+                recyclingKey={u.photoURL}
               />
             ) : (
               <LinearGradient

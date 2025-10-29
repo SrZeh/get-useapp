@@ -16,7 +16,7 @@ import {
   updateDoc,
   where,
 } from "firebase/firestore";
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -228,6 +228,134 @@ export default function ItemsScreen() {
   const goNew = () => router.push("/item/new");
   const goEdit = (id: string) => router.push(`/item/edit/${id}`);
 
+  const renderItem = useCallback(({ item }: { item: Item }) => (
+    <AnimatedCard>
+      <LiquidGlassView intensity="standard" cornerRadius={20} style={{ overflow: 'hidden' }}>
+        {item.photos?.[0] && (
+          <ExpoImage
+            source={{ uri: item.photos[0] }}
+            style={{ width: "100%", height: 200 }}
+            contentFit="cover"
+            transition={200}
+            cachePolicy="memory-disk"
+            recyclingKey={item.photos[0]}
+          />
+        )}
+        
+        <View style={{ padding: 16 }}>
+          {/* Header */}
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: 12,
+              marginBottom: 12,
+            }}
+          >
+            <ThemedText type="title-small" style={{ flexShrink: 1, fontWeight: '600' }} numberOfLines={2}>
+              {item.title}
+            </ThemedText>
+
+            <LinearGradient
+              colors={item.available ? GradientTypes.success.colors : ['#6b7280', '#4b5563']}
+              style={{
+                paddingVertical: 6,
+                paddingHorizontal: 12,
+                borderRadius: 16,
+              }}
+            >
+              <ThemedText style={{ color: "#fff", fontSize: 12, fontWeight: '600' }}>
+                {item.available ? "Disponível" : "Alugado"}
+              </ThemedText>
+            </LinearGradient>
+          </View>
+
+          {/* Ratings */}
+          <View style={{ marginTop: 8, gap: 6 }}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+              <ThemedText type="caption" style={{ fontWeight: '600' }}>Produto:</ThemedText>
+              {(() => {
+                const avg = calcAvg(item.ratingSum, item.ratingCount);
+                if (!avg) return <ThemedText type="caption">—</ThemedText>;
+                return (
+                  <ThemedText type="caption">
+                    {renderStars(avg)} {avg.toFixed(1)} ({item.ratingCount})
+                  </ThemedText>
+                );
+              })()}
+            </View>
+
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+              <ThemedText type="caption" style={{ fontWeight: '600' }}>Dono:</ThemedText>
+              {(() => {
+                const avg = calcAvg(item.ownerRatingSum, item.ownerRatingCount);
+                if (!avg) return <ThemedText type="caption">—</ThemedText>;
+                return (
+                  <ThemedText type="caption">
+                    {renderStars(avg)} {avg.toFixed(1)} ({item.ownerRatingCount})
+                  </ThemedText>
+                );
+              })()}
+            </View>
+          </View>
+
+          {!!item.description && (
+            <ThemedText style={{ marginTop: 12 }} numberOfLines={2} className="text-light-text-secondary dark:text-dark-text-secondary">
+              {item.description}
+            </ThemedText>
+          )}
+
+          <View style={{ flexDirection: "row", gap: 10, marginTop: 16 }}>
+            <Button
+              variant="secondary"
+              onPress={() => {
+                HapticFeedback.light();
+                goEdit(item.id);
+              }}
+              style={{ flex: 1 }}
+              textStyle={{ fontSize: 14 }}
+            >
+              Editar
+            </Button>
+
+            <Button
+              variant={item.available ? "primary" : "premium"}
+              onPress={() => {
+                HapticFeedback.medium();
+                toggleAvailability(item);
+              }}
+              disabled={updatingId === item.id}
+              loading={updatingId === item.id}
+              style={{ flex: 1 }}
+              textStyle={{ fontSize: 14 }}
+            >
+              {item.available ? "Marcar Alugado" : "Marcar Disponível"}
+            </Button>
+
+            <TouchableOpacity
+              onPress={() => {
+                HapticFeedback.medium();
+                confirmDelete(item);
+              }}
+              disabled={updatingId === item.id}
+              style={{
+                width: 48,
+                justifyContent: 'center',
+                alignItems: 'center',
+                borderRadius: 12,
+                backgroundColor: "#ef4444",
+                opacity: updatingId === item.id ? 0.6 : 1,
+              }}
+            >
+              <ThemedText style={{ color: "#fff", fontSize: 18, fontWeight: '700' }}>×</ThemedText>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </LiquidGlassView>
+    </AnimatedCard>
+  ), [updatingId, goEdit, toggleAvailability, confirmDelete]);
+
   return (
     <ThemedView style={{ flex: 1 }}>
       <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", padding: 16 }}>
@@ -267,131 +395,12 @@ export default function ItemsScreen() {
               tintColor="#96ff9a"
             />
           }
-          renderItem={({ item }) => (
-            <AnimatedCard>
-              <LiquidGlassView intensity="standard" cornerRadius={20} style={{ overflow: 'hidden' }}>
-                {item.photos?.[0] && (
-                  <ExpoImage
-                    source={{ uri: item.photos[0] }}
-                    style={{ width: "100%", height: 200 }}
-                    contentFit="cover"
-                    transition={200}
-                  />
-                )}
-                
-                <View style={{ padding: 16 }}>
-                  {/* Header */}
-                  <View
-                    style={{
-                      flexDirection: "row",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      gap: 12,
-                      marginBottom: 12,
-                    }}
-                  >
-                    <ThemedText type="title-small" style={{ flexShrink: 1, fontWeight: '600' }} numberOfLines={2}>
-                      {item.title}
-                    </ThemedText>
-
-                    <LinearGradient
-                      colors={item.available ? GradientTypes.success.colors : ['#6b7280', '#4b5563']}
-                      style={{
-                        paddingVertical: 6,
-                        paddingHorizontal: 12,
-                        borderRadius: 16,
-                      }}
-                    >
-                      <ThemedText style={{ color: "#fff", fontSize: 12, fontWeight: '600' }}>
-                        {item.available ? "Disponível" : "Alugado"}
-                      </ThemedText>
-                    </LinearGradient>
-                  </View>
-
-                  {/* Ratings */}
-                  <View style={{ marginTop: 8, gap: 6 }}>
-                    <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-                      <ThemedText type="caption" style={{ fontWeight: '600' }}>Produto:</ThemedText>
-                      {(() => {
-                        const avg = calcAvg(item.ratingSum, item.ratingCount);
-                        if (!avg) return <ThemedText type="caption">—</ThemedText>;
-                        return (
-                          <ThemedText type="caption">
-                            {renderStars(avg)} {avg.toFixed(1)} ({item.ratingCount})
-                          </ThemedText>
-                        );
-                      })()}
-                    </View>
-
-                    <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-                      <ThemedText type="caption" style={{ fontWeight: '600' }}>Dono:</ThemedText>
-                      {(() => {
-                        const avg = calcAvg(item.ownerRatingSum, item.ownerRatingCount);
-                        if (!avg) return <ThemedText type="caption">—</ThemedText>;
-                        return (
-                          <ThemedText type="caption">
-                            {renderStars(avg)} {avg.toFixed(1)} ({item.ownerRatingCount})
-                          </ThemedText>
-                        );
-                      })()}
-                    </View>
-                  </View>
-
-                  {!!item.description && (
-                    <ThemedText style={{ marginTop: 12 }} numberOfLines={2} className="text-light-text-secondary dark:text-dark-text-secondary">
-                      {item.description}
-                    </ThemedText>
-                  )}
-
-                  <View style={{ flexDirection: "row", gap: 10, marginTop: 16 }}>
-                    <Button
-                      variant="secondary"
-                      onPress={() => {
-                        HapticFeedback.light();
-                        goEdit(item.id);
-                      }}
-                      style={{ flex: 1 }}
-                      textStyle={{ fontSize: 14 }}
-                    >
-                      Editar
-                    </Button>
-
-                    <Button
-                      variant={item.available ? "primary" : "premium"}
-                      onPress={() => {
-                        HapticFeedback.medium();
-                        toggleAvailability(item);
-                      }}
-                      disabled={updatingId === item.id}
-                      loading={updatingId === item.id}
-                      style={{ flex: 1 }}
-                      textStyle={{ fontSize: 14 }}
-                    >
-                      {item.available ? "Marcar Alugado" : "Marcar Disponível"}
-                    </Button>
-
-                    <TouchableOpacity
-                      onPress={() => {
-                        HapticFeedback.medium();
-                        confirmDelete(item);
-                      }}
-                      disabled={updatingId === item.id}
-                      style={{
-                        width: 48,
-                        justifyContent: 'center',
-                        alignItems: 'center',
-                        borderRadius: 12,
-                        backgroundColor: "#ef4444",
-                        opacity: updatingId === item.id ? 0.6 : 1,
-                      }}
-                    >
-                      <ThemedText style={{ color: "#fff", fontSize: 18, fontWeight: '700' }}>×</ThemedText>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              </LiquidGlassView>
-            </AnimatedCard>
-          )}
+          removeClippedSubviews={true}
+          maxToRenderPerBatch={10}
+          windowSize={10}
+          initialNumToRender={10}
+          updateCellsBatchingPeriod={50}
+          renderItem={renderItem}
         />
       )}
     </ThemedView>

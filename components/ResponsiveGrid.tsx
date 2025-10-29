@@ -79,6 +79,11 @@ export function ResponsiveGrid<T>({
       refreshing={refreshing}
       onRefresh={onRefresh}
       ListHeaderComponent={ListHeaderComponent}
+      removeClippedSubviews={true}
+      maxToRenderPerBatch={10}
+      windowSize={10}
+      initialNumToRender={10}
+      updateCellsBatchingPeriod={50}
     />
   );
 }

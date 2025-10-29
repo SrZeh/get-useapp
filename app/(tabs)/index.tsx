@@ -247,7 +247,7 @@ export default function VitrineScreen() {
   };
 
   // -------- card de item --------
-  const renderItem = ({ item, index }: { item: Item; index: number }) => {
+  const renderItem = useCallback(({ item, index }: { item: Item; index: number }) => {
     const isMine = me && item.ownerUid === me;
     // Don't use isLastInRow with responsive grid - spacing is handled by columnWrapperStyle
     const cardStyle: ViewStyle = {
@@ -282,6 +282,8 @@ export default function VitrineScreen() {
             }}
             contentFit="cover"
             transition={200}
+            cachePolicy="memory-disk"
+            recyclingKey={item.photos[0]}
           />
         ) : (
           <View 
@@ -407,7 +409,7 @@ export default function VitrineScreen() {
         </View>
       </TouchableOpacity>
     );
-  };
+  }, [me, numColumns, cardWidth, screenWidth, screenPadding, isDark, cardSpacing]);
 
   // -------- header que vai rolar junto --------
   const renderHeader = () => (
@@ -536,6 +538,11 @@ export default function VitrineScreen() {
           keyExtractor={(it) => it.id}
           renderItem={renderItem}
           ListHeaderComponent={renderHeader}
+          removeClippedSubviews={true}
+          maxToRenderPerBatch={10}
+          windowSize={10}
+          initialNumToRender={10}
+          updateCellsBatchingPeriod={50}
           ListEmptyComponent={
             !loading ? (
               <View style={{ 

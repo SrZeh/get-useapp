@@ -2,6 +2,7 @@
  * ReservationCard - Displays a reservation with status, dates, and actions
  */
 
+import React from "react";
 import { ThemedText } from "@/components/themed-text";
 import { AnimatedCard } from "@/components/AnimatedCard";
 import { LiquidGlassView } from "@/components/liquid-glass";
@@ -29,7 +30,7 @@ const STATUS_COLORS: Record<string, [string, string]> = {
   canceled: ['#6b7280', '#4b5563'],
 };
 
-export function ReservationCard({ reservation: r, actions }: ReservationCardProps) {
+export const ReservationCard = React.memo(function ReservationCard({ reservation: r, actions }: ReservationCardProps) {
   const isDark = useColorScheme() === "dark";
   
   const daysLabel = r.days 
@@ -91,5 +92,17 @@ export function ReservationCard({ reservation: r, actions }: ReservationCardProp
       </LiquidGlassView>
     </AnimatedCard>
   );
-}
+}, (prevProps, nextProps) => {
+  // Custom comparison function for better performance
+  return (
+    prevProps.reservation.id === nextProps.reservation.id &&
+    prevProps.reservation.status === nextProps.reservation.status &&
+    prevProps.reservation.startDate === nextProps.reservation.startDate &&
+    prevProps.reservation.endDate === nextProps.reservation.endDate &&
+    prevProps.reservation.days === nextProps.reservation.days &&
+    prevProps.reservation.total === nextProps.reservation.total &&
+    prevProps.reservation.itemTitle === nextProps.reservation.itemTitle &&
+    prevProps.actions === nextProps.actions
+  );
+});
 

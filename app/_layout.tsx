@@ -80,7 +80,8 @@ import { Link, Stack } from "expo-router";
 import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
 import React from "react";
-import { Image, Platform, Pressable, View } from "react-native";
+import { Platform, Pressable, View } from "react-native";
+import { Image } from "expo-image";
 import { AuthProvider } from '../src/providers/AuthProvider';
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 
@@ -100,7 +101,8 @@ function LogoIcon() {
         <Image
           source={require("@/assets/images/logo.png")}
           style={{ width: 28, height: 28 }}
-          resizeMode="contain"
+          contentFit="contain"
+          transition={200}
         />
       </Pressable>
     </Link>

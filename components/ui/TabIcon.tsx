@@ -1,6 +1,7 @@
 // components/ui/TabIcon.tsx
 import React from "react";
-import { Image, ImageSourcePropType, View, ViewStyle, StyleProp } from "react-native";
+import { ImageSourcePropType, View, ViewStyle, StyleProp } from "react-native";
+import { Image } from "expo-image";
 
 type IconComponent = React.ComponentType<{
   width?: number | string;
@@ -56,7 +57,9 @@ export function TabIcon({ Icon, color, size = 22, showDot, style }: Props) {
               ? { uri: Icon as string }
               : ((Icon as unknown) as ImageSourcePropType)
           }
-          style={{ width: size, height: size, resizeMode: "contain" }}
+          style={{ width: size, height: size }}
+          contentFit="contain"
+          transition={200}
         />
       )}
 

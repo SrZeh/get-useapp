@@ -4,7 +4,8 @@ import { router } from "expo-router";
 import { onAuthStateChanged } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
 import React, { useEffect, useState } from "react";
-import { Image, TouchableOpacity } from "react-native";
+import { TouchableOpacity } from "react-native";
+import { Image } from "expo-image";
 import { MaterialIcons } from "@expo/vector-icons";
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -55,6 +56,10 @@ export default function AuthHeaderRight() {
         <Image
           source={{ uri: photoURL }}
           style={{ width: 32, height: 32, borderRadius: 16 }}
+          contentFit="cover"
+          transition={200}
+          cachePolicy="memory-disk"
+          recyclingKey={photoURL}
         />
       ) : (
         <MaterialIcons

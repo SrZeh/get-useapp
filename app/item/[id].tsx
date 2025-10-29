@@ -365,6 +365,8 @@ export default function ItemDetailScreen() {
                 style={{ width: "100%", height: 280 }}
                 contentFit="cover"
                 transition={200}
+                cachePolicy="memory-disk"
+                recyclingKey={item.photos[0]}
               />
             )}
             <View style={{ padding: 20 }}>

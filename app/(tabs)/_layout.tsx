@@ -6,7 +6,8 @@ import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { Link, Tabs } from "expo-router";
 import React from "react";
-import { Image, Pressable } from "react-native";
+import { Pressable } from "react-native";
+import { Image } from "expo-image";
 
 // 👉 Se tiver transformer configurado, use os SVGs como componentes:
 import ArrowsSvg from "@/assets/icons/arrows.svg";
@@ -32,7 +33,8 @@ function LogoIcon() {
         <Image
           source={require("@/assets/images/logo.png")}
           style={{ width: 28, height: 28 }}
-          resizeMode="contain"
+          contentFit="contain"
+          transition={200}
         />
       </Pressable>
     </Link>
