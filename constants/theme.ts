@@ -22,15 +22,15 @@ export const Colors = {
     textQuaternary: '#6b7280', // light-text-quaternary
     
     // Background colors
-    background: '#96ff9a', // light-bg-primary (brand color)
-    backgroundSecondary: '#ffffff', // light-bg-secondary
+    background: '#ffffff', // light-bg-primary (white for clean look)
+    backgroundSecondary: '#f9fafb', // light-bg-secondary
     backgroundTertiary: '#f3f4f6', // light-bg-tertiary
     
     // UI colors
-    tint: tintColorLight,
+    tint: '#08af0e', // Use darker green for better contrast on light backgrounds
     icon: '#687076', // neutral-400 equivalent
     tabIconDefault: '#687076',
-    tabIconSelected: tintColorLight,
+    tabIconSelected: '#08af0e', // Darker green for better contrast
     
     // Borders
     border: '#e5e7eb', // border-light

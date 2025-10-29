@@ -6,6 +6,12 @@ import { router } from "expo-router";
 import type { DocumentSnapshot } from "firebase/firestore";
 import { useOnboardingVisibility } from "@/hooks/useOnboarding";
 import { OnboardingModal } from "@/components/onboarding/OnboardingModal";
+import { LiquidGlassView } from "@/components/liquid-glass";
+import { CategoryChip } from "@/components/CategoryChip";
+import { ShimmerLoader } from "@/components/ShimmerLoader";
+import { Button } from "@/components/Button";
+import { useResponsive } from "@/hooks/useResponsive";
+import { HorizontalCarousel } from "@/components/HorizontalCarousel";
 import {
   collection,
   getDocs,
@@ -18,17 +24,19 @@ import {
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Dimensions,
   FlatList,
-  Image,
   KeyboardAvoidingView,
   Platform,
   RefreshControl,
-  ScrollView, // usado só para chips horizontais
+  ScrollView,
   TextInput,
   TouchableOpacity,
   View,
+  ViewStyle,
   useColorScheme,
 } from "react-native";
+import { Image } from "expo-image";
 
 const CATEGORIES = [
   "Ferramentas elétricas","Ferramentas manuais","Construção & Reforma","Marcenaria & Carpintaria","Jardinagem",
@@ -76,7 +84,26 @@ function formatBRL(n?: number) {
 
 export default function VitrineScreen() {
   const isDark = useColorScheme() === "dark";
+  const { width: screenWidth, isMobile, isTablet, isDesktop } = useResponsive();
   const me = auth.currentUser?.uid || null;
+
+  // Responsive grid columns
+  const getNumColumns = () => {
+    if (screenWidth >= 1536) return 5; // 2xl
+    if (screenWidth >= 1280) return 4; // xl
+    if (screenWidth >= 1024) return 3; // lg
+    if (screenWidth >= 768) return 2;  // md/tablet
+    return 1; // Mobile: single column on very small screens
+  };
+
+  const numColumns = getNumColumns();
+  const cardSpacing = 12;
+  const screenPadding = isMobile ? 16 : isTablet ? 24 : 32;
+  
+  // Calculate card width dynamically based on current screen width
+  const cardWidth = numColumns > 1
+    ? (screenWidth - (screenPadding * 2) - (cardSpacing * (numColumns - 1))) / numColumns
+    : screenWidth - (screenPadding * 2);
 
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState<string>("");
@@ -92,21 +119,7 @@ export default function VitrineScreen() {
   const lastDocRef = useRef<DocumentSnapshot | null>(null);
   const isFetchingRef = useRef(false);
 
-  
-
-  const inputStyle = useMemo(
-    () => ({
-      borderWidth: 1, borderRadius: 10, padding: 12, fontSize: 16,
-      color: isDark ? "#fff" : "#111827",
-      borderColor: isDark ? "#374151" : "#d1d5db",
-      backgroundColor: isDark ? "#111827" : "#fff",
-    }),
-    [isDark]
-  );
-
   const { visible: showOnboarding, loading: onboardingLoading, markSeen } = useOnboardingVisibility();
-
-  const placeholderColor = isDark ? "#9aa0a6" : "#6b7280";
 
   // -------- Query da vitrine (publicados) --------
   const buildQuery = useCallback((firstPage: boolean) => {
@@ -223,162 +236,304 @@ export default function VitrineScreen() {
   const renderChip = (label: string, value: string) => {
     const active = category === value;
     return (
-      <TouchableOpacity
+      <CategoryChip
         key={value || "_all"}
+        label={label}
+        selected={active}
         onPress={() => setCategory(active ? "" : value)}
-        style={{
-          paddingVertical: 8, paddingHorizontal: 12, borderRadius: 9999,
-          borderWidth: 1, marginRight: 8,
-          backgroundColor: active ? (isDark ? "#96ff9a" : "#40EF47") : "transparent",
-          borderColor: active ? "transparent" : (isDark ? "#374151" : "#d1d5db"),
-        }}
-      >
-        <ThemedText style={{ color: active ? "#374151" : "#d1d5db" }}>{label}</ThemedText>
-      </TouchableOpacity>
+      />
     );
   };
 
   // -------- card de item --------
-  const renderItem = ({ item }: { item: Item }) => {
+  const renderItem = ({ item, index }: { item: Item; index: number }) => {
     const isMine = me && item.ownerUid === me;
+    // Don't use isLastInRow with responsive grid - spacing is handled by columnWrapperStyle
+    const cardStyle: ViewStyle = {
+      width: numColumns > 1 ? cardWidth : (screenWidth - (screenPadding * 2)),
+      borderRadius: 16,
+      borderWidth: 1,
+      overflow: "hidden" as const,
+      marginBottom: cardSpacing,
+      backgroundColor: isDark ? "#1f2937" : "#ffffff",
+      borderColor: isDark ? "#374151" : "#e5e7eb",
+      opacity: isMine ? 0.6 : 1,
+      shadowColor: isDark ? "#000000" : "#000000",
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: isDark ? 0.3 : 0.1,
+      shadowRadius: 4,
+      elevation: 3,
+    };
     return (
-      <View
-        style={{
-          borderWidth: 1, borderRadius: 12, padding: 12,
-          borderColor: isDark ? "#374151" : "#e5e7eb",
-          backgroundColor: isDark ? "#0b1220" : "#40ef47",
-        }}
+      <TouchableOpacity
+        onPress={() => !isMine && router.push(`/item/${item.id}`)}
+        disabled={!!isMine}
+        activeOpacity={0.7}
+        style={cardStyle}
       >
-        {item.photos?.[0] && (
+        {item.photos?.[0] ? (
           <Image
             source={{ uri: item.photos[0] }}
-            style={{ width: "100%", height: 180, borderRadius: 10, marginBottom: 8 }}
+            style={{ 
+              width: "100%",
+              height: cardWidth * 0.75, // Maintain aspect ratio
+              backgroundColor: isDark ? "#1f2937" : "#f3f4f6"
+            }}
+            contentFit="cover"
+            transition={200}
+          />
+        ) : (
+          <View 
+            style={{ 
+              width: "100%",
+              height: cardWidth * 0.75,
+              backgroundColor: isDark ? "#1f2937" : "#f3f4f6" 
+            }} 
           />
         )}
-        <ThemedText type="subtitle" numberOfLines={1}>{item.title}</ThemedText>
+        <View style={{ width: "100%", padding: 16 }}>
+          <ThemedText 
+            type="title-3" 
+            numberOfLines={1}
+            style={{ marginBottom: 12, fontWeight: '600' }}
+            className="text-light-text-primary dark:text-dark-text-primary"
+          >
+            {item.title}
+          </ThemedText>
 
-        <View style={{ flexDirection: "row", gap: 8, marginTop: 6, flexWrap: "wrap" }}>
-          {!!item.category && (
-            <View style={{ paddingVertical: 4, paddingHorizontal: 8, borderRadius: 9999, backgroundColor: isDark ? "#111827" : "#f3f4f6" }}>
-              <ThemedText>{item.category}</ThemedText>
-            </View>
+          <View style={{ flexDirection: "row", gap: 8, marginBottom: 12, flexWrap: "wrap" }}>
+            {!!item.category && (
+              <View style={{
+                paddingVertical: 4,
+                paddingHorizontal: 8,
+                borderRadius: 9999,
+                backgroundColor: isDark ? "#0b1220" : "#f3f4f6"
+              }}>
+                <ThemedText type="caption-1" className="text-light-text-tertiary dark:text-dark-text-tertiary">
+                  {item.category}
+                </ThemedText>
+              </View>
+            )}
+            {!!item.condition && (
+              <View style={{
+                paddingVertical: 4,
+                paddingHorizontal: 8,
+                borderRadius: 9999,
+                backgroundColor: isDark ? "#0b1220" : "#f3f4f6"
+              }}>
+                <ThemedText type="caption-1" className="text-light-text-tertiary dark:text-dark-text-tertiary">
+                  {item.condition}
+                </ThemedText>
+              </View>
+            )}
+            {!!item.minRentalDays && (
+              <View style={{
+                paddingVertical: 4,
+                paddingHorizontal: 8,
+                borderRadius: 9999,
+                backgroundColor: isDark ? "#0b1220" : "#f3f4f6"
+              }}>
+                <ThemedText type="caption-1" className="text-light-text-tertiary dark:text-dark-text-tertiary">
+                  {item.minRentalDays} dia(s) mínimo
+                </ThemedText>
+              </View>
+            )}
+            {!!item.city && (
+              <View style={{
+                paddingVertical: 4,
+                paddingHorizontal: 8,
+                borderRadius: 9999,
+                backgroundColor: isDark ? "#0b1220" : "#f3f4f6"
+              }}>
+                <ThemedText type="caption-1" className="text-light-text-tertiary dark:text-dark-text-tertiary">
+                  {item.city}
+                </ThemedText>
+              </View>
+            )}
+            {!!item.neighborhood && (
+              <View style={{
+                paddingVertical: 4,
+                paddingHorizontal: 8,
+                borderRadius: 9999,
+                backgroundColor: isDark ? "#0b1220" : "#f3f4f6"
+              }}>
+                <ThemedText type="caption-1" className="text-light-text-tertiary dark:text-dark-text-tertiary">
+                  {item.neighborhood}
+                </ThemedText>
+              </View>
+            )}
+          </View>
+
+          <View style={{ flexDirection: "row", alignItems: "baseline", gap: 8, marginBottom: 12 }}>
+          <ThemedText 
+            type="title-2" 
+            style={{ fontWeight: "700" }}
+            lightColor="#08af0e"
+            darkColor="#96ff9a"
+          >
+            {formatBRL(item.dailyRate)}
+          </ThemedText>
+            <ThemedText 
+              type="footnote" 
+              className="text-light-text-tertiary dark:text-dark-text-tertiary"
+            >
+              / dia
+            </ThemedText>
+          </View>
+
+          {!!item.description && (
+            <ThemedText 
+              type="footnote" 
+              numberOfLines={2}
+              style={{ marginBottom: 12 }}
+              className="text-light-text-secondary dark:text-dark-text-secondary"
+            >
+              {item.description}
+            </ThemedText>
           )}
-          {!!item.condition && (
-            <View style={{ paddingVertical: 4, paddingHorizontal: 8, borderRadius: 9999, backgroundColor: isDark ? "#111827" : "#f3f4f6" }}>
-              <ThemedText>{item.condition}</ThemedText>
-            </View>
-          )}
-          {!!item.minRentalDays && (
-            <View style={{ paddingVertical: 4, paddingHorizontal: 8, borderRadius: 9999, backgroundColor: isDark ? "#111827" : "#f3f4f6" }}>
-              <ThemedText>{item.minRentalDays} dia(s) mínimo</ThemedText>
-            </View>
-          )}
-          {!!item.city && (
-            <View style={{ paddingVertical: 4, paddingHorizontal: 8, borderRadius: 9999, backgroundColor: isDark ? "#111827" : "#f3f4f6" }}>
-              <ThemedText>{item.city}</ThemedText>
-            </View>
-          )}
-          {!!item.neighborhood && (
-            <View style={{ paddingVertical: 4, paddingHorizontal: 8, borderRadius: 9999, backgroundColor: isDark ? "#111827" : "#f3f4f6" }}>
-              <ThemedText>{item.neighborhood}</ThemedText>
-            </View>
-          )}
+
+          <Button
+            variant="primary"
+            onPress={() => !isMine && router.push(`/item/${item.id}`)}
+            disabled={!!isMine}
+            style={{
+              alignSelf: "flex-start",
+              opacity: isMine ? 0.5 : 1,
+            }}
+          >
+            {isMine ? "Seu item" : "Ver detalhes"}
+          </Button>
         </View>
-
-        <ThemedText type="defaultSemiBold" style={{ marginTop: 8 }}>
-          {formatBRL(item.dailyRate)} / dia
-        </ThemedText>
-
-        {!!item.description && (
-          <ThemedText style={{ marginTop: 6 }} numberOfLines={2}>
-            {item.description}
-          </ThemedText>
-        )}
-
-        <TouchableOpacity
-          onPress={() => router.push(`/item/${item.id}`)}
-          disabled={!!isMine}
-          style={{
-            marginTop: 12,
-            opacity: isMine ? 0.5 : 1,
-            alignSelf: "flex-start",
-            paddingVertical: 10,
-            paddingHorizontal: 14,
-            borderRadius: 10,
-            borderWidth: 1,
-            borderColor: isDark ? "#374151" : "#d1d5db",
-            backgroundColor: isDark ? "#111827" : "#f9fafb",
-          }}
-        >
-          <ThemedText type="defaultSemiBold">
-            {isMine ? "Seu item" : "Reservar"}
-          </ThemedText>
-        </TouchableOpacity>
-      </View>
+      </TouchableOpacity>
     );
   };
 
   // -------- header que vai rolar junto --------
   const renderHeader = () => (
-    <View style={{ paddingHorizontal: 16, paddingTop: 16, paddingBottom: 8 }}>
+    <View style={{ 
+      paddingHorizontal: screenPadding, 
+      paddingTop: 16, 
+      paddingBottom: 8,
+      width: "100%",
+      backgroundColor: isDark ? "#151718" : "#ffffff",
+    }}>
       <ThemedText
-        type="title"
-        style={{ textAlign: "center", fontSize: 24, fontWeight: "800", marginBottom: 8 }}
+        type="large-title"
+        style={{ textAlign: "center", marginBottom: 8 }}
+        className="text-light-text-primary dark:text-dark-text-primary"
       >
         Precisou?
       </ThemedText>
 
-      <Image
-        source={require("../../assets/images/logo.png")}
-        style={{ width: 300, height: 150, borderRadius: 8, marginLeft: 25 }}
-        resizeMode="contain"
-      />
+      <View style={{ alignItems: "center", marginBottom: 16 }}>
+        <Image
+          source={require("../../assets/images/logo.png")}
+          style={{ width: 300, height: 150 }}
+          contentFit="contain"
+          transition={200}
+        />
+      </View>
 
-      <ThemedText style={{ marginBottom: 8, opacity: 0.8 }}>
+      <ThemedText 
+        type="callout" 
+        style={{ marginBottom: 12 }}
+        className="text-light-text-primary dark:text-dark-text-secondary"
+      >
         O que você quer alugar?
       </ThemedText>
 
-      <TextInput
-        placeholder="Buscar por título, descrição…"
-        placeholderTextColor={placeholderColor}
-        value={search}
-        onChangeText={setSearch}
-        style={inputStyle}
-      />
+      <LiquidGlassView intensity="subtle" cornerRadius={16} style={{ marginBottom: 12 }}>
+        <TextInput
+          placeholder="Buscar por título, descrição…"
+          placeholderTextColor={isDark ? "#9ca3af" : "#6b7280"}
+          value={search}
+          onChangeText={setSearch}
+          style={{
+            width: "100%",
+            paddingHorizontal: 16,
+            paddingVertical: 12,
+            backgroundColor: "transparent",
+            color: isDark ? "#e5e7eb" : "#11181C",
+            fontSize: 16,
+          }}
+        />
+      </LiquidGlassView>
 
-      <View style={{ flexDirection: "row", gap: 8, marginTop: 12 }}>
+      <View style={{ flexDirection: "row", gap: 8, marginBottom: 12 }}>
         <View style={{ flex: 1 }}>
-          <TextInput
-            placeholder="Cidade"
-            placeholderTextColor={placeholderColor}
-            value={city}
-            onChangeText={setCity}
-            style={inputStyle}
-            autoCapitalize="words"
-          />
+          <LiquidGlassView intensity="subtle" cornerRadius={16}>
+            <TextInput
+              placeholder="Cidade"
+              placeholderTextColor={isDark ? "#9ca3af" : "#6b7280"}
+              value={city}
+              onChangeText={setCity}
+              autoCapitalize="words"
+              style={{
+                width: "100%",
+                paddingHorizontal: 16,
+                paddingVertical: 12,
+                backgroundColor: "transparent",
+                color: isDark ? "#e5e7eb" : "#11181C",
+                fontSize: 16,
+              }}
+            />
+          </LiquidGlassView>
         </View>
         <View style={{ flex: 1 }}>
-          <TextInput
-            placeholder="Bairro"
-            placeholderTextColor={placeholderColor}
-            value={neighborhood}
-            onChangeText={setNeighborhood}
-            style={inputStyle}
-            autoCapitalize="words"
-          />
+          <LiquidGlassView intensity="subtle" cornerRadius={16}>
+            <TextInput
+              placeholder="Bairro"
+              placeholderTextColor={isDark ? "#9ca3af" : "#6b7280"}
+              value={neighborhood}
+              onChangeText={setNeighborhood}
+              autoCapitalize="words"
+              style={{
+                width: "100%",
+                paddingHorizontal: 16,
+                paddingVertical: 12,
+                backgroundColor: "transparent",
+                color: isDark ? "#e5e7eb" : "#11181C",
+                fontSize: 16,
+              }}
+            />
+          </LiquidGlassView>
         </View>
       </View>
 
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 12 }}>
-        {renderChip("Todas", "")}
-        {CATEGORIES.map((c) => renderChip(c, c))}
-      </ScrollView>
+      {/* Responsive Categories: Carousel on mobile, ScrollView on larger screens */}
+      {isMobile && CATEGORIES.length > 5 ? (
+        <HorizontalCarousel
+          items={[
+            { id: "_all", render: () => renderChip("Todas", "") },
+            ...CATEGORIES.map((c) => ({
+              id: c,
+              render: () => renderChip(c, c),
+            })),
+          ]}
+          itemWidth="auto"
+          spacing={8}
+          showIndicators={false}
+          useLiquidGlass={false}
+          snapToInterval={false}
+        />
+      ) : (
+        <ScrollView 
+          horizontal 
+          showsHorizontalScrollIndicator={false}
+          style={{ marginBottom: 12 }}
+          contentContainerStyle={{ paddingRight: 16 }}
+        >
+          {renderChip("Todas", "")}
+          {CATEGORIES.map((c) => renderChip(c, c))}
+        </ScrollView>
+      )}
 
       {/* Loading no topo enquanto busca a 1ª página */}
       {loading && (
-        <View style={{ paddingVertical: 16, alignItems: "center" }}>
-          <ActivityIndicator />
-          <ThemedText style={{ marginTop: 8 }}>Carregando itens…</ThemedText>
+        <View style={{ paddingVertical: 16, paddingHorizontal: screenPadding }}>
+          <ShimmerLoader height={120} borderRadius={12} style={{ marginBottom: 12 }} />
+          <ShimmerLoader height={120} borderRadius={12} style={{ marginBottom: 12 }} />
+          <ShimmerLoader height={120} borderRadius={12} />
         </View>
       )}
     </View>
@@ -390,41 +545,79 @@ export default function VitrineScreen() {
       behavior={Platform.select({ ios: "padding", android: undefined })}
       keyboardVerticalOffset={Platform.select({ ios: 80, android: 0 })}
     >
-      <ThemedView style={{ flex: 1 }}>
+      <ThemedView 
+        style={{ 
+          flex: 1, 
+          backgroundColor: isDark ? "#151718" : "#ffffff",
+          width: "100%",
+        }}
+      >
         <FlatList
           data={filteredNotMine}
           keyExtractor={(it) => it.id}
           renderItem={renderItem}
-          // 🔑 tudo abaixo faz a página inteira rolar:
           ListHeaderComponent={renderHeader}
           ListEmptyComponent={
             !loading ? (
-              <View style={{ paddingHorizontal: 16, paddingBottom: 24 }}>
-                <ThemedText>Nenhum item encontrado.</ThemedText>
+              <View style={{ 
+                paddingHorizontal: screenPadding, 
+                paddingBottom: 48,
+                width: "100%",
+              }}>
+                <ThemedText 
+                  type="body"
+                  style={{ textAlign: "center" }}
+                  className="text-light-text-secondary dark:text-dark-text-secondary"
+                >
+                  Nenhum item encontrado.
+                </ThemedText>
               </View>
             ) : null
           }
-          contentContainerStyle={{ padding: 16, paddingTop: 0, gap: 12 }}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+          numColumns={numColumns}
+          columnWrapperStyle={numColumns > 1 ? {
+            paddingHorizontal: screenPadding,
+            justifyContent: "flex-start",
+            gap: cardSpacing,
+          } : undefined}
+          contentContainerStyle={{ 
+            paddingBottom: 24,
+            paddingHorizontal: numColumns > 1 ? 0 : screenPadding,
+            flexGrow: 1,
+          }}
+          key={`grid-${numColumns}`} // Force re-render when columns change
+          style={{ flex: 1 }}
+          refreshControl={
+            <RefreshControl 
+              refreshing={refreshing} 
+              onRefresh={onRefresh}
+              tintColor={isDark ? "#96ff9a" : "#08af0e"}
+            />
+          }
           onEndReachedThreshold={0.15}
           onEndReached={loadMore}
           ListFooterComponent={
             loadingMore ? (
-              <View style={{ padding: 16 }}>
-                <ActivityIndicator />
+              <View style={{ padding: 16, paddingHorizontal: screenPadding }}>
+                <ShimmerLoader height={120} borderRadius={12} />
               </View>
             ) : !hasMore && filtered.length > 0 ? (
               <View style={{ padding: 12, alignItems: "center" }}>
-                <ThemedText>Fim da lista</ThemedText>
+                <ThemedText 
+                  type="footnote"
+                  className="text-light-text-tertiary dark:text-dark-text-tertiary"
+                >
+                  {/* Fim da lista */}
+                </ThemedText>
               </View>
             ) : null
           }
           showsVerticalScrollIndicator={false}
+          nestedScrollEnabled={true}
         />
         {showOnboarding && (
           <OnboardingModal visible={true} onClose={(opts) => markSeen(opts)} />
         )}
-
       </ThemedView>
     </KeyboardAvoidingView>
   );

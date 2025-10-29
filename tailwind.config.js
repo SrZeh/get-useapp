@@ -11,8 +11,11 @@ module.exports = {
         // Brand Colors
         brand: {
           primary: '#96ff9a',
+          secondary: '#80e685',
+          tertiary: '#6acc6f',
           dark: '#08af0e',
-          light: '#40ef47',
+          light: '#b3ffb5',
+          glow: '#ccffe0',
           success: '#00ce08',
         },
         // Light Mode Backgrounds
@@ -105,20 +108,30 @@ module.exports = {
         '3xl': '96px',
       },
       fontSize: {
-        // Display Text
+        // iOS 26 Typography Scale (official Apple HIG)
+        'large-title': ['34px', { lineHeight: '41px', fontWeight: '700', letterSpacing: '0.37px' }],
+        'title-1': ['28px', { lineHeight: '34px', fontWeight: '400', letterSpacing: '0.36px' }],
+        'title-2': ['22px', { lineHeight: '28px', fontWeight: '400', letterSpacing: '0.35px' }],
+        'title-3': ['20px', { lineHeight: '25px', fontWeight: '400', letterSpacing: '0.38px' }],
+        'headline': ['17px', { lineHeight: '22px', fontWeight: '600', letterSpacing: '-0.41px' }],
+        'body': ['17px', { lineHeight: '22px', fontWeight: '400', letterSpacing: '-0.41px' }],
+        'callout': ['16px', { lineHeight: '21px', fontWeight: '400', letterSpacing: '-0.32px' }],
+        'subhead': ['15px', { lineHeight: '20px', fontWeight: '400', letterSpacing: '-0.24px' }],
+        'footnote': ['13px', { lineHeight: '18px', fontWeight: '400', letterSpacing: '-0.08px' }],
+        'caption-1': ['12px', { lineHeight: '16px', fontWeight: '400', letterSpacing: '0px' }],
+        'caption-2': ['11px', { lineHeight: '13px', fontWeight: '400', letterSpacing: '0.07px' }],
+        // Legacy support (backwards compatibility)
         'display-large': ['56px', { lineHeight: '64px', fontWeight: '700' }],
         'display': ['48px', { lineHeight: '56px', fontWeight: '700' }],
         'display-small': ['40px', { lineHeight: '48px', fontWeight: '700' }],
-        // Headings
-        'headline': ['32px', { lineHeight: '40px', fontWeight: '600' }],
         'title-large': ['24px', { lineHeight: '32px', fontWeight: '600' }],
-        'title': ['20px', { lineHeight: '28px', fontWeight: '600' }],
         'title-small': ['18px', { lineHeight: '24px', fontWeight: '600' }],
-        // Body Text
         'body-large': ['18px', { lineHeight: '28px', fontWeight: '400' }],
-        'body': ['16px', { lineHeight: '24px', fontWeight: '400' }],
         'body-small': ['14px', { lineHeight: '20px', fontWeight: '400' }],
         'caption': ['12px', { lineHeight: '16px', fontWeight: '400' }],
+      },
+      fontFamily: {
+        'system': ['-apple-system', 'BlinkMacSystemFont', 'SF Pro', 'SF Pro Display', 'SF Pro Text', 'system-ui', 'sans-serif'],
       },
       borderRadius: {
         '2xs': '4px',
@@ -137,6 +150,12 @@ module.exports = {
         'scale-in': 'scaleIn 200ms ease-out',
         'bounce-subtle': 'bounceSubtle 400ms ease-out',
         'pulse-subtle': 'pulseSubtle 2s ease-in-out infinite',
+        'slide-in-right': 'slideInRight 300ms ease-out',
+        'slide-in-left': 'slideInLeft 300ms ease-out',
+        'fade-scale': 'fadeScale 250ms ease-out',
+        'bounce-in': 'bounceIn 400ms ease-out',
+        'shimmer': 'shimmer 2s infinite linear',
+        'pulse-glow': 'pulseGlow 2s infinite',
       },
       keyframes: {
         fadeIn: {
@@ -163,6 +182,31 @@ module.exports = {
           '0%, 100%': { opacity: '1' },
           '50%': { opacity: '0.7' },
         },
+        slideInRight: {
+          '0%': { transform: 'translateX(100%)', opacity: '0' },
+          '100%': { transform: 'translateX(0)', opacity: '1' },
+        },
+        slideInLeft: {
+          '0%': { transform: 'translateX(-100%)', opacity: '0' },
+          '100%': { transform: 'translateX(0)', opacity: '1' },
+        },
+        fadeScale: {
+          '0%': { transform: 'scale(0.95)', opacity: '0' },
+          '100%': { transform: 'scale(1)', opacity: '1' },
+        },
+        bounceIn: {
+          '0%': { transform: 'scale(0.8)', opacity: '0' },
+          '50%': { transform: 'scale(1.05)' },
+          '100%': { transform: 'scale(1)', opacity: '1' },
+        },
+        shimmer: {
+          '0%': { backgroundPosition: '-1000px 0' },
+          '100%': { backgroundPosition: '1000px 0' },
+        },
+        pulseGlow: {
+          '0%, 100%': { boxShadow: '0 0 0 0 rgba(150, 255, 154, 0.4)' },
+          '50%': { boxShadow: '0 0 20px 10px rgba(150, 255, 154, 0.2)' },
+        },
       },
       transitionDuration: {
         'fluid': '200ms',
@@ -171,11 +215,19 @@ module.exports = {
         'fluid': 'cubic-bezier(0.4, 0, 0.2, 1)',
       },
       screens: {
+        'xs': '375px',   // Small phones
         'sm': '640px',   // Small tablets
         'md': '768px',   // Tablets
         'lg': '1024px',  // Small laptops
         'xl': '1280px',  // Desktops
         '2xl': '1536px', // Large screens
+      },
+      backgroundImage: {
+        'gradient-brand': 'linear-gradient(135deg, #96ff9a 0%, #80e685 50%, #6acc6f 100%)',
+        'gradient-premium': 'linear-gradient(90deg, #96ff9a 0%, #7fe884 50%, #66cc6b 100%)',
+        'gradient-success': 'linear-gradient(90deg, #08af0e 0%, #00ce08 100%)',
+        'gradient-overlay': 'linear-gradient(180deg, rgba(150, 255, 154, 0.1) 0%, transparent 100%)',
+        'gradient-dark': 'linear-gradient(135deg, #151718 0%, #0f1416 50%, #0a0d0f 100%)',
       },
     },
   },

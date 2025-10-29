@@ -3,28 +3,31 @@ import { StyleSheet, Text, type TextProps } from 'react-native';
 import { useThemeColor } from '@/hooks/use-theme-color';
 
 /**
- * Design system typography types aligned with iOS 26 Liquid Glass Design System
+ * Typography types aligned with iOS 26 Human Interface Guidelines
+ * Uses SF Pro font family (system default on iOS)
+ * Supports Dynamic Type and accessibility
  */
 export type ThemedTextProps = TextProps & {
   lightColor?: string;
   darkColor?: string;
   type?:
-    | 'default' // body (16px)
-    | 'title' // headline (32px)
-    | 'defaultSemiBold' // body semibold (16px)
-    | 'subtitle' // title-large (24px)
-    | 'link' // body link style
-    // Design system types
-    | 'display-large' // 56px
-    | 'display' // 48px
-    | 'display-small' // 40px
-    | 'headline' // 32px
-    | 'title-large' // 24px
-    | 'title-small' // 18px
-    | 'body-large' // 18px
-    | 'body' // 16px
-    | 'body-small' // 14px
-    | 'caption'; // 12px
+    | 'default' // Body (17pt)
+    | 'title' // Large Title (34pt) - backwards compatibility
+    | 'defaultSemiBold' // Headline (17pt, Semi-Bold) - backwards compatibility
+    | 'subtitle' // Title 1 (28pt) - backwards compatibility
+    | 'link' // Body link style
+    // iOS 26 Typography Scale
+    | 'large-title' // 34pt, Bold
+    | 'title-1' // 28pt, Regular
+    | 'title-2' // 22pt, Regular
+    | 'title-3' // 20pt, Regular
+    | 'headline' // 17pt, Semi-Bold
+    | 'body' // 17pt, Regular
+    | 'callout' // 16pt, Regular
+    | 'subhead' // 15pt, Regular
+    | 'footnote' // 13pt, Regular
+    | 'caption-1' // 12pt, Regular
+    | 'caption-2'; // 11pt, Regular
 };
 
 export function ThemedText({
@@ -46,17 +49,18 @@ export function ThemedText({
         type === 'defaultSemiBold' ? styles.defaultSemiBold : undefined,
         type === 'subtitle' ? styles.subtitle : undefined,
         type === 'link' ? styles.link : undefined,
-        // Design system types
-        type === 'display-large' ? styles.displayLarge : undefined,
-        type === 'display' ? styles.display : undefined,
-        type === 'display-small' ? styles.displaySmall : undefined,
+        // iOS 26 Typography Scale
+        type === 'large-title' ? styles.largeTitle : undefined,
+        type === 'title-1' ? styles.title1 : undefined,
+        type === 'title-2' ? styles.title2 : undefined,
+        type === 'title-3' ? styles.title3 : undefined,
         type === 'headline' ? styles.headline : undefined,
-        type === 'title-large' ? styles.titleLarge : undefined,
-        type === 'title-small' ? styles.titleSmall : undefined,
-        type === 'body-large' ? styles.bodyLarge : undefined,
         type === 'body' ? styles.body : undefined,
-        type === 'body-small' ? styles.bodySmall : undefined,
-        type === 'caption' ? styles.caption : undefined,
+        type === 'callout' ? styles.callout : undefined,
+        type === 'subhead' ? styles.subhead : undefined,
+        type === 'footnote' ? styles.footnote : undefined,
+        type === 'caption-1' ? styles.caption1 : undefined,
+        type === 'caption-2' ? styles.caption2 : undefined,
         style,
       ]}
       {...rest}
@@ -67,80 +71,112 @@ export function ThemedText({
 const styles = StyleSheet.create({
   // Legacy styles (backwards compatibility)
   default: {
-    fontSize: 16,
-    lineHeight: 24,
+    fontSize: 17, // iOS Body default
+    lineHeight: 22,
     fontWeight: '400',
+    fontFamily: 'System', // SF Pro on iOS
   },
   defaultSemiBold: {
-    fontSize: 16,
-    lineHeight: 24,
+    fontSize: 17,
+    lineHeight: 22,
     fontWeight: '600',
+    fontFamily: 'System',
   },
   title: {
-    fontSize: 32,
+    fontSize: 34, // Maps to Large Title
     fontWeight: '700',
-    lineHeight: 40,
+    lineHeight: 41,
+    fontFamily: 'System',
   },
   subtitle: {
-    fontSize: 24,
-    fontWeight: '600',
-    lineHeight: 32,
+    fontSize: 28, // Maps to Title 1
+    fontWeight: '400',
+    lineHeight: 34,
+    fontFamily: 'System',
   },
   link: {
-    fontSize: 16,
-    lineHeight: 24,
+    fontSize: 17,
+    lineHeight: 22,
     fontWeight: '400',
     color: '#0a7ea4',
+    fontFamily: 'System',
   },
-  // Design system typography
-  displayLarge: {
-    fontSize: 56,
-    lineHeight: 64,
+  // iOS 26 Typography Scale (official Apple HIG)
+  largeTitle: {
+    fontSize: 34,
+    lineHeight: 41,
     fontWeight: '700',
+    fontFamily: 'System',
+    letterSpacing: 0.37,
   },
-  display: {
-    fontSize: 48,
-    lineHeight: 56,
-    fontWeight: '700',
+  title1: {
+    fontSize: 28,
+    lineHeight: 34,
+    fontWeight: '400',
+    fontFamily: 'System',
+    letterSpacing: 0.36,
   },
-  displaySmall: {
-    fontSize: 40,
-    lineHeight: 48,
-    fontWeight: '700',
-  },
-  headline: {
-    fontSize: 32,
-    lineHeight: 40,
-    fontWeight: '600',
-  },
-  titleLarge: {
-    fontSize: 24,
-    lineHeight: 32,
-    fontWeight: '600',
-  },
-  titleSmall: {
-    fontSize: 18,
-    lineHeight: 24,
-    fontWeight: '600',
-  },
-  bodyLarge: {
-    fontSize: 18,
+  title2: {
+    fontSize: 22,
     lineHeight: 28,
     fontWeight: '400',
+    fontFamily: 'System',
+    letterSpacing: 0.35,
+  },
+  title3: {
+    fontSize: 20,
+    lineHeight: 25,
+    fontWeight: '400',
+    fontFamily: 'System',
+    letterSpacing: 0.38,
+  },
+  headline: {
+    fontSize: 17,
+    lineHeight: 22,
+    fontWeight: '600',
+    fontFamily: 'System',
+    letterSpacing: -0.41,
   },
   body: {
-    fontSize: 16,
-    lineHeight: 24,
+    fontSize: 17,
+    lineHeight: 22,
     fontWeight: '400',
+    fontFamily: 'System',
+    letterSpacing: -0.41,
   },
-  bodySmall: {
-    fontSize: 14,
+  callout: {
+    fontSize: 16,
+    lineHeight: 21,
+    fontWeight: '400',
+    fontFamily: 'System',
+    letterSpacing: -0.32,
+  },
+  subhead: {
+    fontSize: 15,
     lineHeight: 20,
     fontWeight: '400',
+    fontFamily: 'System',
+    letterSpacing: -0.24,
   },
-  caption: {
+  footnote: {
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: '400',
+    fontFamily: 'System',
+    letterSpacing: -0.08,
+  },
+  caption1: {
     fontSize: 12,
     lineHeight: 16,
     fontWeight: '400',
+    fontFamily: 'System',
+    letterSpacing: 0,
+  },
+  caption2: {
+    fontSize: 11,
+    lineHeight: 13,
+    fontWeight: '400',
+    fontFamily: 'System',
+    letterSpacing: 0.07,
   },
 });

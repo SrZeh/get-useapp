@@ -140,26 +140,17 @@ export default function RootLayout() {
           <View
             style={{
               flex: 1,
-              alignItems: 'center',
+              width: '100%',
               backgroundColor: scheme === 'dark' 
                 ? Colors.dark.backgroundTertiary 
                 : Colors.light.backgroundTertiary,
             }}
           >
-            <View
-              style={{
-                flex: 1,
-                width: '100%',
-                maxWidth: 480, // Mobile-first max width
-                backgroundColor: palette.background,
-              }}
-            >
-              <OnboardingProvider>
-                <CoachmarksProvider>
-                  {content}
-                </CoachmarksProvider>
-              </OnboardingProvider>
-            </View>
+            <OnboardingProvider>
+              <CoachmarksProvider>
+                {content}
+              </CoachmarksProvider>
+            </OnboardingProvider>
           </View>
           <StatusBar style={scheme === 'dark' ? 'light' : 'dark'} />
         </ThemeProvider>
