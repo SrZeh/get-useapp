@@ -21,49 +21,30 @@ import React, { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
-  Image,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
   TextInput,
   TouchableOpacity,
   View,
-  useColorScheme,
 } from "react-native";
+import { LiquidGlassView } from "@/components/liquid-glass";
+import { Button } from "@/components/Button";
+import { useColorScheme } from "@/hooks/use-color-scheme";
+import { Colors } from "@/constants/theme";
+import { Image as ExpoImage } from "expo-image";
+import { HapticFeedback } from "@/utils/haptics";
+import { AnimatedCard } from "@/components/AnimatedCard";
 import { Calendar, DateData } from "react-native-calendars";
-
-type Item = {
-  id: string;
-  title: string;
-  description?: string;
-  photos?: string[];
-  category?: string;
-  condition?: string;
-  dailyRate?: number;
-  minRentalDays?: number;
-  city?: string;
-  neighborhood?: string;
-  ratingAvg?: number;
-  ownerUid?: string;
-  ratingCount?: number;
-  ratingSum?: number;
-  ownerRatingCount?: number;
-  ownerRatingSum?: number;
-  isFree?: boolean; 
-};
-
-type Review = {
-  id: string;
-  renterUid: string;
-  reservationId: string;
-  rating: number;
-  comment?: string;
-  createdAt?: any;
-};
+import type { Item, Review } from "@/types";
+import { calcAvg, renderStars } from "@/utils/ratings";
+import { logger } from "@/utils/logger";
 
 export default function ItemDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const isDark = useColorScheme() === "dark";
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === "dark";
+  const palette = Colors[colorScheme];
   const uid = auth.currentUser?.uid ?? null;
 
   const [loading, setLoading] = useState(true);
@@ -89,16 +70,16 @@ export default function ItemDetailScreen() {
   const inputStyle = useMemo(
     () => ({
       borderWidth: 1,
-      borderRadius: 10,
-      padding: 12,
-      fontSize: 16,
-      color: isDark ? "#fff" : "#111827",
-      borderColor: isDark ? "#374151" : "#d1d5db",
-      backgroundColor: isDark ? "#111827" : "#fff",
+      borderRadius: 16,
+      padding: 16,
+      fontSize: 17, // iOS body
+      color: palette.text,
+      borderColor: palette.border,
+      backgroundColor: palette.inputBg,
     }),
-    [isDark]
+    [palette]
   );
-  const placeholderColor = isDark ? "#9aa0a6" : "#6b7280";
+  const placeholderColor = palette.textTertiary;
 
   // helpers de data
   const pad = (n: number) => String(n).padStart(2, "0");
@@ -138,9 +119,10 @@ export default function ItemDetailScreen() {
           router.back();
           return;
         }
-        setItem({ id: snap.id, ...(snap.data() as any) });
-      } catch (e: any) {
-        Alert.alert("Erro", e?.message ?? String(e));
+        setItem({ id: snap.id, ...(snap.data() as Partial<Item>) } as Item);
+      } catch (e: unknown) {
+        const error = e as { message?: string };
+        Alert.alert("Erro", error?.message ?? String(e));
       } finally {
         setLoading(false);
       }
@@ -157,14 +139,14 @@ export default function ItemDetailScreen() {
         snap.forEach((d) => s.add(d.id)); // yyyy-mm-dd
         setBooked(s);
       },
-      (err) => console.log("BOOKED DAYS ERROR", err?.code, err?.message)
+      (err) => logger.error("Booked days snapshot listener error", err, { code: err?.code, message: err?.message })
     );
     return () => unsub();
   }, [id]);
 
   // Marcações do calendário (booked + seleção)
   useEffect(() => {
-    const md: Record<string, any> = {};
+    const md: Record<string, { disabled?: boolean; disableTouchEvent?: boolean; selected?: boolean; startingDay?: boolean; endingDay?: boolean }> = {};
     booked.forEach((d) => {
       md[d] = { ...(md[d] || {}), disabled: true, disableTouchEvent: true };
     });
@@ -191,10 +173,10 @@ export default function ItemDetailScreen() {
       qReviews,
       (snap) => {
         const list: Review[] = [];
-        snap.forEach((d) => list.push({ id: d.id, ...(d.data() as any) }));
+        snap.forEach((d) => list.push({ id: d.id, ...(d.data() as Partial<Review>) } as Review));
         setReviews(list);
       },
-      (err) => console.log("REVIEWS ERROR", err?.code, err?.message)
+      (err) => logger.error("Reviews snapshot listener error", err, { code: err?.code, message: err?.message })
     );
     return () => unsub();
   }, [id]);
@@ -214,7 +196,7 @@ export default function ItemDetailScreen() {
         const snap = await getDocs(qRes);
         const list: { id: string; label: string }[] = [];
         snap.forEach((d) => {
-          const r: any = d.data();
+          const r = d.data() as { startDate?: string; endDate?: string };
           const dateLabel = r.startDate && r.endDate ? `(${r.startDate} → ${r.endDate})` : "";
           list.push({ id: d.id, label: `#${d.id.slice(0, 6)} ${dateLabel}` });
         });
@@ -243,19 +225,6 @@ export default function ItemDetailScreen() {
     }
     setStartISO(a);
     setEndISOInc(b);
-  }
-
-  function calcAvg(sum?: number, count?: number) {
-    if (!count || !sum) return null;
-    if (count <= 0) return null;
-    return Math.max(0, Math.min(5, sum / count));
-  }
-  function renderStars(avg: number) {
-    const rounded = Math.round(avg * 2) / 2;
-    const full = Math.floor(rounded);
-    const half = rounded - full >= 0.5;
-    const empty = 5 - full - (half ? 1 : 0);
-    return "★".repeat(full) + (half ? "☆" : "") + "✩".repeat(empty);
   }
 
   // cálculo resumo reserva
@@ -297,7 +266,7 @@ export default function ItemDetailScreen() {
       await runTransaction(db, async (trx) => {
         const snap = await trx.get(itemRef);
         if (!snap.exists()) throw new Error("Item não encontrado");
-        const it = snap.data() as any;
+        const it = snap.data() as Partial<Item>;
         const count = (it.ratingCount ?? 0) + 1;
         const sum = (it.ratingAvg ?? 0) * (it.ratingCount ?? 0) + rating;
         const avg = Number((sum / count).toFixed(2));
@@ -312,8 +281,9 @@ export default function ItemDetailScreen() {
       setComment("");
       setRating(5);
       Alert.alert("Obrigado!", "Sua avaliação foi registrada.");
-    } catch (e: any) {
-      Alert.alert("Erro ao enviar avaliação", e?.message ?? String(e));
+    } catch (e: unknown) {
+      const error = e as { message?: string };
+      Alert.alert("Erro ao enviar avaliação", error?.message ?? String(e));
     }
   }
 
@@ -358,8 +328,9 @@ export default function ItemDetailScreen() {
 
       Alert.alert("Pedido enviado!", "Aguarde o dono aceitar para efetuar o pagamento.");
       router.back();
-    } catch (e: any) {
-      Alert.alert("Erro", e?.message ?? String(e));
+    } catch (e: unknown) {
+      const error = e as { message?: string };
+      Alert.alert("Erro", error?.message ?? String(e));
     }
   }
 
@@ -384,51 +355,58 @@ export default function ItemDetailScreen() {
       behavior={Platform.select({ ios: "padding", android: undefined })}
       keyboardVerticalOffset={Platform.select({ ios: 80, android: 0 })}
     >
-      <ThemedView style={{ flex: 1 }}>
+      <ThemedView style={{ flex: 1, backgroundColor: palette.background }}>
         <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 32 }}>
           {/* HEADER DO ITEM */}
-          {item.photos?.[0] && (
-            <Image
-              source={{ uri: item.photos[0] }}
-              style={{ width: "100%", height: 220, borderRadius: 12, marginBottom: 12 }}
-            />
-          )}
-          <ThemedText type="title">{item.title}</ThemedText>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginTop: 6 }}>
-            <Stars value={item.ratingAvg ?? 0} />
-            {!!item.ratingCount && <ThemedText>({item.ratingCount})</ThemedText>}
-          </View>
-          {!!item.category && (
-            <View style={{ marginTop: 6 }}>
-              <ThemedText style={{ opacity: 0.8 }}>{item.category}</ThemedText>
-            </View>
-          )}
-          {!!item.city && (
-            <View style={{ marginTop: 2 }}>
-              <ThemedText style={{ opacity: 0.8 }}>
-                {item.city} {item.neighborhood ? `• ${item.neighborhood}` : ""}
+          <LiquidGlassView intensity="standard" cornerRadius={20} style={{ overflow: 'hidden', marginBottom: 24 }}>
+            {item.photos?.[0] && (
+              <ExpoImage
+                source={{ uri: item.photos[0] }}
+                style={{ width: "100%", height: 280 }}
+                contentFit="cover"
+                transition={200}
+              />
+            )}
+            <View style={{ padding: 20 }}>
+              <ThemedText type="title-1" style={{ marginBottom: 12, fontWeight: '600' }}>
+                {item.title}
               </ThemedText>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 12 }}>
+                <Stars value={item.ratingAvg ?? 0} />
+                {!!item.ratingCount && (
+                  <ThemedText type="callout" className="text-light-text-secondary dark:text-dark-text-secondary">
+                    ({item.ratingCount} avaliações)
+                  </ThemedText>
+                )}
+              </View>
+              {!!item.category && (
+                <ThemedText type="callout" className="text-light-text-tertiary dark:text-dark-text-tertiary" style={{ marginBottom: 8 }}>
+                  {item.category}
+                </ThemedText>
+              )}
+              {!!item.city && (
+                <ThemedText type="callout" className="text-light-text-tertiary dark:text-dark-text-tertiary">
+                  📍 {item.city} {item.neighborhood ? `• ${item.neighborhood}` : ""}
+                </ThemedText>
+              )}
+              {!!item.description && (
+                <ThemedText type="body" style={{ marginTop: 16 }} className="text-light-text-secondary dark:text-dark-text-secondary">
+                  {item.description}
+                </ThemedText>
+              )}
             </View>
-          )}
-          {!!item.description && (
-            <ThemedText style={{ marginTop: 12 }}>{item.description}</ThemedText>
-          )}
-
-          
+          </LiquidGlassView>
 
           {/* CALENDÁRIO / RESERVA */}
-          <View
-            style={{
-              marginTop: 20,
-              padding: 12,
-              borderWidth: 1,
-              borderRadius: 12,
-              borderColor: isDark ? "#374151" : "#fff",
-              backgroundColor: isDark ? "#0b1220" : "#40ef47",
-            }}
+          <LiquidGlassView
+            intensity="standard"
+            cornerRadius={20}
+            style={{ padding: 20, marginBottom: 24 }}
           >
-            <ThemedText type="subtitle">Escolha as datas</ThemedText>
-            <ThemedText style={{ marginTop: 6, opacity: 0.7 }}>
+            <ThemedText type="title-2" style={{ marginBottom: 8, fontWeight: '600' }}>
+              Escolha as datas
+            </ThemedText>
+            <ThemedText type="callout" style={{ marginBottom: 16 }} className="text-light-text-tertiary dark:text-dark-text-tertiary">
               Check-in (seleção do primeiro dia) e Check-out (dia seguinte ao último pernoite).
             </ThemedText>
 
@@ -442,61 +420,74 @@ export default function ItemDetailScreen() {
               enableSwipeMonths
               disableArrowLeft
               theme={{
-                calendarBackground: isDark ? "#0b1220" : "#fff",
-                textSectionTitleColor: isDark ? "#9aa0a6" : "#6b7280",
-                dayTextColor: isDark ? "#e5e7eb" : "#111827",
-                monthTextColor: isDark ? "#e5e7eb" : "#111827",
-                todayTextColor: isDark ? "#93c5fd" : "#2563eb",
+                calendarBackground: palette.background,
+                textSectionTitleColor: palette.textTertiary,
+                dayTextColor: palette.text,
+                monthTextColor: palette.text,
+                todayTextColor: palette.tint,
                 selectedDayTextColor: "#fff",
+                selectedDayBackgroundColor: palette.tint,
+                arrowColor: palette.tint,
+                disabledDayTextColor: palette.textTertiary,
               }}
-              style={{ marginTop: 10, borderRadius: 12 }}
+              style={{ marginTop: 10, borderRadius: 16 }}
             />
 
-            <View style={{ marginTop: 12, gap: 6 }}>
-              <ThemedText>
-                Check-in: {startISO ?? "—"}   •   Check-out: {endExclusive ?? "—"}
+            <View style={{ marginTop: 16, gap: 8, paddingTop: 16, borderTopWidth: 1, borderTopColor: palette.border }}>
+              <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+                <ThemedText type="callout" className="text-light-text-secondary dark:text-dark-text-secondary">
+                  Check-in: {startISO ?? "—"}
+                </ThemedText>
+                <ThemedText type="callout" className="text-light-text-secondary dark:text-dark-text-secondary">
+                  Check-out: {endExclusive ?? "—"}
+                </ThemedText>
+              </View>
+              <ThemedText type="body" className="text-light-text-secondary dark:text-dark-text-secondary">
+                ⏱️ {daysCount} {daysCount === 1 ? "dia" : "dias"} {item.minRentalDays ? `(mín: ${minDays})` : ""}
               </ThemedText>
-              <ThemedText>
-                Dias: {daysCount} {daysCount === 1 ? "dia" : "dias"} {item.minRentalDays ? `(mín: ${minDays})` : ""}
-              </ThemedText>
-              <ThemedText type="defaultSemiBold" style={{ marginTop: 8 }}>
-                {item.isFree ? "Grátis" : `${item.dailyRate != null ? `R$ ${item.dailyRate}` : "—"} / dia`}
-              </ThemedText>
-              <ThemedText>Diária: {item.dailyRate != null ? `R$ ${item.dailyRate}` : "—"}</ThemedText>
-              <ThemedText type="defaultSemiBold">Total: {total ? `R$ ${total}` : "—"}</ThemedText>
+              <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "baseline", marginTop: 8 }}>
+                <View>
+                  <ThemedText type="caption-1" className="text-light-text-tertiary dark:text-dark-text-tertiary">
+                    Diária
+                  </ThemedText>
+                  <ThemedText type="title-3" style={{ fontWeight: '600', color: palette.tint }}>
+                    {item.isFree ? "Grátis" : `${item.dailyRate != null ? `R$ ${item.dailyRate.toFixed(2)}` : "—"}`}
+                  </ThemedText>
+                </View>
+                <View style={{ alignItems: 'flex-end' }}>
+                  <ThemedText type="caption-1" className="text-light-text-tertiary dark:text-dark-text-tertiary">
+                    Total
+                  </ThemedText>
+                  <ThemedText type="title-2" style={{ fontWeight: '700', color: '#96ff9a' }}>
+                    {total ? `R$ ${total.toFixed(2)}` : "—"}
+                  </ThemedText>
+                </View>
+              </View>
             </View>
 
-            <TouchableOpacity
-              onPress={requestReservation}
-              disabled={!uid || !startISO || !endExclusive || daysCount < minDays}
-              style={{
-                alignSelf: "flex-start",
-                marginTop: 12,
-                paddingVertical: 10,
-                paddingHorizontal: 14,
-                borderRadius: 10,
-                borderWidth: 1,
-                borderColor: isDark ? "#374151" : "#d1d5db",
-                backgroundColor: isDark ? "#111827" : "#f9fafb",
-                opacity: (!uid || !startISO || !endExclusive || daysCount < minDays) ? 0.5 : 1,
+            <Button
+              variant="primary"
+              onPress={() => {
+                HapticFeedback.medium();
+                requestReservation();
               }}
+              disabled={!uid || !startISO || !endExclusive || daysCount < minDays}
+              fullWidth
+              style={{ marginTop: 16 }}
             >
-              <ThemedText type="defaultSemiBold">Solicitar reserva</ThemedText>
-            </TouchableOpacity>
-          </View>
+              Solicitar reserva
+            </Button>
+          </LiquidGlassView>
 
           {/* FORM DE AVALIAÇÃO */}
-          <View
-            style={{
-              marginTop: 20,
-              padding: 12,
-              borderWidth: 1,
-              borderRadius: 12,
-              borderColor: isDark ? "#374151" : "#e5e7eb",
-              backgroundColor: isDark ? "#0b1220" : "#fff",
-            }}
+          <LiquidGlassView
+            intensity="standard"
+            cornerRadius={20}
+            style={{ padding: 20 }}
           >
-            <ThemedText type="subtitle">Avaliar este item</ThemedText>
+            <ThemedText type="title-2" style={{ marginBottom: 16, fontWeight: '600' }}>
+              Avaliar este item
+            </ThemedText>
 
             {uid ? (
               eligibleRes.length > 0 ? (
@@ -544,73 +535,68 @@ export default function ItemDetailScreen() {
                     ))}
                   </View>
 
-                  <TextInput
-                    placeholder="Escreva um comentário (opcional)"
-                    placeholderTextColor={placeholderColor}
-                    value={comment}
-                    onChangeText={setComment}
-                    multiline
-                    style={[inputStyle, { marginTop: 10, minHeight: 80, textAlignVertical: "top" }]}
-                  />
+                  <LiquidGlassView intensity="subtle" cornerRadius={16} style={{ marginTop: 12 }}>
+                    <TextInput
+                      placeholder="Escreva um comentário (opcional)"
+                      placeholderTextColor={placeholderColor}
+                      value={comment}
+                      onChangeText={setComment}
+                      multiline
+                      style={[inputStyle, { backgroundColor: 'transparent', minHeight: 100, textAlignVertical: "top" }]}
+                    />
+                  </LiquidGlassView>
 
-                  <TouchableOpacity
-                    onPress={submitReview}
-                    style={{
-                      alignSelf: "flex-start",
-                      marginTop: 12,
-                      paddingVertical: 10,
-                      paddingHorizontal: 14,
-                      borderRadius: 10,
-                      borderWidth: 1,
-                      borderColor: isDark ? "#374151" : "#d1d5db",
-                      backgroundColor: isDark ? "#111827" : "#f9fafb",
+                  <Button
+                    variant="primary"
+                    onPress={() => {
+                      HapticFeedback.medium();
+                      submitReview();
                     }}
+                    style={{ marginTop: 16, alignSelf: 'flex-start' }}
                   >
-                    <ThemedText type="defaultSemiBold">Enviar avaliação</ThemedText>
-                  </TouchableOpacity>
+                    Enviar avaliação
+                  </Button>
                 </>
               ) : (
-                <ThemedText style={{ marginTop: 8 }}>
+                <ThemedText type="callout" style={{ marginTop: 16 }} className="text-light-text-tertiary dark:text-dark-text-tertiary">
                   Você poderá avaliar depois de concluir a devolução de uma reserva deste item.
                 </ThemedText>
               )
             ) : (
-              <ThemedText style={{ marginTop: 8 }}>
+              <ThemedText type="callout" style={{ marginTop: 16 }} className="text-light-text-tertiary dark:text-dark-text-tertiary">
                 Faça login para avaliar este item.
               </ThemedText>
             )}
-          </View>
+          </LiquidGlassView>
 
           {/* LISTA DE REVIEWS */}
-          <View style={{ marginTop: 16 }}>
-            <ThemedText type="subtitle">Comentários recentes</ThemedText>
+          <View style={{ marginTop: 24 }}>
+            <ThemedText type="title-2" style={{ marginBottom: 16, fontWeight: '600' }}>
+              Comentários recentes
+            </ThemedText>
             {reviews.length === 0 ? (
-              <ThemedText style={{ marginTop: 8, opacity: 0.8 }}>
-                Ainda não há avaliações para este item.
-              </ThemedText>
+              <LiquidGlassView intensity="subtle" cornerRadius={16} style={{ padding: 24, alignItems: 'center' }}>
+                <ThemedText type="callout" className="text-light-text-tertiary dark:text-dark-text-tertiary">
+                  Ainda não há avaliações para este item.
+                </ThemedText>
+              </LiquidGlassView>
             ) : (
               reviews.map((r) => (
-                <View
-                  key={r.id}
-                  style={{
-                    marginTop: 10,
-                    padding: 12,
-                    borderWidth: 1,
-                    borderRadius: 12,
-                    borderColor: isDark ? "#374151" : "#e5e7eb",
-                    backgroundColor: isDark ? "#0b1220" : "#fff",
-                  }}
-                >
-                  <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-                    <Stars value={r.rating} />
-                    <ThemedText style={{ opacity: 0.7 }}>
-                      {r.createdAt?.toDate ? r.createdAt.toDate().toLocaleDateString() : ""}
-                    </ThemedText>
-                  </View>
-                  {!!r.comment && (
-                    <ThemedText style={{ marginTop: 6 }}>{r.comment}</ThemedText>
-                  )}
-                </View>
+                <AnimatedCard key={r.id} style={{ marginBottom: 12 }}>
+                  <LiquidGlassView intensity="standard" cornerRadius={16} style={{ padding: 16 }}>
+                    <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 8 }}>
+                      <Stars value={r.rating} />
+                      <ThemedText type="caption-1" className="text-light-text-tertiary dark:text-dark-text-tertiary">
+                        {r.createdAt?.toDate ? r.createdAt.toDate().toLocaleDateString('pt-BR') : ""}
+                      </ThemedText>
+                    </View>
+                    {!!r.comment && (
+                      <ThemedText type="body" style={{ marginTop: 4 }} className="text-light-text-secondary dark:text-dark-text-secondary">
+                        {r.comment}
+                      </ThemedText>
+                    )}
+                  </LiquidGlassView>
+                </AnimatedCard>
               ))
             )}
           </View>

@@ -24,43 +24,20 @@ import {
   Image,
   TouchableOpacity,
   View,
-  useColorScheme,
+  RefreshControl,
 } from "react-native";
-
-type Item = {
-  id: string;
-  title: string;
-  description: string;
-  photos?: string[];
-  available?: boolean;
-  createdAt?: any;
-
-  // ⭐ Campos de avaliação do produto (agregado)
-  ratingCount?: number;
-  ratingSum?: number;
-
-  // ⭐ Campos de avaliação do dono (denormalizados no item)
-  ownerRatingCount?: number;
-  ownerRatingSum?: number;
-};
-
-// Helpers de avaliação
-function calcAvg(sum?: number, count?: number) {
-  if (!count || !sum) return null;
-  if (count <= 0) return null;
-  const avg = sum / count;
-  // clamp 0..5
-  return Math.max(0, Math.min(5, avg));
-}
-
-function renderStars(avg: number) {
-  // arredonda para meia estrela
-  const rounded = Math.round(avg * 2) / 2;
-  const full = Math.floor(rounded);
-  const half = rounded - full >= 0.5;
-  const empty = 5 - full - (half ? 1 : 0);
-  return "★".repeat(full) + (half ? "☆" : "") + "✩".repeat(empty);
-}
+import { LiquidGlassView } from "@/components/liquid-glass";
+import { Button } from "@/components/Button";
+import { ShimmerLoader } from "@/components/ShimmerLoader";
+import { AnimatedCard } from "@/components/AnimatedCard";
+import { LinearGradient } from "expo-linear-gradient";
+import { GradientTypes } from "@/utils/gradients";
+import { HapticFeedback } from "@/utils/haptics";
+import { useColorScheme } from "@/hooks/use-color-scheme";
+import { Image as ExpoImage } from "expo-image";
+import type { Item } from "@/types";
+import { calcAvg, renderStars } from "@/utils/ratings";
+import { logger } from "@/utils/logger";
 
 export default function ItemsScreen() {
   const [items, setItems] = useState<Item[]>([]);
@@ -70,16 +47,6 @@ export default function ItemsScreen() {
   const scheme = useColorScheme();
   const isDark = scheme === "dark";
 
-  const cardStyle = useMemo(
-    () => ({
-      borderWidth: 1,
-      borderRadius: 12,
-      padding: 12,
-      borderColor: isDark ? "#374151" : "#e5e7eb",
-      backgroundColor: isDark ? "#0b1220" : "#40ef47",
-    }),
-    [isDark]
-  );
 
   // guardo unsub para limpar quando trocar de usuário
   const unsubRef = useRef<(() => void) | null>(null);
@@ -99,7 +66,7 @@ export default function ItemsScreen() {
       }
 
       setLoading(true);
-      console.log("[Items] uid:", user.uid);
+      logger.debug("Loading items for user", { uid: user.uid });
 
       // 🔹 Assina meus itens (ownerUid == uid)
       const q = query(
@@ -110,9 +77,9 @@ export default function ItemsScreen() {
 
       const unsub = onSnapshot(
         q,
-        async (snap) => {
+        async         (snap) => {
           let data: Item[] = snap.docs.map((d) => {
-            const x = d.data() as any;
+            const x = d.data() as Partial<Item>;
             return {
               id: d.id,
               title: x.title ?? "(sem título)",
@@ -124,7 +91,7 @@ export default function ItemsScreen() {
               ratingSum: x.ratingSum ?? 0,
               ownerRatingCount: x.ownerRatingCount ?? 0,
               ownerRatingSum: x.ownerRatingSum ?? 0,
-            };
+            } as Item;
           });
 
           // 🔸 Fallback para itens “legados” com `owner` (não `ownerUid`)
@@ -137,7 +104,7 @@ export default function ItemsScreen() {
               );
               const sLegacy = await getDocs(qLegacy);
               const legacy = sLegacy.docs.map((d) => {
-                const x = d.data() as any;
+                const x = d.data() as Partial<Item>;
                 return {
                   id: d.id,
                   title: x.title ?? "(sem título)",
@@ -152,11 +119,12 @@ export default function ItemsScreen() {
                 } as Item;
               });
               if (legacy.length) data = legacy;
-            } catch (e: any) {
-              if (String(e?.message).includes("requires an index")) {
-                console.warn("[Items] Crie o índice sugerido pelo Firestore para owner/createdAt.");
+            } catch (e: unknown) {
+              const error = e as { message?: string };
+              if (String(error?.message).includes("requires an index")) {
+                logger.warn("Firestore index required", { message: "Crie o índice sugerido pelo Firestore para owner/createdAt." });
               } else {
-                console.warn("[Items] Fallback legacy erro:", e?.message ?? e);
+                logger.warn("Legacy fallback error", { error: error?.message ?? e });
               }
             }
           }
@@ -166,7 +134,7 @@ export default function ItemsScreen() {
         },
         (err) => {
           setLoading(false);
-          console.log("LISTEN ERROR", err?.code, err?.message);
+          logger.error("Items snapshot listener error", err, { code: err?.code, message: err?.message });
           if (String(err?.message).includes("requires an index")) {
             Alert.alert(
               "Índice necessário",
@@ -197,7 +165,7 @@ export default function ItemsScreen() {
       );
       const snap = await getDocs(q);
       const data: Item[] = snap.docs.map((d) => {
-        const x = d.data() as any;
+        const x = d.data() as Partial<Item>;
         return {
           id: d.id,
           title: x.title ?? "(sem título)",
@@ -224,8 +192,9 @@ export default function ItemsScreen() {
         available: !item.available,
         updatedAt: serverTimestamp(),
       });
-    } catch (e: any) {
-      Alert.alert("Erro", e?.message ?? String(e));
+    } catch (e: unknown) {
+      const error = e as { message?: string };
+      Alert.alert("Erro", error?.message ?? String(e));
     } finally {
       setUpdatingId(null);
     }
@@ -244,8 +213,9 @@ export default function ItemsScreen() {
             try {
               setUpdatingId(item.id);
               await deleteDoc(doc(db, "items", item.id));
-            } catch (e: any) {
-              Alert.alert("Erro ao excluir", e?.message ?? String(e));
+            } catch (e: unknown) {
+              const error = e as { message?: string };
+              Alert.alert("Erro ao excluir", error?.message ?? String(e));
             } finally {
               setUpdatingId(null);
             }
@@ -259,161 +229,168 @@ export default function ItemsScreen() {
   const goEdit = (id: string) => router.push(`/item/edit/${id}`);
 
   return (
-    <ThemedView style={{ flex: 1, padding: 56 }}>
-      <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-        <ThemedText type="title">Meus Itens</ThemedText>
-        <TouchableOpacity
-          onPress={goNew}
-          style={{
-            paddingVertical: 8,
-            paddingHorizontal: 12,
-            backgroundColor: "#00ce08",
-            borderRadius: 10,
-          }}
-        >
-          <ThemedText style={{ color: "#fff" }} type="defaultSemiBold">
-            + Novo
-          </ThemedText>
-        </TouchableOpacity>
+    <ThemedView style={{ flex: 1 }}>
+      <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", padding: 16 }}>
+        <ThemedText type="large-title">Meus Itens</ThemedText>
+        <Button variant="primary" onPress={goNew}>
+          + Novo
+        </Button>
       </View>
 
       {loading ? (
-        <View style={{ marginTop: 16 }}>
-          <ActivityIndicator />
-          <ThemedText style={{ marginTop: 8 }}>Carregando...</ThemedText>
+        <View style={{ padding: 16, gap: 12 }}>
+          <ShimmerLoader height={200} borderRadius={20} />
+          <ShimmerLoader height={200} borderRadius={20} />
+          <ShimmerLoader height={200} borderRadius={20} />
         </View>
       ) : items.length === 0 ? (
-        <ThemedText style={{ marginTop: 16 }}>
-          Você ainda não cadastrou itens.
-        </ThemedText>
+        <LiquidGlassView intensity="standard" cornerRadius={24} style={{ margin: 16, padding: 32, alignItems: 'center' }}>
+          <ThemedText type="title" style={{ marginBottom: 8, textAlign: 'center' }}>
+            Você ainda não cadastrou itens.
+          </ThemedText>
+          <Button variant="primary" onPress={goNew} style={{ marginTop: 16 }}>
+            Criar primeiro item
+          </Button>
+        </LiquidGlassView>
       ) : (
         <FlatList
-          style={{ marginTop: 12 }}
           data={items}
           refreshing={refreshing}
           onRefresh={onRefresh}
           keyExtractor={(it) => it.id}
-          ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
+          contentContainerStyle={{ padding: 16, paddingBottom: 32 }}
+          ItemSeparatorComponent={() => <View style={{ height: 16 }} />}
+          refreshControl={
+            <RefreshControl 
+              refreshing={refreshing} 
+              onRefresh={onRefresh}
+              tintColor="#96ff9a"
+            />
+          }
           renderItem={({ item }) => (
-            <View style={cardStyle}>
-              {/* Cabeçalho do card */}
-              <View
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  gap: 12,
-                }}
-              >
-                <ThemedText type="subtitle" style={{ flexShrink: 1 }}>
-                  {item.title}
-                </ThemedText>
+            <AnimatedCard>
+              <LiquidGlassView intensity="standard" cornerRadius={20} style={{ overflow: 'hidden' }}>
+                {item.photos?.[0] && (
+                  <ExpoImage
+                    source={{ uri: item.photos[0] }}
+                    style={{ width: "100%", height: 200 }}
+                    contentFit="cover"
+                    transition={200}
+                  />
+                )}
+                
+                <View style={{ padding: 16 }}>
+                  {/* Header */}
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      gap: 12,
+                      marginBottom: 12,
+                    }}
+                  >
+                    <ThemedText type="title-small" style={{ flexShrink: 1, fontWeight: '600' }} numberOfLines={2}>
+                      {item.title}
+                    </ThemedText>
 
-                <View
-                  style={{
-                    paddingVertical: 4,
-                    paddingHorizontal: 10,
-                    borderRadius: 9999,
-                    backgroundColor: item.available ? "#16a34a33" : "#6b728033",
-                  }}
-                >
-                  <ThemedText style={{ color: item.available ? "#00ff80" : "#6b7280" }}>
-                    {item.available ? "Disponível" : "Alugado"}
-                  </ThemedText>
-                </View>
-              </View>
-
-              {/* Avaliações */}
-              <View style={{ marginTop: 6, gap: 4 }}>
-                {/* Produto */}
-                <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-                  <ThemedText type="defaultSemiBold">Produto:</ThemedText>
-                  {(() => {
-                    const avg = calcAvg(item.ratingSum, item.ratingCount);
-                    if (!avg) return <ThemedText>—</ThemedText>;
-                    return (
-                      <ThemedText>
-                        {renderStars(avg)} {avg.toFixed(1)} ({item.ratingCount})
+                    <LinearGradient
+                      colors={item.available ? GradientTypes.success.colors : ['#6b7280', '#4b5563']}
+                      style={{
+                        paddingVertical: 6,
+                        paddingHorizontal: 12,
+                        borderRadius: 16,
+                      }}
+                    >
+                      <ThemedText style={{ color: "#fff", fontSize: 12, fontWeight: '600' }}>
+                        {item.available ? "Disponível" : "Alugado"}
                       </ThemedText>
-                    );
-                  })()}
+                    </LinearGradient>
+                  </View>
+
+                  {/* Ratings */}
+                  <View style={{ marginTop: 8, gap: 6 }}>
+                    <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                      <ThemedText type="caption" style={{ fontWeight: '600' }}>Produto:</ThemedText>
+                      {(() => {
+                        const avg = calcAvg(item.ratingSum, item.ratingCount);
+                        if (!avg) return <ThemedText type="caption">—</ThemedText>;
+                        return (
+                          <ThemedText type="caption">
+                            {renderStars(avg)} {avg.toFixed(1)} ({item.ratingCount})
+                          </ThemedText>
+                        );
+                      })()}
+                    </View>
+
+                    <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                      <ThemedText type="caption" style={{ fontWeight: '600' }}>Dono:</ThemedText>
+                      {(() => {
+                        const avg = calcAvg(item.ownerRatingSum, item.ownerRatingCount);
+                        if (!avg) return <ThemedText type="caption">—</ThemedText>;
+                        return (
+                          <ThemedText type="caption">
+                            {renderStars(avg)} {avg.toFixed(1)} ({item.ownerRatingCount})
+                          </ThemedText>
+                        );
+                      })()}
+                    </View>
+                  </View>
+
+                  {!!item.description && (
+                    <ThemedText style={{ marginTop: 12 }} numberOfLines={2} className="text-light-text-secondary dark:text-dark-text-secondary">
+                      {item.description}
+                    </ThemedText>
+                  )}
+
+                  <View style={{ flexDirection: "row", gap: 10, marginTop: 16 }}>
+                    <Button
+                      variant="secondary"
+                      onPress={() => {
+                        HapticFeedback.light();
+                        goEdit(item.id);
+                      }}
+                      style={{ flex: 1 }}
+                      textStyle={{ fontSize: 14 }}
+                    >
+                      Editar
+                    </Button>
+
+                    <Button
+                      variant={item.available ? "primary" : "premium"}
+                      onPress={() => {
+                        HapticFeedback.medium();
+                        toggleAvailability(item);
+                      }}
+                      disabled={updatingId === item.id}
+                      loading={updatingId === item.id}
+                      style={{ flex: 1 }}
+                      textStyle={{ fontSize: 14 }}
+                    >
+                      {item.available ? "Marcar Alugado" : "Marcar Disponível"}
+                    </Button>
+
+                    <TouchableOpacity
+                      onPress={() => {
+                        HapticFeedback.medium();
+                        confirmDelete(item);
+                      }}
+                      disabled={updatingId === item.id}
+                      style={{
+                        width: 48,
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        borderRadius: 12,
+                        backgroundColor: "#ef4444",
+                        opacity: updatingId === item.id ? 0.6 : 1,
+                      }}
+                    >
+                      <ThemedText style={{ color: "#fff", fontSize: 18, fontWeight: '700' }}>×</ThemedText>
+                    </TouchableOpacity>
+                  </View>
                 </View>
-
-                {/* Dono (denormalizado no item) */}
-                <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-                  <ThemedText type="defaultSemiBold">Dono:</ThemedText>
-                  {(() => {
-                    const avg = calcAvg(item.ownerRatingSum, item.ownerRatingCount);
-                    if (!avg) return <ThemedText>—</ThemedText>;
-                    return (
-                      <ThemedText>
-                        {renderStars(avg)} {avg.toFixed(1)} ({item.ownerRatingCount})
-                      </ThemedText>
-                    );
-                  })()}
-                </View>
-              </View>
-
-              {item.photos?.[0] && (
-                <Image
-                  source={{ uri: item.photos[0] }}
-                  style={{ width: "100%", height: 160, marginTop: 8, borderRadius: 10 }}
-                />
-              )}
-
-              {!!item.description && (
-                <ThemedText style={{ marginTop: 8 }} numberOfLines={3}>
-                  {item.description}
-                </ThemedText>
-              )}
-
-              <View style={{ flexDirection: "row", gap: 10, marginTop: 12 }}>
-                <TouchableOpacity
-                  onPress={() => goEdit(item.id)}
-                  style={{
-                    flex: 1,
-                    paddingVertical: 10,
-                    borderRadius: 10,
-                    backgroundColor: isDark ? "#374151" : "#b1f8b4",
-                    alignItems: "center",
-                  }}
-                >
-                  <ThemedText>Editar</ThemedText>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  onPress={() => toggleAvailability(item)}
-                  disabled={updatingId === item.id}
-                  style={{
-                    flex: 1,
-                    paddingVertical: 10,
-                    borderRadius: 10,
-                    backgroundColor: item.available ? "#f59e0b" : "#16a34a",
-                    alignItems: "center",
-                    opacity: updatingId === item.id ? 0.6 : 1,
-                  }}
-                >
-                  <ThemedText style={{ color: "#fff" }}>
-                    {item.available ? "Marcar Alugado" : "Marcar Disponível"}
-                  </ThemedText>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  onPress={() => confirmDelete(item)}
-                  disabled={updatingId === item.id}
-                  style={{
-                    width: 48,
-                    paddingVertical: 10,
-                    borderRadius: 10,
-                    backgroundColor: "#dc2626",
-                    alignItems: "center",
-                    opacity: updatingId === item.id ? 0.6 : 1,
-                  }}
-                >
-                  <ThemedText style={{ color: "#fff" }}>X</ThemedText>
-                </TouchableOpacity>
-              </View>
-            </View>
+              </LiquidGlassView>
+            </AnimatedCard>
           )}
         />
       )}

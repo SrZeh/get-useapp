@@ -8,6 +8,7 @@ import { Image, TouchableOpacity } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import type { UserProfile } from "@/types";
 
 export default function AuthHeaderRight() {
   const [user, setUser] = useState(auth.currentUser);
@@ -22,7 +23,8 @@ export default function AuthHeaderRight() {
         // tenta pegar avatar salvo no Firestore
         try {
           const snap = await getDoc(doc(db, "users", u.uid));
-          setPhotoURL((snap.data() as any)?.photoURL ?? u.photoURL ?? null);
+          const data = snap.data() as Partial<UserProfile> | undefined;
+          setPhotoURL(data?.photoURL ?? u.photoURL ?? null);
         } catch {
           setPhotoURL(u.photoURL ?? null);
         }

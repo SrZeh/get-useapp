@@ -6,11 +6,13 @@ import { router, useLocalSearchParams } from "expo-router";
 import { doc, getDoc } from "firebase/firestore";
 import { useEffect, useState } from "react";
 import { ActivityIndicator, Alert, TouchableOpacity, View } from "react-native";
-import { getFunctions, httpsCallable } from "firebase/functions";
+import { markPickup, releasePayoutToOwner } from "@/services/cloudFunctions";
+import { formatBRL } from "@/utils/formatters";
+import type { Reservation } from "@/types";
 
 export default function ReservationDetail() {
   const { resId } = useLocalSearchParams<{ resId: string }>();
-  const [res, setRes] = useState<any>(null);
+  const [res, setRes] = useState<Reservation | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
 
@@ -21,7 +23,11 @@ export default function ReservationDetail() {
   // helper para recarregar o doc (evita conflito de nome "refresh")
   async function reload() {
     const snap = await getDoc(doc(db, "reservations", String(resId)));
-    setRes({ id: resId, ...(snap.data() || {}) });
+    if (snap.exists()) {
+      setRes({ id: resId, ...(snap.data() as Partial<Reservation>) } as Reservation);
+    } else {
+      setRes(null);
+    }
   }
 
   useEffect(() => {
@@ -31,25 +37,16 @@ export default function ReservationDetail() {
     })();
   }, [resId]);
 
-  function formatBRL(n: number) {
-    try {
-      return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(n);
-    } catch {
-      return `R$ ${Number(n || 0).toFixed(2).replace(".", ",")}`;
-    }
-  }
-
   async function liberar() {
     if (!res?.id) return;
     try {
       setBusy(true);
-      const fns = getFunctions(undefined, "southamerica-east1");
-      const fn = httpsCallable<{ reservationId: string }, any>(fns, "releasePayoutToOwner");
-      await fn({ reservationId: String(res.id) });
+      await releasePayoutToOwner(String(res.id));
       Alert.alert("Repasse liberado.");
       await reload();
-    } catch (e: any) {
-      Alert.alert("Falha ao repassar", e?.message ?? String(e));
+    } catch (e: unknown) {
+      const error = e as { message?: string };
+      Alert.alert("Falha ao repassar", error?.message ?? String(e));
     } finally {
       setBusy(false);
     }
@@ -60,13 +57,12 @@ export default function ReservationDetail() {
     if (!res?.id) return;
     try {
       setBusy(true);
-      const fns = getFunctions(undefined, "southamerica-east1");
-      const fn = httpsCallable<{ reservationId: string }, any>(fns, "markPickup");
-      await fn({ reservationId: String(res.id) });
+      await markPickup(String(res.id));
       Alert.alert("Recebimento confirmado!");
       await reload();
-    } catch (e: any) {
-      Alert.alert("Falha ao confirmar", e?.message ?? String(e));
+    } catch (e: unknown) {
+      const error = e as { message?: string };
+      Alert.alert("Falha ao confirmar", error?.message ?? String(e));
     } finally {
       setBusy(false);
     }
@@ -115,7 +111,7 @@ export default function ReservationDetail() {
                 onPress={() =>
                   router.push({
                     pathname: "/transaction/[id]/pay",
-                    params: { id: res.id } as any,
+                    params: { id: res.id },
                   })
                 }
                 disabled={busy}

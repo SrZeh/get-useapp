@@ -7,6 +7,7 @@ import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import React, { useEffect, useState } from 'react';
 import { Alert, TouchableOpacity, View } from 'react-native';
 import { sendEmailVerification } from 'firebase/auth';
+import { logger } from '@/utils/logger';
 
 export default function VerifyEmailScreen() {
   const user = auth.currentUser;
@@ -27,7 +28,7 @@ export default function VerifyEmailScreen() {
           updatedAt: serverTimestamp(),
         });
       } catch (e) {
-        console.warn('update emailVerified falhou:', e);
+        logger.warn('Failed to update emailVerified', { error: e, uid: fresh.uid });
       }
       Alert.alert('E-mail verificado!', 'Obrigado.');
       router.replace('/(tabs)');
@@ -44,8 +45,9 @@ export default function VerifyEmailScreen() {
     try {
       await sendEmailVerification(u);
       Alert.alert('Enviado!', 'Reenviamos o e-mail de verificação.');
-    } catch (e: any) {
-      Alert.alert('Erro', e?.message ?? String(e));
+    } catch (e: unknown) {
+      const error = e as { message?: string };
+      Alert.alert('Erro', error?.message ?? String(e));
     }
   };
 

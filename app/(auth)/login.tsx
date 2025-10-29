@@ -5,7 +5,14 @@ import { auth } from '@/lib/firebase';
 import { Link, router } from 'expo-router';
 import { sendPasswordResetEmail, signInWithEmailAndPassword, type ActionCodeSettings } from 'firebase/auth';
 import { useMemo, useState } from 'react';
-import { ActivityIndicator, Alert, KeyboardAvoidingView, Platform, TextInput, TouchableOpacity, useColorScheme, View } from 'react-native';
+import { ActivityIndicator, Alert, KeyboardAvoidingView, Platform, TextInput, TouchableOpacity, View } from 'react-native';
+import { LiquidGlassView } from '@/components/liquid-glass';
+import { Button } from '@/components/Button';
+import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Colors } from '@/constants/theme';
+import { HapticFeedback } from '@/utils/haptics';
+import { logger } from '@/utils/logger';
+import { extractErrorCode, getErrorMessage } from '@/constants/errors';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
@@ -13,7 +20,9 @@ export default function LoginScreen() {
   const [busyLogin, setBusyLogin] = useState(false);
   const [busyReset, setBusyReset] = useState(false);
   const [errMsg, setErrMsg] = useState<string | null>(null);
-  const isDark = useColorScheme() === 'dark';
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === 'dark';
+  const palette = Colors[colorScheme];
 
   const notify = (title: string, msg: string) => {
     if (Platform.OS === 'web') {
@@ -26,16 +35,16 @@ export default function LoginScreen() {
   const inputStyle = useMemo(
     () => ({
       borderWidth: 1,
-      borderRadius: 10,
-      padding: 12,
-      fontSize: 16,
-      color: isDark ? '#fff' : '#111827',
-      borderColor: isDark ? '#374151' : '#d1d5db',
-      backgroundColor: isDark ? '#111827' : '#fff',
+      borderRadius: 16,
+      padding: 16,
+      fontSize: 17, // iOS body size
+      color: palette.text,
+      borderColor: palette.border,
+      backgroundColor: palette.inputBg,
     }),
-    [isDark]
+    [palette]
   );
-  const placeholderColor = isDark ? '#9aa0a6' : '#6b7280';
+  const placeholderColor = palette.textTertiary;
 
   const SITE_URL = process.env.EXPO_PUBLIC_SITE_URL ?? 'https://upperreggae.web.app';
   const actionCodeSettings: ActionCodeSettings = {
@@ -47,18 +56,18 @@ export default function LoginScreen() {
     if (busyLogin) return;
     setErrMsg(null);
     setBusyLogin(true);
+    HapticFeedback.medium();
     try {
       await signInWithEmailAndPassword(auth, email.trim(), password);
+      HapticFeedback.success();
       router.replace('/(tabs)');
-    } catch (e: any) {
-      console.log('LOGIN ERROR', e?.code, e?.message);
-      const code = e?.code ?? '';
-      let msg = 'Não foi possível entrar.';
-      if (code === 'auth/invalid-email') msg = 'E-mail inválido.';
-      else if (code === 'auth/user-disabled') msg = 'Usuário desativado.';
-      else if (code === 'auth/user-not-found') msg = 'Usuário não encontrado.';
-      else if (code === 'auth/wrong-password') msg = 'Senha incorreta.';
-      else if (code === 'auth/network-request-failed') msg = 'Falha de rede. Verifique sua conexão.';
+    } catch (e: unknown) {
+      HapticFeedback.error();
+      
+      const code = extractErrorCode(e);
+      const msg = getErrorMessage(code);
+      
+      logger.error('Login failed', e, { code, email: email.trim() });
       setErrMsg(msg);
       notify('Erro ao entrar', msg);
     } finally {
@@ -78,9 +87,10 @@ export default function LoginScreen() {
     try {
       await sendPasswordResetEmail(auth, mail, actionCodeSettings);
       notify('Verifique seu e-mail', 'Se o e-mail existir, enviamos um link de redefinição. Veja também a caixa de spam.');
-    } catch (e: any) {
-      console.log('[RESET ERROR]', e?.code, e?.message);
-      const code = e?.code ?? '';
+    } catch (e: unknown) {
+      const error = e as { code?: string; message?: string };
+      logger.error('Password reset failed', e, { code: error?.code, message: error?.message, email: mail });
+      const code = error?.code ?? '';
       if (
         code === 'auth/unauthorized-continue-uri' ||
         code === 'auth/invalid-continue-uri' ||
@@ -90,8 +100,9 @@ export default function LoginScreen() {
         try {
           await sendPasswordResetEmail(auth, mail);
           notify('Verifique seu e-mail', 'Enviamos um link de redefinição. Veja também a caixa de spam.');
-        } catch (e2: any) {
-          const msg = e2?.message ?? 'Tente novamente mais tarde.';
+        } catch (e2: unknown) {
+          const error2 = e2 as { message?: string };
+          const msg = error2?.message ?? 'Tente novamente mais tarde.';
           setErrMsg(msg);
           notify('Não foi possível enviar', msg);
         }
@@ -109,67 +120,80 @@ export default function LoginScreen() {
 
   return (
     <KeyboardAvoidingView
-      style={{ flex: 1 }}
+      style={{ flex: 1, backgroundColor: palette.background }}
       behavior={Platform.select({ ios: 'padding', android: undefined })}
       keyboardVerticalOffset={Platform.select({ ios: 80, android: 0 })}
     >
       <ThemedView style={{ flex: 1, padding: 16, justifyContent: 'center' }}>
-        <ThemedText type="title">Entrar</ThemedText>
-
-        <View style={{ gap: 12, marginTop: 16 }}>
-          <TextInput
-            placeholder="E-mail"
-            placeholderTextColor={placeholderColor}
-            autoCapitalize="none"
-            keyboardType="email-address"
-            onChangeText={setEmail}
-            value={email}
-            style={inputStyle}
-          />
-          <TextInput
-            placeholder="Senha"
-            placeholderTextColor={placeholderColor}
-            secureTextEntry
-            onChangeText={setPassword}
-            value={password}
-            style={inputStyle}
-          />
-        </View>
-
-        <TouchableOpacity
-          style={{
-            marginTop: 16,
-            backgroundColor: '#00ce08',
-            paddingVertical: 14,
-            borderRadius: 12,
-            alignItems: 'center',
-            opacity: busyLogin ? 0.7 : 1,
-          }}
-          onPress={onLogin}
-          disabled={busyLogin}
-        >
-          {busyLogin ? <ActivityIndicator color="#181818" /> : <ThemedText type="defaultSemiBold" style={{ color: '#181818' }}>Entrar</ThemedText>}
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={{ marginTop: 12, paddingVertical: 10, alignItems: 'center', opacity: busyReset ? 0.7 : 1 }}
-          onPress={onForgot}
-          disabled={busyReset}
-        >
-          {busyReset ? <ActivityIndicator /> : <ThemedText style={{ textDecorationLine: 'underline' }}>Esqueci a senha</ThemedText>}
-        </TouchableOpacity>
-
-        {!!errMsg && (
-          <ThemedText style={{ color: isDark ? '#fca5a5' : '#b91c1c', marginTop: 8 }}>
-            {errMsg}
+        <LiquidGlassView intensity="standard" cornerRadius={24} style={{ padding: 24 }}>
+          <ThemedText type="large-title" style={{ marginBottom: 32, textAlign: 'center' }}>
+            Entrar
           </ThemedText>
-        )}
 
-        <View style={{ marginTop: 16 }}>
-          <Link href="/(auth)/register">
-            <ThemedText>Não tem conta? Criar conta</ThemedText>
-          </Link>
-        </View>
+          <View style={{ gap: 16, marginBottom: 24 }}>
+            <LiquidGlassView intensity="subtle" cornerRadius={16}>
+              <TextInput
+                placeholder="E-mail"
+                placeholderTextColor={placeholderColor}
+                autoCapitalize="none"
+                keyboardType="email-address"
+                onChangeText={setEmail}
+                value={email}
+                style={[inputStyle, { backgroundColor: 'transparent' }]}
+              />
+            </LiquidGlassView>
+            <LiquidGlassView intensity="subtle" cornerRadius={16}>
+              <TextInput
+                placeholder="Senha"
+                placeholderTextColor={placeholderColor}
+                secureTextEntry
+                onChangeText={setPassword}
+                value={password}
+                style={[inputStyle, { backgroundColor: 'transparent' }]}
+              />
+            </LiquidGlassView>
+          </View>
+
+          <Button
+            variant="primary"
+            onPress={onLogin}
+            disabled={busyLogin}
+            loading={busyLogin}
+            fullWidth
+            style={{ marginBottom: 12 }}
+          >
+            Entrar
+          </Button>
+
+          <Button
+            variant="ghost"
+            onPress={onForgot}
+            disabled={busyReset}
+            loading={busyReset}
+            fullWidth
+          >
+            Esqueci a senha
+          </Button>
+
+          {!!errMsg && (
+            <ThemedText 
+              type="callout" 
+              style={{ color: palette.error, marginTop: 16, textAlign: 'center' }}
+            >
+              {errMsg}
+            </ThemedText>
+          )}
+
+          <View style={{ marginTop: 24, paddingTop: 24, borderTopWidth: 1, borderTopColor: palette.border }}>
+            <Link href="/(auth)/register" asChild>
+              <TouchableOpacity>
+                <ThemedText type="body" style={{ textAlign: 'center', color: palette.tint }}>
+                  Não tem conta? <ThemedText type="headline" style={{ color: palette.tint }}>Criar conta</ThemedText>
+                </ThemedText>
+              </TouchableOpacity>
+            </Link>
+          </View>
+        </LiquidGlassView>
       </ThemedView>
     </KeyboardAvoidingView>
   );

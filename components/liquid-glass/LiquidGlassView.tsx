@@ -5,16 +5,25 @@ import { BlurView } from 'expo-blur';
 import type { ViewProps } from 'react-native';
 
 // Try to import expo-liquid-glass-view, but handle if it's not available
-let ExpoLiquidGlassView: any;
-let LiquidGlassType: any;
-let CornerStyle: any;
+// Using proper types for conditional imports that may not exist
+type ExpoLiquidGlassViewComponent = React.ComponentType<ViewProps>;
+type LiquidGlassTypeEnum = { readonly [key: string]: string };
+type CornerStyleEnum = { readonly [key: string]: string };
+
+let ExpoLiquidGlassView: ExpoLiquidGlassViewComponent | null = null;
+let LiquidGlassType: LiquidGlassTypeEnum | null = null;
+let CornerStyle: CornerStyleEnum | null = null;
 
 try {
-  const module = require('expo-liquid-glass-view');
-  ExpoLiquidGlassView = module.ExpoLiquidGlassView;
-  LiquidGlassType = module.LiquidGlassType;
-  CornerStyle = module.CornerStyle;
-} catch (error) {
+  const module = require('expo-liquid-glass-view') as {
+    ExpoLiquidGlassView?: ExpoLiquidGlassViewComponent;
+    LiquidGlassType?: LiquidGlassTypeEnum;
+    CornerStyle?: CornerStyleEnum;
+  };
+  ExpoLiquidGlassView = module.ExpoLiquidGlassView ?? null;
+  LiquidGlassType = module.LiquidGlassType ?? null;
+  CornerStyle = module.CornerStyle ?? null;
+} catch {
   // Module not available, will use fallback
   ExpoLiquidGlassView = null;
 }
@@ -46,13 +55,13 @@ export function LiquidGlassView({
 
   // iOS: Use native liquid glass with iOS 26 materials (if available)
   if (Platform.OS === 'ios' && ExpoLiquidGlassView && LiquidGlassType && CornerStyle) {
-    const blurTypeMap: Record<string, any> = {
+    const blurTypeMap: Record<string, string | number> = {
       subtle: LiquidGlassType?.Clear || 0,
       standard: LiquidGlassType?.Regular || 1,
       strong: LiquidGlassType?.Interactive || 2,
     };
 
-    const cornerStyleMap: Record<string, any> = {
+    const cornerStyleMap: Record<string, string | number> = {
       circular: CornerStyle?.Circular || 0,
       continuous: CornerStyle?.Continuous || 1,
     };

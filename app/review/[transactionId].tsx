@@ -3,18 +3,15 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { router, useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useMemo, useState } from 'react';
-import { Alert, TextInput, TouchableOpacity, View } from 'react-native';
+import { Alert, KeyboardAvoidingView, Platform, ScrollView, TextInput, TouchableOpacity, View } from 'react-native';
 import { auth, db } from '@/lib/firebase';
 import { doc, getDoc, serverTimestamp, setDoc } from 'firebase/firestore';
-
-type Reservation = {
-  id: string;
-  itemId: string;
-  itemTitle?: string;
-  renterUid: string;
-  itemOwnerUid: string;
-  status: 'returned' | string;
-};
+import { LiquidGlassView } from '@/components/liquid-glass';
+import { Button } from '@/components/Button';
+import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Colors } from '@/constants/theme';
+import { HapticFeedback } from '@/utils/haptics';
+import type { Reservation } from '@/types';
 
 export default function ReviewScreen() {
   const { transactionId } = useLocalSearchParams<{ transactionId: string }>();
@@ -23,6 +20,8 @@ export default function ReviewScreen() {
   const [comment, setComment] = useState('');
   const [res, setRes] = useState<Reservation | null>(null);
   const [busy, setBusy] = useState(false);
+  const colorScheme = useColorScheme();
+  const palette = Colors[colorScheme];
 
   useEffect(() => {
     let alive = true;
@@ -35,7 +34,11 @@ export default function ReviewScreen() {
         router.back();
         return;
       }
-      const r = { id: snap.id, ...(snap.data() as any) } as Reservation;
+      const data = snap.data() as Partial<Reservation>;
+      const r: Reservation = {
+        id: snap.id,
+        ...data,
+      } as Reservation;
       setRes(r);
     })();
     return () => { alive = false; };
@@ -56,6 +59,7 @@ export default function ReviewScreen() {
 
     try {
       setBusy(true);
+      HapticFeedback.medium();
       // 1 review por reserva: docId = reservationId
       const revRef = doc(db, `items/${res.itemId}/reviews/${res.id}`);
       await setDoc(
@@ -73,10 +77,13 @@ export default function ReviewScreen() {
       );
 
       // Agregações do item e do dono são feitas pela trigger onItemReviewCreated
+      HapticFeedback.success();
       Alert.alert('Obrigado!', 'Sua avaliação foi enviada.');
       router.replace('/(tabs)/transactions');
-    } catch (e: any) {
-      const msg = e?.code ? `${e.code}: ${e.message}` : (e?.message ?? String(e));
+    } catch (e: unknown) {
+      HapticFeedback.error();
+      const error = e as { code?: string; message?: string };
+      const msg = error?.code ? `${error.code}: ${error.message}` : (error?.message ?? String(e));
       if ((msg || '').toLowerCase().includes('permission')) {
         Alert.alert('Avaliação', 'Você já avaliou esta reserva.');
       } else {
@@ -89,47 +96,110 @@ export default function ReviewScreen() {
 
   const title = res?.itemTitle ? `Avaliar ${res.itemTitle}` : `Avaliar`;
 
+  const inputStyle = {
+    borderWidth: 1,
+    borderRadius: 16,
+    padding: 16,
+    fontSize: 17,
+    color: palette.text,
+    borderColor: palette.border,
+    backgroundColor: palette.inputBg,
+  };
+  const placeholderColor = palette.textTertiary;
+
   return (
-    <ThemedView style={{ flex: 1, padding: 16 }}>
-      <ThemedText type="title">{title}</ThemedText>
+    <KeyboardAvoidingView
+      style={{ flex: 1, backgroundColor: palette.background }}
+      behavior={Platform.select({ ios: 'padding', android: undefined })}
+      keyboardVerticalOffset={Platform.select({ ios: 80, android: 0 })}
+    >
+      <ThemedView style={{ flex: 1, backgroundColor: palette.background }}>
+        <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 32 }}>
+          <ThemedText type="large-title" style={{ marginBottom: 32 }}>
+            {title}
+          </ThemedText>
 
-      {!res ? (
-        <ThemedText className="mt-4">Carregando…</ThemedText>
-      ) : !canReview ? (
-        <ThemedText className="mt-4" style={{ color: '#ef4444' }}>
-          Você só pode avaliar reservas devolvidas em que você é o locatário.
-        </ThemedText>
-      ) : (
-        <>
-          <View style={{ marginTop: 16 }}>
-            <ThemedText>Nota (1–5): {stars}</ThemedText>
-            <TextInput
-              keyboardType="number-pad"
-              value={String(stars)}
-              onChangeText={(t) => setStars(Math.max(1, Math.min(5, Number(t) || 1)))}
-              placeholder="5"
-              style={{ padding: 12, borderRadius: 8, borderWidth: 1, opacity: 0.8, marginTop: 8 }}
-            />
+          {!res ? (
+            <LiquidGlassView intensity="subtle" cornerRadius={16} style={{ padding: 24, alignItems: 'center' }}>
+              <ThemedText type="callout">Carregando…</ThemedText>
+            </LiquidGlassView>
+          ) : !canReview ? (
+            <LiquidGlassView intensity="standard" cornerRadius={16} style={{ padding: 24 }}>
+              <ThemedText type="body" style={{ color: palette.error, textAlign: 'center' }}>
+                Você só pode avaliar reservas devolvidas em que você é o locatário.
+              </ThemedText>
+            </LiquidGlassView>
+          ) : (
+            <LiquidGlassView intensity="standard" cornerRadius={24} style={{ padding: 24 }}>
+              <View style={{ gap: 20 }}>
+                <View>
+                  <ThemedText type="title-3" style={{ marginBottom: 12, fontWeight: '600' }}>
+                    Nota (1–5)
+                  </ThemedText>
+                  <View style={{ flexDirection: 'row', gap: 12, marginBottom: 16 }}>
+                    {[1, 2, 3, 4, 5].map((n) => (
+                      <TouchableOpacity
+                        key={n}
+                        onPress={() => {
+                          HapticFeedback.selection();
+                          setStars(n);
+                        }}
+                        style={{
+                          padding: 12,
+                          borderRadius: 16,
+                          backgroundColor: stars >= n ? '#96ff9a' : palette.cardBg,
+                          borderWidth: 1,
+                          borderColor: stars >= n ? '#96ff9a' : palette.border,
+                        }}
+                      >
+                        <ThemedText 
+                          type="title-2" 
+                          style={{ 
+                            color: stars >= n ? '#000' : palette.text,
+                            fontWeight: '700',
+                          }}
+                        >
+                          {n}
+                        </ThemedText>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                  <ThemedText type="body" className="text-light-text-secondary dark:text-dark-text-secondary">
+                    Nota selecionada: {stars}
+                  </ThemedText>
+                </View>
 
-            <ThemedText style={{ marginTop: 16 }}>Comentário (opcional)</ThemedText>
-            <TextInput
-              value={comment}
-              onChangeText={setComment}
-              placeholder="Conte como foi a experiência com o item…"
-              multiline
-              style={{ padding: 12, borderRadius: 8, borderWidth: 1, minHeight: 100, marginTop: 8 }}
-            />
-          </View>
+                <View>
+                  <ThemedText type="title-3" style={{ marginBottom: 12, fontWeight: '600' }}>
+                    Comentário (opcional)
+                  </ThemedText>
+                  <LiquidGlassView intensity="subtle" cornerRadius={16}>
+                    <TextInput
+                      value={comment}
+                      onChangeText={setComment}
+                      placeholder="Conte como foi a experiência com o item…"
+                      placeholderTextColor={placeholderColor}
+                      multiline
+                      style={[inputStyle, { backgroundColor: 'transparent', minHeight: 120, textAlignVertical: 'top' }]}
+                    />
+                  </LiquidGlassView>
+                </View>
 
-          <TouchableOpacity
-            style={{ marginTop: 24, alignSelf: 'flex-start', borderWidth: 1, borderRadius: 10, paddingVertical: 10, paddingHorizontal: 14, opacity: busy ? 0.6 : 1 }}
-            disabled={busy}
-            onPress={submit}
-          >
-            <ThemedText type="defaultSemiBold">{busy ? 'Enviando…' : 'Enviar avaliação'}</ThemedText>
-          </TouchableOpacity>
-        </>
-      )}
-    </ThemedView>
+                <Button
+                  variant="primary"
+                  onPress={submit}
+                  disabled={busy}
+                  loading={busy}
+                  fullWidth
+                  style={{ marginTop: 8 }}
+                >
+                  Enviar avaliação
+                </Button>
+              </View>
+            </LiquidGlassView>
+          )}
+        </ScrollView>
+      </ThemedView>
+    </KeyboardAvoidingView>
   );
 }

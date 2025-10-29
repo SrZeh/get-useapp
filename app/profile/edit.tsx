@@ -6,11 +6,22 @@ import * as ImagePicker from 'expo-image-picker';
 import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
 import { router } from 'expo-router';
 import React, { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Alert, Image, KeyboardAvoidingView, Platform, ScrollView, TextInput, TouchableOpacity, useColorScheme, View } from 'react-native';
+import { ActivityIndicator, Alert, KeyboardAvoidingView, Platform, ScrollView, TextInput, TouchableOpacity, View } from 'react-native';
+import { LiquidGlassView } from '@/components/liquid-glass';
+import { Button } from '@/components/Button';
+import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Colors } from '@/constants/theme';
+import { HapticFeedback } from '@/utils/haptics';
+import { Image as ExpoImage } from 'expo-image';
+import { LinearGradient } from 'expo-linear-gradient';
+import { GradientTypes } from '@/utils/gradients';
+import type { UserProfile } from '@/types';
 
 export default function EditProfile() {
   const uid = auth.currentUser?.uid;
-  const isDark = useColorScheme() === "dark";
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === "dark";
+  const palette = Colors[colorScheme];
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -21,18 +32,18 @@ export default function EditProfile() {
   const [localUri, setLocalUri] = useState<string | null>(null);
 
   const inputStyle = useMemo(() => ({
-    borderWidth: 1, borderRadius: 10, padding: 12, fontSize: 16,
-    color: isDark ? "#fff" : "#111827",
-    borderColor: isDark ? "#374151" : "#d1d5db",
-    backgroundColor: isDark ? "#111827" : "#fff",
-  }), [isDark]);
-  const placeholderColor = isDark ? "#9aa0a6" : "#6b7280";
+    borderWidth: 1, borderRadius: 16, padding: 16, fontSize: 17,
+    color: palette.text,
+    borderColor: palette.border,
+    backgroundColor: palette.inputBg,
+  }), [palette]);
+  const placeholderColor = palette.textTertiary;
 
   useEffect(() => {
     (async () => {
       if (!uid) { setLoading(false); return; }
       const snap = await getDoc(doc(db, "users", uid));
-      const d = snap.data() as any;
+      const d = snap.data() as Partial<UserProfile> | undefined;
       setName(d?.name ?? "");
       setPhone(d?.phone ?? "");
       setAddress(d?.address ?? "");
@@ -43,17 +54,22 @@ export default function EditProfile() {
   }, [uid]);
 
   const pickAvatar = async () => {
+    HapticFeedback.light();
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== "granted") return Alert.alert("Permissão necessária", "Conceda acesso às fotos.");
     const res = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images, quality: 0.8,
     });
-    if (!res.canceled) setLocalUri(res.assets[0].uri);
+    if (!res.canceled) {
+      HapticFeedback.selection();
+      setLocalUri(res.assets[0].uri);
+    }
   };
 
   const save = async () => {
     if (!uid) return;
     setSaving(true);
+    HapticFeedback.medium();
     try {
       let newPhotoURL = photoURL;
 
@@ -78,10 +94,13 @@ export default function EditProfile() {
         updatedAt: serverTimestamp(),
       });
 
+      HapticFeedback.success();
       Alert.alert("Perfil atualizado!");
       router.back();
-    } catch (e: any) {
-      Alert.alert("Erro ao salvar", e?.message ?? String(e));
+    } catch (e: unknown) {
+      HapticFeedback.error();
+      const error = e as { message?: string };
+      Alert.alert("Erro ao salvar", error?.message ?? String(e));
     } finally {
       setSaving(false);
     }
@@ -89,66 +108,105 @@ export default function EditProfile() {
 
   if (!uid) {
     return (
-      <ThemedView style={{ flex: 1, padding: 16, justifyContent: "center", alignItems: "center" }}>
-        <ThemedText>Faça login para editar o perfil.</ThemedText>
+      <ThemedView style={{ flex: 1, padding: 16, justifyContent: "center", alignItems: "center", backgroundColor: palette.background }}>
+        <LiquidGlassView intensity="standard" cornerRadius={24} style={{ padding: 24 }}>
+          <ThemedText type="title-2">Faça login para editar o perfil.</ThemedText>
+        </LiquidGlassView>
       </ThemedView>
     );
   }
 
   if (loading) {
     return (
-      <ThemedView style={{ flex: 1, padding: 16 }}>
-        <ActivityIndicator />
-        <ThemedText style={{ marginTop: 8 }}>Carregando…</ThemedText>
+      <ThemedView style={{ flex: 1, padding: 16, justifyContent: 'center', alignItems: 'center', backgroundColor: palette.background }}>
+        <ActivityIndicator size="large" />
+        <ThemedText type="callout" style={{ marginTop: 16 }}>Carregando…</ThemedText>
       </ThemedView>
     );
   }
 
   return (
-    <KeyboardAvoidingView style={{ flex: 1 }}
+    <KeyboardAvoidingView style={{ flex: 1, backgroundColor: palette.background }}
       behavior={Platform.select({ ios: "padding", android: undefined })}
       keyboardVerticalOffset={Platform.select({ ios: 80, android: 0 })}
     >
-      <ThemedView style={{ flex: 1 }}>
+      <ThemedView style={{ flex: 1, backgroundColor: palette.background }}>
         <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 32 }}>
-          <ThemedText type="title">Editar Perfil</ThemedText>
+          <ThemedText type="large-title" style={{ marginBottom: 32 }}>Editar Perfil</ThemedText>
 
-          <TouchableOpacity style={{ marginTop: 16 }} onPress={pickAvatar}>
-            <ThemedText type="defaultSemiBold">
+          <LiquidGlassView intensity="standard" cornerRadius={24} style={{ padding: 24, marginBottom: 24, alignItems: 'center' }}>
+            {(localUri || photoURL) ? (
+              <ExpoImage
+                source={{ uri: localUri ?? photoURL ?? undefined }}
+                style={{ width: 120, height: 120, borderRadius: 60, marginBottom: 16, borderWidth: 3, borderColor: '#96ff9a' }}
+                contentFit="cover"
+                transition={200}
+              />
+            ) : (
+              <LinearGradient
+                colors={GradientTypes.brand.colors}
+                style={{ width: 120, height: 120, borderRadius: 60, alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}
+              >
+                <ThemedText style={{ color: '#fff', fontSize: 48 }}>👤</ThemedText>
+              </LinearGradient>
+            )}
+            <Button variant="secondary" onPress={pickAvatar}>
               {localUri ? "Alterar foto (nova selecionada)" : "Alterar foto"}
-            </ThemedText>
-          </TouchableOpacity>
+            </Button>
+          </LiquidGlassView>
 
-          {(localUri || photoURL) && (
-            <Image
-              source={{ uri: localUri ?? photoURL ?? undefined }}
-              style={{ width: 96, height: 96, borderRadius: 48, marginTop: 8 }}
-            />
-          )}
+          <LiquidGlassView intensity="standard" cornerRadius={20} style={{ padding: 20 }}>
+            <View style={{ gap: 16 }}>
+              <LiquidGlassView intensity="subtle" cornerRadius={16}>
+                <TextInput 
+                  placeholder="Nome" 
+                  placeholderTextColor={placeholderColor}
+                  value={name} 
+                  onChangeText={setName} 
+                  style={[inputStyle, { backgroundColor: 'transparent' }]} 
+                />
+              </LiquidGlassView>
+              <LiquidGlassView intensity="subtle" cornerRadius={16}>
+                <TextInput 
+                  placeholder="Telefone" 
+                  placeholderTextColor={placeholderColor}
+                  value={phone} 
+                  onChangeText={setPhone} 
+                  keyboardType="phone-pad" 
+                  style={[inputStyle, { backgroundColor: 'transparent' }]} 
+                />
+              </LiquidGlassView>
+              <LiquidGlassView intensity="subtle" cornerRadius={16}>
+                <TextInput 
+                  placeholder="Endereço" 
+                  placeholderTextColor={placeholderColor}
+                  value={address} 
+                  onChangeText={setAddress} 
+                  style={[inputStyle, { backgroundColor: 'transparent' }]} 
+                />
+              </LiquidGlassView>
+              <LiquidGlassView intensity="subtle" cornerRadius={16} style={{ opacity: 0.7 }}>
+                <TextInput 
+                  placeholder="E-mail" 
+                  placeholderTextColor={placeholderColor}
+                  value={email} 
+                  editable={false} 
+                  style={[inputStyle, { backgroundColor: 'transparent' }]} 
+                />
+              </LiquidGlassView>
+            </View>
 
-          <View style={{ marginTop: 16, gap: 12 }}>
-            <TextInput placeholder="Nome" placeholderTextColor={placeholderColor}
-              value={name} onChangeText={setName} style={inputStyle} />
-            <TextInput placeholder="Telefone" placeholderTextColor={placeholderColor}
-              value={phone} onChangeText={setPhone} keyboardType="phone-pad" style={inputStyle} />
-            <TextInput placeholder="Endereço" placeholderTextColor={placeholderColor}
-              value={address} onChangeText={setAddress} style={inputStyle} />
-            <TextInput placeholder="E-mail" placeholderTextColor={placeholderColor}
-              value={email} editable={false} style={[inputStyle, { opacity: 0.75 }]} />
-          </View>
-
-          <TouchableOpacity
-            style={{
-              marginTop: 24, backgroundColor: isDark ? "#2563eb" : "#1d4ed8",
-              paddingVertical: 14, borderRadius: 12, alignItems: "center", opacity: saving ? 0.6 : 1
-            }}
-            disabled={saving}
-            onPress={save}
-          >
-            <ThemedText type="defaultSemiBold" style={{ color: "#fff" }}>
-              {saving ? "Salvando..." : "Salvar alterações"}
-            </ThemedText>
-          </TouchableOpacity>
+            <Button
+              variant="primary"
+              onPress={save}
+              disabled={saving}
+              loading={saving}
+              fullWidth
+              style={{ marginTop: 24 }}
+            >
+              Salvar alterações
+            </Button>
+          </LiquidGlassView>
         </ScrollView>
       </ThemedView>
     </KeyboardAvoidingView>

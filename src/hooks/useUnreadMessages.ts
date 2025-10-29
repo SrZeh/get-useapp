@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { collection, onSnapshot, query, where, limit } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/src/providers/AuthProvider";
+import { logger } from "@/utils/logger";
 
 export function useUnreadMessagesDot() {
   const { user } = useAuth();
@@ -20,7 +21,7 @@ export function useUnreadMessagesDot() {
       q,
       (snap) => setHasUnread(!snap.empty),
       (err) => {
-        console.error("[useUnreadMessagesDot] onSnapshot error:", err);
+        logger.error("Unread messages snapshot error", err, { uid: user.uid });
         setHasUnread(false);
       }
     );

@@ -12,6 +12,7 @@ import {
 } from "firebase/firestore";
 import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
 import React, { useEffect, useMemo, useState } from "react";
+import type { Item } from "@/types";
 import {
   ActivityIndicator,
   Alert,
@@ -97,10 +98,10 @@ export default function EditItemScreen() {
           router.back();
           return;
         }
-        const d = snap.data() as any;
-        setTitle(d.title ?? "");
-        setDescription(d.description ?? "");
-        setCategory(d.category ?? "");
+        const d = snap.data() as Partial<Item> | undefined;
+        setTitle(d?.title ?? "");
+        setDescription(d?.description ?? "");
+        setCategory(d?.category ?? "");
         setCondition(d.condition ?? "Usado");
         setMinRentalDays(String(d.minRentalDays ?? 1));
         setDailyRate(
@@ -111,8 +112,9 @@ export default function EditItemScreen() {
         setCity(d.city ?? "");
         setNeighborhood(d.neighborhood ?? "");
         setPublished(d.published !== false); // default true
-      } catch (e: any) {
-        Alert.alert("Erro ao carregar", e?.message ?? String(e));
+      } catch (e: unknown) {
+        const error = e as { message?: string };
+        Alert.alert("Erro ao carregar", error?.message ?? String(e));
       } finally {
         setLoading(false);
       }
@@ -211,8 +213,9 @@ export default function EditItemScreen() {
 
       Alert.alert("Sucesso", "Item atualizado.");
       router.back();
-    } catch (e: any) {
-      Alert.alert("Erro ao salvar", e?.message ?? String(e));
+    } catch (e: unknown) {
+      const error = e as { message?: string };
+      Alert.alert("Erro ao salvar", error?.message ?? String(e));
     } finally {
       setSaving(false);
     }

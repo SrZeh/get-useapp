@@ -4,7 +4,7 @@
 import { ThemedText } from "@/components/themed-text";
 import { useCoachmarksContext } from "@/providers/CoachmarksProvider";
 import React, { useMemo } from "react";
-import { Dimensions, Modal, Pressable, StyleSheet, View } from "react-native";
+import { Dimensions, Modal, Pressable, StyleSheet, View, ViewStyle } from "react-native";
 
 export function CoachmarkOverlay() {
 const { visible, rect, step, next } = useCoachmarksContext();
@@ -41,19 +41,19 @@ return (
 <View style={[styles.border, { left: hole.x, top: hole.y, width: hole.w, height: hole.h, borderRadius: hole.r }]} />
 
 
-{/* Balão */}
-<CoachBubble hole={{ x: hole.x, y: hole.y, w: hole.w, h: hole.h }} text={step.text} align={step.align as any} onNext={next} />
+      {/* Balão */}
+      <CoachBubble hole={{ x: hole.x, y: hole.y, w: hole.w, h: hole.h }} text={step.text} align={step.align ?? "bottom"} onNext={next} />
 </View>
 </Modal>
 );
 }
 
 function CoachBubble({ hole, text, align = "bottom", onNext }: { hole: { x: number; y: number; w: number; h: number }; text: string; align?: "top" | "bottom" | "left" | "right"; onNext: () => void; }) {
-const pad = 12;
-const base = { left: hole.x, top: hole.y + hole.h + 8 } as any;
-if (align === "top") base.top = hole.y - 8 - 120; // altura estimada
-if (align === "left") base.left = hole.x - 260 - 8; // largura estimada
-if (align === "right") base.left = hole.x + hole.w + 8;
+  const pad = 12;
+  const base: ViewStyle = { position: "absolute" as const, left: hole.x, top: hole.y + hole.h + 8 };
+  if (align === "top") base.top = hole.y - 8 - 120; // altura estimada
+  if (align === "left") base.left = hole.x - 260 - 8; // largura estimada
+  if (align === "right") base.left = hole.x + hole.w + 8;
 
 
 return (

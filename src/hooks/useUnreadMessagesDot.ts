@@ -8,6 +8,7 @@ import {
     where
 } from "firebase/firestore";
 import { useEffect, useState } from "react";
+import { logger } from "@/utils/logger";
 
 /**
  * Retorna true se existe QUALQUER thread onde o usuário tem unreadCount > 0.
@@ -31,7 +32,7 @@ export function useUnreadMessagesDot() {
     const unsub = onSnapshot(q,
       (snap) => setHasUnread(!snap.empty),
       (err) => {
-        console.log("[useUnreadMessagesDot] onSnapshot error:", err);
+        logger.error("Unread messages dot snapshot error", err, { uid });
         setHasUnread(false);
       }
     );

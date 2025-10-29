@@ -55,8 +55,10 @@ export function ResponsiveGrid<T>({
       numColumns={numColumns}
       keyExtractor={
         keyExtractor ||
-        ((item: any, index: number) => {
-          if (typeof item === 'object' && item?.id) return item.id;
+        ((item: T, index: number) => {
+          if (typeof item === 'object' && item && 'id' in item && typeof (item as { id?: unknown }).id === 'string') {
+            return (item as { id: string }).id;
+          }
           return `item-${index}`;
         })
       }

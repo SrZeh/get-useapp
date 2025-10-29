@@ -11,7 +11,6 @@ import React, { useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
-  Image,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -19,8 +18,14 @@ import {
   TextInput,
   TouchableOpacity,
   View,
-  useColorScheme,
 } from "react-native";
+import { LiquidGlassView } from "@/components/liquid-glass";
+import { Button } from "@/components/Button";
+import { useColorScheme } from "@/hooks/use-color-scheme";
+import { Colors } from "@/constants/theme";
+import { HapticFeedback } from "@/utils/haptics";
+import { Image as ExpoImage } from "expo-image";
+import { logger } from "@/utils/logger";
 
 const CATEGORIES = [
   // Ferramentas & construção
@@ -56,6 +61,7 @@ const CATEGORIES = [
 export default function NewItemScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
+  const palette = Colors[colorScheme];
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -64,7 +70,6 @@ export default function NewItemScreen() {
   const [minRentalDays, setMinRentalDays] = useState("1");
   const [dailyRate, setDailyRate] = useState("");
   const [isFree, setIsFree] = useState(false);
-
 
   // novos
   const [city, setCity] = useState("");
@@ -76,16 +81,16 @@ export default function NewItemScreen() {
   const textInputBase = useMemo(
     () => ({
       borderWidth: 1,
-      borderRadius: 10,
-      padding: 12,
-      fontSize: 16,
-      color: isDark ? "#ffffff" : "#111827",
-      borderColor: isDark ? "#374151" : "#d1d5db",
-      backgroundColor: isDark ? "#111827" : "#ffffff",
+      borderRadius: 16,
+      padding: 16,
+      fontSize: 17,
+      color: palette.text,
+      borderColor: palette.border,
+      backgroundColor: palette.inputBg,
     }),
-    [isDark]
+    [palette]
   );
-  const placeholderColor = isDark ? "#9aa0a6" : "#6b7280";
+  const placeholderColor = palette.textTertiary;
 
   const requestGalleryPermission = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -210,9 +215,10 @@ export default function NewItemScreen() {
 
       Alert.alert("Sucesso", `Item cadastrado! (id: ${docRef.id})`);
       router.replace("/(tabs)"); // ajuste a rota final que você usa
-    } catch (e: any) {
-      console.log("NEW ITEM ERROR:", e?.code, e?.message);
-      Alert.alert("Erro ao salvar", `${e?.code ?? ""} ${e?.message ?? ""}`);
+    } catch (e: unknown) {
+      const error = e as { code?: string; message?: string };
+      logger.error("Error creating new item", e, { code: error?.code, message: error?.message });
+      Alert.alert("Erro ao salvar", `${error?.code ?? ""} ${error?.message ?? ""}`);
     } finally {
       setSaving(false);
     }

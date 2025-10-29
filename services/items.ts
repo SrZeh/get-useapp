@@ -12,6 +12,7 @@ import {
   serverTimestamp,
   updateDoc,
 } from "firebase/firestore";
+import type { NewItemInput, Item } from "@/types";
 
 // ====== CONFIG (ajuste se necessário) ======
 const PROJECT_ID = "upperreggae";
@@ -19,29 +20,22 @@ const DB_NAME = "getanduseapp"; // ← deve bater com initializeFirestore(..., '
 const BASE = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/${DB_NAME}/documents`;
 const ITEMS_PATH = "items";
 
-function isUnavailable(e: any) {
-  return e?.code === "unavailable" || /unavailable/i.test(String(e?.message ?? e));
+function isUnavailable(e: unknown): boolean {
+  if (typeof e === 'object' && e !== null) {
+    const error = e as { code?: unknown; message?: unknown };
+    return error.code === "unavailable" || /unavailable/i.test(String(error.message ?? e));
+  }
+  return /unavailable/i.test(String(e));
 }
 
-async function getToken() {
+async function getToken(): Promise<string> {
   const user = auth.currentUser;
   if (!user) throw new Error("Sem usuário autenticado");
   return user.getIdToken();
 }
 
-// ====== Tipos e helpers ======
-export type NewItemInput = {
-  title: string;
-  description?: string;
-  category?: string;
-  condition?: string;
-  dailyRate?: number;
-  minRentalDays?: number;
-  photos?: string[];
-  city?: string;
-  neighborhood?: string;
-  published?: boolean; // default: true
-};
+// Re-export for backward compatibility
+export type { NewItemInput };
 
 export function normalize(s?: string) {
   return (s ?? "").trim();
@@ -88,7 +82,7 @@ type FirestoreValue =
   | { arrayValue: { values?: FirestoreValue[] } }
   | { mapValue: { fields: Record<string, FirestoreValue> } };
 
-function toFsValue(v: any): FirestoreValue | undefined {
+function toFsValue(v: unknown): FirestoreValue | undefined {
   if (v === undefined || v === null) return undefined;
   if (typeof v === "string") return { stringValue: v };
   if (typeof v === "boolean") return { booleanValue: v };
@@ -112,7 +106,7 @@ function toFsValue(v: any): FirestoreValue | undefined {
   return { mapValue: { fields } };
 }
 
-function encodeFieldsForRest(obj: Record<string, any>) {
+function encodeFieldsForRest(obj: Record<string, unknown>) {
   const fields: Record<string, FirestoreValue> = {};
   Object.entries(obj).forEach(([k, v]) => {
     const fv = toFsValue(v);
@@ -122,7 +116,7 @@ function encodeFieldsForRest(obj: Record<string, any>) {
 }
 
 // ====== REST: create e patch ======
-async function restCreateItemFull(docData: Record<string, any>) {
+async function restCreateItemFull(docData: Record<string, unknown>): Promise<string> {
   const token = await getToken();
   // REST não tem serverTimestamp ⇒ usa agora:
   const now = new Date().toISOString();
@@ -142,7 +136,7 @@ async function restCreateItemFull(docData: Record<string, any>) {
   return id;
 }
 
-async function restPatchItem(itemId: string, patch: Record<string, any>) {
+async function restPatchItem(itemId: string, patch: Record<string, unknown>): Promise<boolean> {
   const token = await getToken();
   const body = encodeFieldsForRest(patch);
   const masks = Object.keys(patch)
@@ -191,8 +185,8 @@ export async function safeCreateItemFull(input: NewItemInput) {
 export async function safeUpdateItem(
   itemId: string,
   patch: Partial<NewItemInput>
-) {
-  const data: any = { ...patch };
+): Promise<{ via: "sdk" } | { via: "rest" }> {
+  const data: Record<string, unknown> = { ...patch };
 
   if ("city" in patch) {
     data.city = normalize(patch.city);
@@ -231,7 +225,7 @@ export async function safeBumpRating(
       const ref = doc(db, ITEMS_PATH, itemId);
       const snap = await trx.get(ref);
       if (!snap.exists()) throw new Error("Item não encontrado");
-      const it = snap.data() as any;
+      const it = snap.data() as Partial<Item>;
       const count = (it.ratingCount ?? 0) + 1;
       const sum = (it.ratingAvg ?? 0) * (it.ratingCount ?? 0) + rating;
       const avg = Number((sum / count).toFixed(2));
@@ -268,14 +262,22 @@ export async function restCreateItem(data: { title: string }) {
   return json;
 }
 
-export async function restListItems(pageSize = 20) {
+interface RestDocument {
+  name: string;
+  fields?: {
+    title?: { stringValue?: string };
+  };
+  createTime?: string;
+}
+
+export async function restListItems(pageSize = 20): Promise<Array<{ id: string; title: string; createdAt?: string }>> {
   const token = await getToken();
   const url = `${BASE}/${ITEMS_PATH}?pageSize=${pageSize}&orderBy=createTime desc`;
   const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
-  const json = await res.json();
+  const json = await res.json() as { documents?: RestDocument[] };
   if (!res.ok) throw new Error(JSON.stringify(json));
-  return (json.documents ?? []).map((d: any) => ({
-    id: d.name.split("/").pop(),
+  return (json.documents ?? []).map((d: RestDocument) => ({
+    id: d.name.split("/").pop() ?? "",
     title: d.fields?.title?.stringValue ?? "",
     createdAt: d.createTime,
   }));
@@ -295,13 +297,13 @@ export async function safeCreateItem(title: string) {
   }
 }
 
-export async function safeListItems() {
+export async function safeListItems(): Promise<{ via: "sdk"; items: Item[] } | { via: "rest"; items: Array<{ id: string; title: string; createdAt?: string }> }> {
   try {
     const q = query(collection(db, ITEMS_PATH), orderBy("createdAt", "desc"), limit(20));
     const snap = await getDocs(q);
     return {
       via: "sdk" as const,
-      items: snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) })),
+      items: snap.docs.map((d) => ({ id: d.id, ...(d.data() as Partial<Item>) } as Item)),
     };
   } catch (e) {
     if (!isUnavailable(e)) throw e;

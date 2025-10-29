@@ -35,10 +35,14 @@ import {
   TouchableOpacity,
   View,
   ViewStyle,
-  useColorScheme,
 } from "react-native";
 import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
+import { useColorScheme } from "@/hooks/use-color-scheme";
+import { Colors } from "@/constants/theme";
+import type { Item } from "@/types";
+import { formatBRL, shuffle } from "@/utils/formatters";
+import { logger } from "@/utils/logger";
 
 const CATEGORIES = [
   "Ferramentas elétricas","Ferramentas manuais","Construção & Reforma","Marcenaria & Carpintaria","Jardinagem",
@@ -73,44 +77,12 @@ const CATEGORY_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
   "Outros": "apps",
 };
 
-type Item = {
-  id: string;
-  title: string;
-  description: string;
-  category?: string;
-  condition?: string;
-  dailyRate?: number;
-  minRentalDays?: number;
-  photos?: string[];
-  createdAt?: any;
-  available?: boolean;
-  ownerUid?: string;
-  published?: boolean;
-  city?: string;
-  neighborhood?: string;
-};
-
 const PAGE_SIZE = 20;
 
-function shuffle<T>(arr: T[]): T[] {
-  const a = arr.slice();
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
-  }
-  return a;
-}
-function formatBRL(n?: number) {
-  if (typeof n !== "number" || !isFinite(n)) return "";
-  try {
-    return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(n);
-  } catch {
-    return `R$ ${n.toFixed(2).replace(".", ",")}`;
-  }
-}
-
 export default function VitrineScreen() {
-  const isDark = useColorScheme() === "dark";
+  const colorScheme = useColorScheme() ?? 'light';
+  const isDark = colorScheme === "dark";
+  const palette = Colors[colorScheme];
   const { width: screenWidth, isMobile, isTablet, isDesktop } = useResponsive();
   const me = auth.currentUser?.uid || null;
 
@@ -192,7 +164,7 @@ export default function VitrineScreen() {
     try {
       const q = buildQuery(reset);
       const snap = await getDocs(q);
-      let page = snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) } as Item));
+      let page = snap.docs.map((d) => ({ id: d.id, ...(d.data() as Partial<Item>) } as Item));
       page = page.filter((it) => it.published === true && it.available !== false);
 
       if (snap.docs.length) {
@@ -205,7 +177,7 @@ export default function VitrineScreen() {
 
       setItems((prev) => (reset ? shuffle(page) : [...prev, ...shuffle(page)]));
     } catch (e) {
-      console.warn("[Vitrine] erro ao carregar:", e);
+      logger.warn("Error loading items", { error: e });
     } finally {
       setLoading(false);
       setLoadingMore(false);
@@ -444,7 +416,7 @@ export default function VitrineScreen() {
       paddingTop: 16, 
       paddingBottom: 8,
       width: "100%",
-      backgroundColor: isDark ? "#151718" : "#ffffff",
+      backgroundColor: palette.background,
     }}>
       <ThemedText
         type="large-title"
@@ -474,7 +446,7 @@ export default function VitrineScreen() {
       <LiquidGlassView intensity="subtle" cornerRadius={16} style={{ marginBottom: 12 }}>
         <TextInput
           placeholder="Buscar por título, descrição…"
-          placeholderTextColor={isDark ? "#9ca3af" : "#6b7280"}
+          placeholderTextColor={palette.textTertiary}
           value={search}
           onChangeText={setSearch}
           style={{
@@ -482,8 +454,8 @@ export default function VitrineScreen() {
             paddingHorizontal: 16,
             paddingVertical: 12,
             backgroundColor: "transparent",
-            color: isDark ? "#e5e7eb" : "#11181C",
-            fontSize: 16,
+            color: palette.text,
+            fontSize: 17,
           }}
         />
       </LiquidGlassView>
@@ -493,7 +465,7 @@ export default function VitrineScreen() {
           <LiquidGlassView intensity="subtle" cornerRadius={16}>
             <TextInput
               placeholder="Cidade"
-              placeholderTextColor={isDark ? "#9ca3af" : "#6b7280"}
+              placeholderTextColor={palette.textTertiary}
               value={city}
               onChangeText={setCity}
               autoCapitalize="words"
@@ -502,8 +474,8 @@ export default function VitrineScreen() {
                 paddingHorizontal: 16,
                 paddingVertical: 12,
                 backgroundColor: "transparent",
-                color: isDark ? "#e5e7eb" : "#11181C",
-                fontSize: 16,
+                color: palette.text,
+                fontSize: 17,
               }}
             />
           </LiquidGlassView>
@@ -512,7 +484,7 @@ export default function VitrineScreen() {
           <LiquidGlassView intensity="subtle" cornerRadius={16}>
             <TextInput
               placeholder="Bairro"
-              placeholderTextColor={isDark ? "#9ca3af" : "#6b7280"}
+              placeholderTextColor={palette.textTertiary}
               value={neighborhood}
               onChangeText={setNeighborhood}
               autoCapitalize="words"
@@ -521,8 +493,8 @@ export default function VitrineScreen() {
                 paddingHorizontal: 16,
                 paddingVertical: 12,
                 backgroundColor: "transparent",
-                color: isDark ? "#e5e7eb" : "#11181C",
-                fontSize: 16,
+                color: palette.text,
+                fontSize: 17,
               }}
             />
           </LiquidGlassView>
@@ -555,7 +527,7 @@ export default function VitrineScreen() {
       <ThemedView 
         style={{ 
           flex: 1, 
-          backgroundColor: isDark ? "#151718" : "#ffffff",
+          backgroundColor: palette.background,
           width: "100%",
         }}
       >
@@ -598,7 +570,7 @@ export default function VitrineScreen() {
             <RefreshControl 
               refreshing={refreshing} 
               onRefresh={onRefresh}
-              tintColor={isDark ? "#96ff9a" : "#08af0e"}
+              tintColor={palette.tint}
             />
           }
           onEndReachedThreshold={0.15}

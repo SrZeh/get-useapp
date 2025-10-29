@@ -42,9 +42,6 @@ export default function TabLayout() {
   const scheme = useColorScheme() ?? "light";
   const palette = Colors[scheme];
 
-  const borderTopColor =
-    scheme === "light" ? "rgba(0,0,0,0.08)" : "rgba(255,255,255,0.08)";
-
   const showTxDot = useTransactionsDot();
 
   return (
@@ -61,11 +58,11 @@ export default function TabLayout() {
         headerTitleStyle: { color: palette.text },
         tabBarStyle: {
           backgroundColor: palette.background,
-          borderTopColor,
+          borderTopColor: palette.border,
           borderTopWidth: 1,
         },
-        tabBarActiveTintColor: palette.tint,
-        tabBarInactiveTintColor: palette.icon,
+        tabBarActiveTintColor: palette.tabIconSelected,
+        tabBarInactiveTintColor: palette.tabIconDefault,
       }}
     >
       {/* ESQUERDA: Meus Itens */}

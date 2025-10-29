@@ -5,7 +5,6 @@ import { auth, storage } from "@/lib/firebase";
 import * as FileSystem from "expo-file-system/legacy"; // 👈 API legacy estável
 import * as ImagePicker from "expo-image-picker";
 import { router, useLocalSearchParams } from "expo-router";
-import { getFunctions, httpsCallable } from "firebase/functions";
 import { getDownloadURL, ref, uploadString } from "firebase/storage";
 import React, { useState } from "react";
 import {
@@ -16,13 +15,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-
-async function callFn<TReq, TRes>(name: string, data: TReq): Promise<TRes> {
-  const fns = getFunctions(undefined, "southamerica-east1");
-  const fn = httpsCallable<TReq, TRes>(fns, name);
-  const res = await fn(data);
-  return res.data;
-}
+import { confirmReturn } from "@/services/cloudFunctions";
 
 export default function ReturnScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -64,15 +57,13 @@ export default function ReturnScreen() {
       const url = await getDownloadURL(rf);
 
       // Chama a função para marcar devolução e trocar capa
-      await callFn<{ reservationId: string; photoUrl: string }, { ok: boolean }>(
-        "confirmReturn",
-        { reservationId: id, photoUrl: url }
-      );
+      await confirmReturn(id, url);
 
       Alert.alert("Devolução confirmada", "A foto virou a nova capa da vitrine 👌");
       router.back();
-    } catch (e: any) {
-      Alert.alert("Falha", e?.message ?? String(e));
+    } catch (e: unknown) {
+      const error = e as { message?: string };
+      Alert.alert("Falha", error?.message ?? String(e));
     } finally {
       setBusy(false);
     }

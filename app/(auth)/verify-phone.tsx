@@ -27,8 +27,9 @@ export default function VerifyPhoneScreen() {
       const vId = await provider.verifyPhoneNumber(phone, recaptchaRef.current!);
       setVerificationId(vId);
       Alert.alert('SMS enviado', 'Digite o código recebido.');
-    } catch (e: any) {
-      Alert.alert('Erro', e?.message ?? String(e));
+    } catch (e: unknown) {
+      const error = e as { message?: string };
+      Alert.alert('Erro', error?.message ?? String(e));
     } finally {
       setBusy(false);
     }
@@ -48,8 +49,9 @@ export default function VerifyPhoneScreen() {
       });
 
       Alert.alert('Telefone verificado!', 'Obrigado.');
-    } catch (e: any) {
-      Alert.alert('Erro', e?.message ?? String(e));
+    } catch (e: unknown) {
+      const error = e as { message?: string };
+      Alert.alert('Erro', error?.message ?? String(e));
     } finally {
       setBusy(false);
     }
@@ -60,7 +62,7 @@ export default function VerifyPhoneScreen() {
       <FirebaseRecaptchaVerifierModal
         ref={recaptchaRef}
         // Passe sua config do Firebase (veja Passo 4)
-        firebaseConfig={Constants?.expoConfig?.extra?.firebase || (auth.app.options as any)}
+        firebaseConfig={Constants?.expoConfig?.extra?.firebase || auth.app.options}
       />
 
       <ThemedText type="title">Verificar telefone</ThemedText>

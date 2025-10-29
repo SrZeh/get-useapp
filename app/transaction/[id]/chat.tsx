@@ -13,6 +13,7 @@ import {
   serverTimestamp,
 } from "firebase/firestore";
 import React, { useEffect, useRef, useState } from "react";
+import { logger } from "@/utils/logger";
 import {
   KeyboardAvoidingView,
   Platform,
@@ -22,7 +23,9 @@ import {
   View,
 } from "react-native";
 
-type Msg = { id: string; text: string; senderUid: string; createdAt?: any };
+import type { FirestoreTimestamp } from "@/types";
+
+type Msg = { id: string; text: string; senderUid: string; createdAt?: FirestoreTimestamp };
 
 export default function ReservationChatScreen() {
   const params = useLocalSearchParams();
@@ -48,7 +51,15 @@ export default function ReservationChatScreen() {
       q,
       (snap) => {
         const list: Msg[] = [];
-        snap.forEach((d) => list.push({ id: d.id, ...(d.data() as any) }));
+        snap.forEach((d) => {
+          const data = d.data() as Partial<Msg>;
+          list.push({ 
+            id: d.id, 
+            text: data.text ?? '', 
+            senderUid: data.senderUid ?? '', 
+            createdAt: data.createdAt 
+          });
+        });
         setMsgs(list);
         setTimeout(
           () => scrollRef.current?.scrollToEnd({ animated: true }),
@@ -56,7 +67,7 @@ export default function ReservationChatScreen() {
         );
       },
       (err) => {
-        console.log("CHAT onSnapshot ERROR", err?.code, err?.message);
+        logger.error("Chat snapshot listener error", err, { code: err?.code, message: err?.message, reservationId: id });
       }
     );
 
@@ -72,8 +83,9 @@ export default function ReservationChatScreen() {
         createdAt: serverTimestamp(),
       });
       setText("");
-    } catch (e: any) {
-      console.log("send ERROR", e?.code, e?.message);
+    } catch (e: unknown) {
+      const error = e as { code?: string; message?: string };
+      logger.error("Error sending chat message", e, { code: error?.code, message: error?.message, reservationId: id });
     }
   }
 

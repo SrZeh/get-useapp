@@ -6,6 +6,7 @@ import {
   NativeScrollEvent,
   NativeSyntheticEvent,
   ViewStyle,
+  LayoutChangeEvent,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useColorScheme } from 'react-native';
@@ -49,7 +50,7 @@ export function ScrollableCategories({
     setContentWidth(width);
   };
 
-  const handleLayout = (event: any) => {
+  const handleLayout = (event: LayoutChangeEvent) => {
     const { width } = event.nativeEvent.layout;
     setContainerWidth(width);
   };

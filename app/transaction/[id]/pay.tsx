@@ -4,17 +4,12 @@ import { ThemedView } from "@/components/themed-view";
 import { auth } from "@/lib/firebase";
 import { useLocalSearchParams } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
-import { getFunctions, httpsCallable } from "firebase/functions";
 import React, { useMemo, useState } from "react";
 import { ActivityIndicator, Alert, ScrollView, TouchableOpacity, View } from "react-native";
-
-async function callFn<TReq, TRes>(name: string, data: TReq): Promise<TRes> {
-  // ⚠️ apenas southamerica-east1 (sem fallback p/ us-central1)
-  const fns = getFunctions(undefined, "southamerica-east1");
-  const fn = httpsCallable<TReq, TRes>(fns, name);
-  const res = await fn(data);
-  return res.data;
-}
+import {
+  createCheckoutSession,
+  confirmCheckoutSession,
+} from "@/services/cloudFunctions";
 
 export default function PayScreen() {
   const params = useLocalSearchParams();
@@ -33,16 +28,14 @@ export default function PayScreen() {
     if (!uid || !id) return;
     try {
       setBusyCheckout(true);
-      const { url } = await callFn<
-        { reservationId: string; successUrl: string; cancelUrl: string },
-        { url: string }
-      >("createCheckoutSession", { reservationId: id, successUrl, cancelUrl });
+      const { url } = await createCheckoutSession(id, successUrl, cancelUrl);
 
       await WebBrowser.openBrowserAsync(url);
       // Após pagar, o usuário fecha o browser e volta para o app.
       // O webhook deve marcar como "paid"; se não marcar, use o botão "Já paguei".
-    } catch (e: any) {
-      Alert.alert("Falha ao iniciar pagamento", e?.message ?? String(e));
+    } catch (e: unknown) {
+      const error = e as { message?: string };
+      Alert.alert("Falha ao iniciar pagamento", error?.message ?? String(e));
     } finally {
       setBusyCheckout(false);
     }
@@ -52,13 +45,11 @@ export default function PayScreen() {
     if (!uid || !id) return;
     try {
       setBusyConfirm(true);
-      await callFn<{ reservationId: string }, { ok: boolean }>(
-        "confirmCheckoutSession",
-        { reservationId: id }
-      );
+      await confirmCheckoutSession(id);
       Alert.alert("Pagamento confirmado", "Reserva marcada como paga e datas bloqueadas.");
-    } catch (e: any) {
-      Alert.alert("Ainda não confirmado", e?.message ?? String(e));
+    } catch (e: unknown) {
+      const error = e as { message?: string };
+      Alert.alert("Ainda não confirmado", error?.message ?? String(e));
     } finally {
       setBusyConfirm(false);
     }

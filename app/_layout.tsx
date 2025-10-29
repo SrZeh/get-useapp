@@ -72,9 +72,9 @@
 import { ThemedText } from "@/components/themed-text";
 import { WebStyles } from "@/components/WebStyles";
 import { Colors } from "@/constants/theme";
-import { useColorScheme } from "@/hooks/use-color-scheme";
 import { OnboardingProvider } from "@/providers/OnboardingProvider";
 import { CoachmarksProvider } from "@/providers/CoachmarksProvider";
+import { ThemeProvider as CustomThemeProvider, useColorScheme } from "@/providers/ThemeProvider";
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { Link, Stack } from "expo-router";
 import { StatusBar } from 'expo-status-bar';
@@ -82,6 +82,7 @@ import 'react-native-reanimated';
 import React from "react";
 import { Image, Platform, Pressable, View } from "react-native";
 import { AuthProvider } from '../src/providers/AuthProvider';
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 export const unstable_settings = {
   anchor: '(tabs)',
@@ -106,8 +107,8 @@ function LogoIcon() {
   );
 }
 
-export default function RootLayout() {
-  const scheme = useColorScheme() ?? "light";
+function AppContent() {
+  const scheme = useColorScheme();
   const palette = Colors[scheme];
   const isWeb = Platform.OS === 'web';
 
@@ -116,7 +117,6 @@ export default function RootLayout() {
       {isWeb && <WebStyles />}
       <Stack
         screenOptions={{
-          headerBackTitleVisible: false,
           headerTitleAlign: "center",
           headerTitle: () => <LogoIcon />,
           headerStyle: { backgroundColor: palette.background },
@@ -135,40 +135,48 @@ export default function RootLayout() {
   // Web-specific responsive container
   if (isWeb) {
     return (
-      <AuthProvider>
-        <ThemeProvider value={scheme === 'dark' ? DarkTheme : DefaultTheme}>
-          <View
-            style={{
-              flex: 1,
-              width: '100%',
-              backgroundColor: scheme === 'dark' 
-                ? Colors.dark.backgroundTertiary 
-                : Colors.light.backgroundTertiary,
-            }}
-          >
-            <OnboardingProvider>
-              <CoachmarksProvider>
-                {content}
-              </CoachmarksProvider>
-            </OnboardingProvider>
-          </View>
-          <StatusBar style={scheme === 'dark' ? 'light' : 'dark'} />
-        </ThemeProvider>
-      </AuthProvider>
+      <ThemeProvider value={scheme === 'dark' ? DarkTheme : DefaultTheme}>
+        <View
+          style={{
+            flex: 1,
+            width: '100%',
+            backgroundColor: scheme === 'dark' 
+              ? Colors.dark.backgroundTertiary 
+              : Colors.light.backgroundTertiary,
+          }}
+        >
+          <OnboardingProvider>
+            <CoachmarksProvider>
+              {content}
+            </CoachmarksProvider>
+          </OnboardingProvider>
+        </View>
+        <StatusBar style={scheme === 'dark' ? 'light' : 'dark'} />
+      </ThemeProvider>
     );
   }
 
   // Native mobile
   return (
-    <AuthProvider>
-      <ThemeProvider value={scheme === 'dark' ? DarkTheme : DefaultTheme}>
-        <OnboardingProvider>
-          <CoachmarksProvider>
-            {content}
-          </CoachmarksProvider>
-        </OnboardingProvider>
-        <StatusBar style={scheme === 'dark' ? 'light' : 'dark'} />
-      </ThemeProvider>
-    </AuthProvider>
+    <ThemeProvider value={scheme === 'dark' ? DarkTheme : DefaultTheme}>
+      <OnboardingProvider>
+        <CoachmarksProvider>
+          {content}
+        </CoachmarksProvider>
+      </OnboardingProvider>
+      <StatusBar style={scheme === 'dark' ? 'light' : 'dark'} />
+    </ThemeProvider>
+  );
+}
+
+export default function RootLayout() {
+  return (
+    <ErrorBoundary>
+      <AuthProvider>
+        <CustomThemeProvider>
+          <AppContent />
+        </CustomThemeProvider>
+      </AuthProvider>
+    </ErrorBoundary>
   );
 }

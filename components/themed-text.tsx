@@ -1,4 +1,4 @@
-import { StyleSheet, Text, type TextProps } from 'react-native';
+import { StyleSheet, Text, type TextProps, Platform } from 'react-native';
 
 import { useThemeColor } from '@/hooks/use-theme-color';
 
@@ -6,6 +6,11 @@ import { useThemeColor } from '@/hooks/use-theme-color';
  * Typography types aligned with iOS 26 Human Interface Guidelines
  * Uses SF Pro font family (system default on iOS)
  * Supports Dynamic Type and accessibility
+ * 
+ * iOS Font System:
+ * - SF Pro Display (for large sizes, 34pt+)
+ * - SF Pro Text (for body text, <34pt)
+ * - Automatically uses system font on iOS, SF Pro on web
  */
 export type ThemedTextProps = TextProps & {
   lightColor?: string;
@@ -68,115 +73,130 @@ export function ThemedText({
   );
 }
 
+// iOS Font Family Configuration
+const SF_PRO_DISPLAY = Platform.select({
+  ios: 'SF Pro Display',
+  web: "-apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif",
+  default: 'sans-serif',
+});
+
+const SF_PRO_TEXT = Platform.select({
+  ios: 'SF Pro Text',
+  web: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif",
+  default: 'sans-serif',
+});
+
 const styles = StyleSheet.create({
   // Legacy styles (backwards compatibility)
   default: {
     fontSize: 17, // iOS Body default
     lineHeight: 22,
     fontWeight: '400',
-    fontFamily: 'System', // SF Pro on iOS
+    fontFamily: SF_PRO_TEXT,
   },
   defaultSemiBold: {
     fontSize: 17,
     lineHeight: 22,
     fontWeight: '600',
-    fontFamily: 'System',
+    fontFamily: SF_PRO_TEXT,
   },
   title: {
     fontSize: 34, // Maps to Large Title
     fontWeight: '700',
     lineHeight: 41,
-    fontFamily: 'System',
+    fontFamily: SF_PRO_DISPLAY,
+    letterSpacing: 0.37,
   },
   subtitle: {
     fontSize: 28, // Maps to Title 1
     fontWeight: '400',
     lineHeight: 34,
-    fontFamily: 'System',
+    fontFamily: SF_PRO_DISPLAY,
+    letterSpacing: 0.36,
   },
   link: {
     fontSize: 17,
     lineHeight: 22,
     fontWeight: '400',
     color: '#0a7ea4',
-    fontFamily: 'System',
+    fontFamily: SF_PRO_TEXT,
   },
   // iOS 26 Typography Scale (official Apple HIG)
   largeTitle: {
     fontSize: 34,
     lineHeight: 41,
     fontWeight: '700',
-    fontFamily: 'System',
+    fontFamily: SF_PRO_DISPLAY,
     letterSpacing: 0.37,
   },
   title1: {
     fontSize: 28,
     lineHeight: 34,
     fontWeight: '400',
-    fontFamily: 'System',
+    fontFamily: SF_PRO_DISPLAY,
     letterSpacing: 0.36,
   },
   title2: {
     fontSize: 22,
     lineHeight: 28,
     fontWeight: '400',
-    fontFamily: 'System',
+    fontFamily: SF_PRO_TEXT,
     letterSpacing: 0.35,
   },
   title3: {
     fontSize: 20,
     lineHeight: 25,
     fontWeight: '400',
-    fontFamily: 'System',
+    fontFamily: SF_PRO_TEXT,
     letterSpacing: 0.38,
   },
   headline: {
     fontSize: 17,
     lineHeight: 22,
     fontWeight: '600',
-    fontFamily: 'System',
+    fontFamily: SF_PRO_TEXT,
     letterSpacing: -0.41,
   },
   body: {
     fontSize: 17,
     lineHeight: 22,
     fontWeight: '400',
-    fontFamily: 'System',
+    fontFamily: SF_PRO_TEXT,
     letterSpacing: -0.41,
   },
   callout: {
     fontSize: 16,
     lineHeight: 21,
     fontWeight: '400',
-    fontFamily: 'System',
+    fontFamily: SF_PRO_TEXT,
     letterSpacing: -0.32,
   },
   subhead: {
     fontSize: 15,
     lineHeight: 20,
     fontWeight: '400',
-    fontFamily: 'System',
+    fontFamily: SF_PRO_TEXT,
     letterSpacing: -0.24,
   },
   footnote: {
     fontSize: 13,
     lineHeight: 18,
     fontWeight: '400',
-    fontFamily: 'System',
+    fontFamily: SF_PRO_TEXT,
     letterSpacing: -0.08,
   },
   caption1: {
     fontSize: 12,
     lineHeight: 16,
     fontWeight: '400',
-    fontFamily: 'System',
+    fontFamily: SF_PRO_TEXT,
     letterSpacing: 0,
   },
   caption2: {
     fontSize: 11,
     lineHeight: 13,
     fontWeight: '400',
-    fontFamily: 'System',
+    fontFamily: SF_PRO_TEXT,
     letterSpacing: 0.07,
   },
 });

@@ -22,48 +22,51 @@ import {
   updateDoc,
   where,
 } from "firebase/firestore";
-import { getFunctions, httpsCallable } from "firebase/functions";
 import React, { useEffect, useMemo, useState } from "react";
+import {
+  cancelWithRefund as cancelWithRefundService,
+  confirmReturn,
+  markPickup,
+  getAccountStatus,
+  createAccountLink,
+} from "@/services/cloudFunctions";
 import {
   Alert,
   ScrollView,
   TouchableOpacity,
   View
 } from "react-native";
+import { LiquidGlassView } from "@/components/liquid-glass";
+import { Button } from "@/components/Button";
+import { AnimatedCard } from "@/components/AnimatedCard";
+import { LinearGradient } from "expo-linear-gradient";
+import { GradientTypes } from "@/utils/gradients";
+import { HapticFeedback } from "@/utils/haptics";
+import { useColorScheme } from "@/hooks/use-color-scheme";
+import type { Reservation, ReservationStatus } from "@/types";
+import { toDate } from "@/types";
+import { logger } from "@/utils/logger";
 
 // janela de 7 dias em ms
 const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
 
-function isRefundable(r: Res): boolean {
+function isRefundable(r: Reservation): boolean {
   if (r.status !== "paid") return false;
   if (r.pickedUpAt) return false; // já marcou recebido → não pode
-  const paidAt: Date | null =
-    (r.paidAt as any)?.toDate ? (r.paidAt as any).toDate() :
-    (typeof r.paidAt === "string" ? new Date(r.paidAt) : null);
+  const paidAt = toDate(r.paidAt);
   if (!paidAt || isNaN(paidAt.getTime())) return false;
   return (Date.now() - paidAt.getTime()) <= SEVEN_DAYS_MS;
 }
 
 // chama a Cloud Function cancelWithRefund
-async function cancelWithRefund(reservationId: string) {
+async function cancelWithRefund(reservationId: string): Promise<void> {
   try {
-    const ok = await callFn<{ reservationId: string }, { ok: boolean; refundId: string; refundStatus: string }>(
-      "cancelWithRefund",
-      { reservationId }
-    );
+    await cancelWithRefundService(reservationId);
     Alert.alert("Cancelada", "Estorno solicitado. Pode levar alguns dias para aparecer no extrato.");
-  } catch (e: any) {
-    Alert.alert("Não foi possível cancelar", e?.message ?? "Tente novamente.");
+  } catch (e: unknown) {
+    const error = e as { message?: string };
+    Alert.alert("Não foi possível cancelar", error?.message ?? "Tente novamente.");
   }
-}
-
-
-// ---------- helper para Cloud Functions ----------
-async function callFn<TReq, TRes>(name: string, data: TReq): Promise<TRes> {
-  const fns = getFunctions(undefined, "southamerica-east1");
-  const fn = httpsCallable<TReq, TRes>(fns, name);
-  const res = await fn(data);
-  return res.data;
 }
 
 // --- helpers novos ---
@@ -80,13 +83,12 @@ function depositMessage(paymentMethodType?: string | null) {
 
 // Garante onboarding do dono (abre o fluxo se faltar). Retorna true se já estiver ok.
 async function ensureOwnerOnboarded(): Promise<boolean> {
-  const st = await callFn<{}, { hasAccount: boolean; charges_enabled: boolean; payouts_enabled: boolean }>("getAccountStatus", {});
+  const st = await getAccountStatus();
   if (!st?.hasAccount || !st?.charges_enabled || !st?.payouts_enabled) {
-    const { url } = await callFn<{ refreshUrl: string; returnUrl: string }, { url: string }>("createAccountLink", {
-      // pode apontar para sua tela/sucesso local
-      refreshUrl: "http://localhost:8081/",
-      returnUrl: "http://localhost:8081/",
-    });
+    const { url } = await createAccountLink(
+      "http://localhost:8081/",
+      "http://localhost:8081/"
+    );
     await WebBrowser.openBrowserAsync(url);
     return false;
   }
@@ -117,33 +119,11 @@ async function pickAndUploadReturnPhoto(reservationId: string): Promise<string |
 
 
 // ---------- tipos ----------
-type Res = {
-  id: string;
-  itemTitle?: string;
-  startDate?: string; // inclusivo
-  endDate?: string;   // exclusivo
-  days?: number;
-  total?: number | string;
-  status:
-    | "requested"
-    | "accepted"
-    | "rejected"
-    | "paid"
-    | "picked_up"
-    | "paid_out"
-    | "returned"
-    | "canceled";
-  renterUid?: string;
-  itemOwnerUid?: string;
-  createdAt?: any;
-  paidAt?: any;
-  paymentMethodType?: string | null; 
-  pickedUpAt?: any;
-};
+type Res = Reservation;
 
 // ---------- UI util ----------
-function StatusBadge({ s }: { s: Res["status"] }) {
-  const map: Record<Res["status"], string> = {
+function StatusBadge({ s }: { s: ReservationStatus }) {
+  const map: Record<Reservation["status"], string> = {
     requested: "#f59e0b",
     accepted: "#10b981",
     rejected: "#ef4444",
@@ -173,29 +153,71 @@ function Card({ r, actions }: { r: Res; actions?: React.ReactNode }) {
     const n = Number(r.days ?? 0);
     return `${n} dia${n > 1 ? "s" : ""}`;
   }, [r.days]);
+  const isDark = useColorScheme() === 'dark';
+
+  const statusColors: Record<Res["status"], string[]> = {
+    requested: ['#f59e0b', '#d97706'],
+    accepted: ['#10b981', '#059669'],
+    rejected: ['#ef4444', '#dc2626'],
+    paid: ['#2563eb', '#1d4ed8'],
+    picked_up: ['#0891b2', '#0e7490'],
+    paid_out: ['#7c3aed', '#6d28d9'],
+    returned: ['#16a34a', '#15803d'],
+    canceled: ['#6b7280', '#4b5563'],
+  };
 
   return (
-    <View style={{ borderWidth: 1, borderRadius: 10, padding: 12, marginBottom: 12 }}>
-      <ThemedText type="subtitle">{r.itemTitle ?? "Item"}</ThemedText>
-      <ThemedText>
-        {r.startDate ?? "?"} → {r.endDate ?? "?"} ({daysLabel})
-      </ThemedText>
-      <ThemedText>Total: R$ {r.total ?? "-"}</ThemedText>
-      <View style={{ marginTop: 8 }}>
-        <StatusBadge s={r.status} />
-      </View>
+    <AnimatedCard>
+      <LiquidGlassView intensity="standard" cornerRadius={20} style={{ overflow: 'hidden' }}>
+        <View style={{ padding: 16 }}>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
+            <ThemedText type="title-small" style={{ fontWeight: '600', flex: 1 }}>
+              {r.itemTitle ?? "Item"}
+            </ThemedText>
+            <LinearGradient
+              colors={statusColors[r.status] || ['#6b7280', '#4b5563']}
+              style={{
+                paddingVertical: 6,
+                paddingHorizontal: 12,
+                borderRadius: 16,
+              }}
+            >
+              <ThemedText style={{ color: "#fff", fontSize: 12, fontWeight: '600', textTransform: 'capitalize' }}>
+                {r.status}
+              </ThemedText>
+            </LinearGradient>
+          </View>
 
-      <View style={{ marginTop: 10, gap: 12 }}>
-        {actions}
-        {/* Chat da reserva */}
-        <TouchableOpacity
-          onPress={() => router.push({ pathname: "/transaction/[id]/chat", params: { id: r.id } as any })}
-          style={{ paddingVertical: 8 }}
-        >
-          <ThemedText>Mensagens</ThemedText>
-        </TouchableOpacity>
-      </View>
-    </View>
+          <View style={{ gap: 6, marginBottom: 12 }}>
+            <ThemedText className="text-light-text-secondary dark:text-dark-text-secondary">
+              📅 {r.startDate ?? "?"} → {r.endDate ?? "?"}
+            </ThemedText>
+            <ThemedText className="text-light-text-secondary dark:text-dark-text-secondary">
+              ⏱️ {daysLabel}
+            </ThemedText>
+            <ThemedText type="body" style={{ fontWeight: '600', color: '#96ff9a', marginTop: 4 }}>
+              💰 Total: R$ {typeof r.total === 'number' ? r.total.toFixed(2) : r.total ?? "-"}
+            </ThemedText>
+          </View>
+
+          {actions && (
+            <View style={{ marginTop: 16, gap: 10, paddingTop: 16, borderTopWidth: 1, borderTopColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' }}>
+              {actions}
+              <Button
+                variant="ghost"
+                onPress={() => {
+                  HapticFeedback.light();
+                  router.push({ pathname: "/transaction/[id]/chat", params: { id: r.id } });
+                }}
+                style={{ alignSelf: 'flex-start' }}
+              >
+                💬 Mensagens
+              </Button>
+            </View>
+          )}
+        </View>
+      </LiquidGlassView>
+    </AnimatedCard>
   );
 }
 
@@ -216,18 +238,18 @@ function OwnerInbox() {
     const unsub = onSnapshot(
       q,
       (snap) => {
-        const all = snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) })) as Res[];
-        const keep: Res[] = all.filter((r) =>
+        const all = snap.docs.map((d) => ({ id: d.id, ...(d.data() as Partial<Reservation>) } as Reservation));
+        const keep: Reservation[] = all.filter((r) =>
           ["requested", "accepted", "paid", "picked_up", "paid_out", "returned"].includes(r.status)
         );
         setRows(keep);
       },
-      (err) => console.log("INBOX ERROR", err?.code, err?.message)
+      (err) => logger.error("Inbox snapshot listener error", err, { code: err?.code, message: err?.message })
     );
     return () => unsub();
   }, [uid]);
 
-  const accept = async (id: string) => {
+  const accept = async (id: string): Promise<void> => {
     try {
       setBusyId(id);
       await updateDoc(doc(db, "reservations", id), {
@@ -237,14 +259,15 @@ function OwnerInbox() {
         updatedAt: serverTimestamp(),
       });
       Alert.alert("Pedido aceito", "O locatário já pode efetuar o pagamento.");
-    } catch (e: any) {
-      Alert.alert("Falha ao aceitar", e?.message ?? String(e));
+    } catch (e: unknown) {
+      const error = e as { message?: string };
+      Alert.alert("Falha ao aceitar", error?.message ?? String(e));
     } finally {
       setBusyId(null);
     }
   };
 
-  const reject = async (id: string) => {
+  const reject = async (id: string): Promise<void> => {
     try {
       setBusyId(id);
       await updateDoc(doc(db, "reservations", id), {
@@ -254,61 +277,65 @@ function OwnerInbox() {
         updatedAt: serverTimestamp(),
       });
       Alert.alert("Reserva recusada.");
-    } catch (e: any) {
-      Alert.alert("Falha ao recusar", e?.message ?? String(e));
+    } catch (e: unknown) {
+      const error = e as { message?: string };
+      Alert.alert("Falha ao recusar", error?.message ?? String(e));
     } finally {
       setBusyId(null);
     }
   };
 
-  const removeReq = async (id: string) => {
+  const removeReq = async (id: string): Promise<void> => {
     try {
       setBusyId(id);
       await deleteDoc(doc(db, "reservations", id));
       Alert.alert("Excluída", "Reserva removida.");
-    } catch (e: any) {
-      Alert.alert("Falha ao excluir", e?.message ?? String(e));
+    } catch (e: unknown) {
+      const error = e as { message?: string };
+      Alert.alert("Falha ao excluir", error?.message ?? String(e));
     } finally {
       setBusyId(null);
     }
   };
 
   // Onboarding para receber (dono)
-  async function syncStripe() {
+  async function syncStripe(): Promise<void> {
     try {
       setBusyAction("sync");
-      const st = await callFn<{}, { hasAccount: boolean; charges_enabled: boolean; payouts_enabled: boolean }>("getAccountStatus", {});
+      const st = await getAccountStatus();
       if (!st?.hasAccount || !st?.charges_enabled || !st?.payouts_enabled) {
-        const { url } = await callFn<{ refreshUrl: string; returnUrl: string }, { url: string }>("createAccountLink", {
-          refreshUrl: "http://localhost:8081/",
-          returnUrl: "http://localhost:8081/",
-        });
+        const { url } = await createAccountLink(
+          "http://localhost:8081/",
+          "http://localhost:8081/"
+        );
         await WebBrowser.openBrowserAsync(url);
       } else {
         Alert.alert("Stripe", "Conta já pronta para receber.");
       }
-    } catch (e: any) {
-      Alert.alert("Stripe", e?.message ?? String(e));
+    } catch (e: unknown) {
+      const error = e as { message?: string };
+      Alert.alert("Stripe", error?.message ?? String(e));
     } finally {
       setBusyAction(null);
     }
   }
 
   // Confirmar devolução (sem foto)
-  async function confirmReturn(reservationId: string) {
+  async function confirmReturnLocal(reservationId: string): Promise<void> {
     try {
       setBusyAction(`return:${reservationId}`);
-      await callFn<{ reservationId: string }, any>("confirmReturn", { reservationId });
+      await confirmReturn(reservationId, ""); // Empty photoUrl for non-photo returns
       Alert.alert("Devolução", "Devolução confirmada. Avaliações liberadas para o locatário.");
-    } catch (e: any) {
-      Alert.alert("Devolução", e?.message ?? "Falha ao confirmar devolução.");
+    } catch (e: unknown) {
+      const error = e as { message?: string };
+      Alert.alert("Devolução", error?.message ?? "Falha ao confirmar devolução.");
     } finally {
       setBusyAction(null);
     }
   }
 
-  const noteDeposit = (r: Res) => {
-    const t = (r as any).paymentMethodType as string | undefined;
+  const noteDeposit = (r: Reservation): string => {
+    const t = r.paymentMethodType;
     if (t === "pix" || t === "boleto") return "Depósito automático em até 2 dias úteis pela Stripe.";
     if (t === "card") return "Depósito automático em até 30 dias (cartão BR).";
     return "Depósito automático conforme o método de pagamento.";
@@ -332,9 +359,11 @@ function OwnerInbox() {
   );
 
   return (
-    <ScrollView style={{ padding: 16 }}>
+    <ScrollView style={{ padding: 16 }} contentContainerStyle={{ paddingBottom: 32 }}>
       {rows.length === 0 ? (
-        <ThemedText>Nenhuma reserva para mostrar.</ThemedText>
+        <LiquidGlassView intensity="standard" cornerRadius={24} style={{ padding: 32, alignItems: 'center' }}>
+          <ThemedText type="title" style={{ textAlign: 'center' }}>Nenhuma reserva para mostrar.</ThemedText>
+        </LiquidGlassView>
       ) : (
         rows.map((r) => (
           <Card
@@ -343,15 +372,15 @@ function OwnerInbox() {
             actions={
               r.status === "requested" ? (
                 <View style={{ gap: 12 }}>
-                  <View style={{ flexDirection: "row", gap: 16 }}>
-                    {btn(busyId === r.id ? "..." : "Aceitar", () => accept(r.id), busyId === r.id)}
-                    {btn(busyId === r.id ? "..." : "Recusar", () => reject(r.id), busyId === r.id)}
+                  <View style={{ flexDirection: "row", gap: 12, flexWrap: 'wrap' }}>
+                    {btn(busyId === r.id ? "Aceitando..." : "Aceitar", () => accept(r.id), busyId === r.id, 'primary')}
+                    {btn(busyId === r.id ? "Recusando..." : "Recusar", () => reject(r.id), busyId === r.id, 'secondary')}
                   </View>
-                  {btn(busyId === r.id ? "..." : "Excluir reserva", () => removeReq(r.id), busyId === r.id)}
+                  {btn(busyId === r.id ? "Excluindo..." : "Excluir reserva", () => removeReq(r.id), busyId === r.id, 'ghost')}
                 </View>
               ) : r.status === "accepted" ? (
                 <View style={{ gap: 8 }}>
-                  {btn(busyAction === "sync" ? "Verificando..." : "Sincronizar conta Stripe para receber", syncStripe, busyAction === "sync")}
+                  {btn(busyAction === "sync" ? "Verificando..." : "Sincronizar conta Stripe", syncStripe, busyAction === "sync", 'primary')}
                   <ThemedText style={{ fontSize: 12, opacity: 0.7 }}>{noteDeposit(r)}</ThemedText>
                 </View>
               ) : r.status === "paid" ? (
@@ -363,8 +392,9 @@ function OwnerInbox() {
                 <View style={{ gap: 8 }}>
                   {btn(
                     busyAction === `return:${r.id}` ? "Confirmando..." : "Confirmar devolução",
-                    () => confirmReturn(r.id),
-                    busyAction === `return:${r.id}`
+                    () => confirmReturnLocal(r.id),
+                    busyAction === `return:${r.id}`,
+                    'primary'
                   )}
                 </View>
               ) : r.status === "paid_out" ? (
@@ -372,8 +402,9 @@ function OwnerInbox() {
                   <ThemedText>Repasse ao dono concluído ✅</ThemedText>
                   {btn(
                     busyAction === `return:${r.id}` ? "Confirmando..." : "Confirmar devolução",
-                    () => confirmReturn(r.id),
-                    busyAction === `return:${r.id}`
+                    () => confirmReturnLocal(r.id),
+                    busyAction === `return:${r.id}`,
+                    'primary'
                   )}
                 </View>
               ) : r.status === "returned" ? (
@@ -408,13 +439,13 @@ function MyReservations() {
     );
     const unsub = onSnapshot(
       q,
-      (snap) => setRows(snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) }))),
-      (err) => console.log("MY RES ERROR", err?.code, err?.message)
+      (snap) => setRows(snap.docs.map((d) => ({ id: d.id, ...(d.data() as Partial<Reservation>) } as Reservation))),
+      (err) => logger.error("My reservations snapshot listener error", err, { code: err?.code, message: err?.message })
     );
     return () => unsub();
   }, [uid]);
 
-  const removeMine = async (id: string, status: Res["status"]) => {
+  const removeMine = async (id: string, status: ReservationStatus): Promise<void> => {
     if (!["requested", "rejected", "canceled"].includes(status)) {
       Alert.alert("Ação não permitida", "Só é possível excluir pendentes, recusadas ou canceladas.");
       return;
@@ -422,97 +453,100 @@ function MyReservations() {
     try {
       await deleteDoc(doc(db, "reservations", id));
       Alert.alert("Excluída", "Reserva removida da sua lista.");
-    } catch (e: any) {
-      Alert.alert("Falha ao excluir", e?.message ?? String(e));
+    } catch (e: unknown) {
+      const error = e as { message?: string };
+      Alert.alert("Falha ao excluir", error?.message ?? String(e));
     }
   };
 
-  async function markReceived(reservationId: string) {
+  async function markReceived(reservationId: string): Promise<void> {
     try {
       setBusyPickId(reservationId);
-      await callFn<{ reservationId: string }, any>("markPickup", { reservationId });
+      await markPickup(reservationId);
       Alert.alert("Recebido!", "Após o uso, lembre-se de devolver o item no prazo e avaliar, avaliações tornam nossa comunidade segura e confiável!");
-    } catch (e: any) {
-      Alert.alert("Não foi possível marcar", e?.message ?? String(e));
+    } catch (e: unknown) {
+      const error = e as { message?: string };
+      Alert.alert("Não foi possível marcar", error?.message ?? String(e));
     } finally {
       setBusyPickId(null);
     }
   }
 
   
-  const btn = (label: string, onPress: () => void, disabled?: boolean) => (
-    <TouchableOpacity
+  const btn = (label: string, onPress: () => void, disabled?: boolean, variant: 'primary' | 'secondary' | 'ghost' = 'secondary') => (
+    <Button
+      variant={variant}
       onPress={onPress}
       disabled={!!disabled}
-      style={{
-        alignSelf: "flex-start",
-        paddingVertical: 10,
-        paddingHorizontal: 14,
-        borderRadius: 10,
-        borderWidth: 1,
-        opacity: disabled ? 0.5 : 1,
-      }}
+      style={{ alignSelf: "flex-start" }}
+      textStyle={{ fontSize: 14 }}
     >
-      <ThemedText type="defaultSemiBold">{label}</ThemedText>
-    </TouchableOpacity>
+      {label}
+    </Button>
   );
 
   return (
-    <ScrollView style={{ padding: 16 }}>
+    <ScrollView style={{ padding: 16 }} contentContainerStyle={{ paddingBottom: 32 }}>
       {rows.length === 0 ? (
-        <ThemedText>Você ainda não fez reservas.</ThemedText>
+        <LiquidGlassView intensity="standard" cornerRadius={24} style={{ padding: 32, alignItems: 'center' }}>
+          <ThemedText type="title" style={{ textAlign: 'center' }}>Você ainda não fez reservas.</ThemedText>
+        </LiquidGlassView>
       ) : (
         rows.map((r) => (
           <Card
             key={r.id}
             r={r}
-        actions={
-  r.status === "accepted" && !r.paidAt ? (
-    btn("Pagar", () =>
-      router.push({ pathname: "/transaction/[id]/pay", params: { id: r.id } as any })
-    )
-  ) : r.status === "paid" ? (
-    <View style={{ gap: 8 }}>
-      {btn(
-        busyPickId === r.id ? "..." : "Recebido!",
-        () => markReceived(r.id),
-        busyPickId === r.id
-      )}
+            actions={
+              r.status === "accepted" && !r.paidAt ? (
+                btn("Pagar", () =>
+                  router.push({ pathname: "/transaction/[id]/pay", params: { id: r.id } }),
+                  false,
+                  'primary'
+                )
+              ) : r.status === "paid" ? (
+                <View style={{ gap: 8 }}>
+                  {btn(
+                    busyPickId === r.id ? "Processando..." : "Recebido!",
+                    () => markReceived(r.id),
+                    busyPickId === r.id,
+                    'primary'
+                  )}
 
-      {/* NOVO: cancelar com estorno enquanto for elegível */}
-      {isRefundable(r) && btn(
-        "Cancelar e pedir estorno",
-        () => cancelWithRefund(r.id)
-      )}
-      {!isRefundable(r) && (
-        <ThemedText style={{ fontSize: 12, opacity: 0.7 }}>
-          Estorno disponível por até 7 dias após o pagamento e antes de marcar "Recebido!".
-        </ThemedText>
-      )}
-    </View>
-    
-  ) : r.status === "rejected" ? (
-    <View style={{ gap: 8 }}>
-      <ThemedText style={{ color: "#ef4444" }}>Seu pedido foi recusado</ThemedText>
-      {btn("Excluir", () => removeMine(r.id, r.status))}
-    </View>
-  ) : ["requested", "canceled"].includes(r.status) ? (
-    btn("Excluir", () => removeMine(r.id, r.status))
-  ) : r.status === "picked_up" ? (
-    <ThemedText style={{ fontSize: 12, opacity: 0.7 }}>
-      Obrigado! A devolução agora pode ser confirmada pelo dono.
-    </ThemedText>
-  ) : r.status === "returned" && ((r as any).reviewsOpen?.renterCanReviewOwner ?? true) ? (
-    btn("Avaliar experiência", () =>
-      router.push({ pathname: "/review/[transactionId]", params: { transactionId: r.id } as any })
-    )
-  ) : r.status === "paid_out" ? (
-    <ThemedText type="defaultSemiBold">Pagamento repassado ao dono ✅</ThemedText>
-  ) : null
-}
-
-
-
+                  {/* NOVO: cancelar com estorno enquanto for elegível */}
+                  {isRefundable(r) && btn(
+                    "Cancelar e pedir estorno",
+                    () => cancelWithRefund(r.id),
+                    false,
+                    'secondary'
+                  )}
+                  {!isRefundable(r) && (
+                    <ThemedText style={{ fontSize: 12, opacity: 0.7 }}>
+                      Estorno disponível por até 7 dias após o pagamento e antes de marcar "Recebido!".
+                    </ThemedText>
+                  )}
+                </View>
+                
+              ) : r.status === "rejected" ? (
+                <View style={{ gap: 8 }}>
+                  <ThemedText style={{ color: "#ef4444" }}>Seu pedido foi recusado</ThemedText>
+                  {btn("Excluir", () => removeMine(r.id, r.status), false, 'ghost')}
+                </View>
+              ) : ["requested", "canceled"].includes(r.status) ? (
+                btn("Excluir", () => removeMine(r.id, r.status), false, 'ghost')
+              ) : r.status === "picked_up" ? (
+                <ThemedText style={{ fontSize: 12, opacity: 0.7 }}>
+                  Obrigado! A devolução agora pode ser confirmada pelo dono.
+                </ThemedText>
+              ) : r.status === "returned" && (r.reviewsOpen?.renterCanReviewOwner ?? true) ? (
+                btn("Avaliar experiência", () =>
+                  router.push({ pathname: "/review/[transactionId]", params: { transactionId: r.id } }),
+                  false,
+                  'primary'
+                )
+              ) : r.status === "paid_out" ? (
+                <ThemedText type="defaultSemiBold">Pagamento repassado ao dono ✅</ThemedText>
+              ) : null
+            }
           />
         ))
       )}
@@ -544,11 +578,59 @@ export default function TransactionsScreen() {
       <ThemedText type={tab === k ? "defaultSemiBold" : "default"}>{label}</ThemedText>
     </TouchableOpacity>
   );
+  const isDark = useColorScheme() === 'dark';
+
   return (
     <ThemedView style={{ flex: 1 }}>
-      <View style={{ flexDirection: "row", gap: 12, padding: 16 }}>
-        {tabBtn("owner", "Recebidas")}
-        {tabBtn("renter", "Minhas reservas")}
+      <View style={{ flexDirection: "row", gap: 12, padding: 16, paddingBottom: 8 }}>
+        <TouchableOpacity
+          onPress={() => {
+            HapticFeedback.selection();
+            setTab("owner");
+          }}
+          style={{
+            flex: 1,
+            paddingVertical: 12,
+            paddingHorizontal: 16,
+            borderRadius: 16,
+            backgroundColor: tab === "owner" 
+              ? (isDark ? 'rgba(150, 255, 154, 0.2)' : 'rgba(150, 255, 154, 0.15)')
+              : 'transparent',
+            borderWidth: tab === "owner" ? 2 : 1,
+            borderColor: tab === "owner" ? '#96ff9a' : (isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'),
+          }}
+        >
+          <ThemedText 
+            type={tab === "owner" ? "defaultSemiBold" : "default"} 
+            style={{ textAlign: 'center', color: tab === "owner" ? '#96ff9a' : undefined }}
+          >
+            Recebidas
+          </ThemedText>
+        </TouchableOpacity>
+        <TouchableOpacity
+          onPress={() => {
+            HapticFeedback.selection();
+            setTab("renter");
+          }}
+          style={{
+            flex: 1,
+            paddingVertical: 12,
+            paddingHorizontal: 16,
+            borderRadius: 16,
+            backgroundColor: tab === "renter" 
+              ? (isDark ? 'rgba(150, 255, 154, 0.2)' : 'rgba(150, 255, 154, 0.15)')
+              : 'transparent',
+            borderWidth: tab === "renter" ? 2 : 1,
+            borderColor: tab === "renter" ? '#96ff9a' : (isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'),
+          }}
+        >
+          <ThemedText 
+            type={tab === "renter" ? "defaultSemiBold" : "default"} 
+            style={{ textAlign: 'center', color: tab === "renter" ? '#96ff9a' : undefined }}
+          >
+            Minhas reservas
+          </ThemedText>
+        </TouchableOpacity>
       </View>
       {tab === "owner" ? <OwnerInbox /> : <MyReservations />}
     </ThemedView>

@@ -6,7 +6,13 @@ import { Link, router } from 'expo-router';
 import { createUserWithEmailAndPassword, sendEmailVerification, updateProfile } from 'firebase/auth';
 import { doc, serverTimestamp, setDoc } from 'firebase/firestore';
 import React, { useMemo, useState } from 'react';
-import { Alert, KeyboardAvoidingView, Platform, TextInput, TouchableOpacity, useColorScheme, View, ActivityIndicator } from 'react-native';
+import { Alert, KeyboardAvoidingView, Platform, TextInput, TouchableOpacity, View } from 'react-native';
+import { LiquidGlassView } from '@/components/liquid-glass';
+import { Button } from '@/components/Button';
+import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Colors } from '@/constants/theme';
+import { HapticFeedback } from '@/utils/haptics';
+import { logger } from '@/utils/logger';
 
 const STRICT_CPF = true; // para testar rápido, mude para false
 
@@ -19,15 +25,16 @@ function validarCPF(cpfRaw: string) {
   let d2 = 11 - (soma % 11); if (d2 >= 10) d2 = 0; return d2 === parseInt(cpf[10]);
 }
 
-function mapAuthError(e: any): string {
-  const code = e?.code ?? '';
+function mapAuthError(e: unknown): string {
+  const error = e as { code?: string; message?: string };
+  const code = error?.code ?? '';
   if (code === 'auth/email-already-in-use') return 'E-mail já está em uso.';
   if (code === 'auth/invalid-email') return 'E-mail inválido.';
   if (code === 'auth/weak-password') return 'Senha muito fraca (mín. 6 caracteres).';
   if (code === 'auth/network-request-failed') return 'Falha de rede. Verifique sua conexão.';
   if (code === 'auth/invalid-api-key') return 'Chave de API inválida. Confira as variáveis EXPO_PUBLIC_FIREBASE_*';
   if (code === 'auth/configuration-not-found') return 'Configuração do Firebase ausente. Confira lib/firebase.ts';
-  return e?.message ?? 'Não foi possível criar a conta. Tente novamente.';
+  return error?.message ?? 'Não foi possível criar a conta. Tente novamente.';
 }
 
 export default function RegisterScreen() {
@@ -38,20 +45,23 @@ export default function RegisterScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
-  const isDark = useColorScheme() === 'dark';
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === 'dark';
+  const palette = Colors[colorScheme];
 
   const inputStyle = useMemo(() => ({
-    borderWidth: 1, borderRadius: 10, padding: 12, fontSize: 16,
-    color: isDark ? '#fff' : '#111827',
-    borderColor: isDark ? '#374151' : '#d1d5db',
-    backgroundColor: isDark ? '#111827' : '#fff',
-  }), [isDark]);
-  const placeholderColor = isDark ? '#9aa0a6' : '#6b7280';
+    borderWidth: 1, borderRadius: 16, padding: 16, fontSize: 17,
+    color: palette.text,
+    borderColor: palette.border,
+    backgroundColor: palette.inputBg,
+  }), [palette]);
+  const placeholderColor = palette.textTertiary;
 
   const onRegister = async () => {
     if (busy) return;
-    console.log('[REGISTER] click');
+    logger.debug('Register button clicked');
     setBusy(true);
+    HapticFeedback.medium();
     try {
       // validações
       if (!name.trim()) { Alert.alert('Nome obrigatório'); return; }
@@ -59,24 +69,24 @@ export default function RegisterScreen() {
       if (!email.trim()) { Alert.alert('E-mail obrigatório'); return; }
       if ((password ?? '').length < 6) { Alert.alert('Senha deve ter pelo menos 6 caracteres'); return; }
 
-      console.log('[REGISTER] creating user in Auth…');
+      logger.debug('Creating user in Auth');
       const cred = await createUserWithEmailAndPassword(auth, email.trim(), password);
 
       // displayName (útil p/ cabeçalho, avaliações etc.)
       try {
         await updateProfile(cred.user, { displayName: name.trim() });
       } catch (err) {
-        console.warn('[REGISTER] updateProfile failed:', err);
+        logger.warn('Failed to update profile', { error: err });
       }
 
-      console.log('[REGISTER] sending email verification…');
+      logger.debug('Sending email verification');
       try {
         await sendEmailVerification(cred.user);
       } catch (err) {
-        console.warn('[REGISTER] sendEmailVerification failed:', err);
+        logger.warn('Failed to send email verification', { error: err });
       }
 
-      console.log('[REGISTER] writing Firestore profile…');
+      logger.debug('Writing Firestore profile');
       const cpfNum = cpf.replace(/\D/g, '');
       await setDoc(doc(db, 'users', cred.user.uid), {
         uid: cred.user.uid,
@@ -100,45 +110,113 @@ export default function RegisterScreen() {
         termsAcceptedAt: null,
       }, { merge: true });
 
-      console.log('[REGISTER] done → navigating');
+      logger.info('Registration completed successfully', { uid: cred.user.uid });
+      HapticFeedback.success();
       Alert.alert('Conta criada!', 'Enviamos um e-mail de verificação. Confirme para continuar.');
       router.replace('/(auth)/verify-email');
-    } catch (e: any) {
-      console.error('[REGISTER] error:', e);
-      Alert.alert('Erro ao registrar', mapAuthError(e));
+    } catch (e: unknown) {
+      HapticFeedback.error();
+      logger.error('Registration failed', e);
+      Alert.alert('Erro ao registrar', mapAuthError(e as { code?: string; message?: string }));
     } finally {
       setBusy(false);
     }
   };
 
   return (
-    <KeyboardAvoidingView style={{ flex: 1 }}
+    <KeyboardAvoidingView style={{ flex: 1, backgroundColor: palette.background }}
       behavior={Platform.select({ ios: 'padding', android: undefined })}
       keyboardVerticalOffset={Platform.select({ ios: 80, android: 0 })}
     >
       <ThemedView style={{ flex: 1, padding: 16, justifyContent: 'center' }}>
-        <ThemedText type="title">Criar conta</ThemedText>
+        <LiquidGlassView intensity="standard" cornerRadius={24} style={{ padding: 24 }}>
+          <ThemedText type="large-title" style={{ marginBottom: 32, textAlign: 'center' }}>
+            Criar conta
+          </ThemedText>
 
-        <View style={{ gap: 12, marginTop: 16 }}>
-          <TextInput placeholder="Nome completo" placeholderTextColor={placeholderColor} onChangeText={setName} value={name} style={inputStyle} />
-          <TextInput placeholder="CPF" placeholderTextColor={placeholderColor} keyboardType="number-pad" onChangeText={setCpf} value={cpf} style={inputStyle} />
-          <TextInput placeholder="Telefone" placeholderTextColor={placeholderColor} keyboardType="phone-pad" onChangeText={setPhone} value={phone} style={inputStyle} />
-          <TextInput placeholder="Endereço" placeholderTextColor={placeholderColor} onChangeText={setAddress} value={address} style={inputStyle} />
-          <TextInput placeholder="E-mail" placeholderTextColor={placeholderColor} autoCapitalize="none" keyboardType="email-address" onChangeText={setEmail} value={email} style={inputStyle} />
-          <TextInput placeholder="Senha" placeholderTextColor={placeholderColor} secureTextEntry onChangeText={setPassword} value={password} style={inputStyle} />
-        </View>
+          <View style={{ gap: 16, marginBottom: 24 }}>
+            <LiquidGlassView intensity="subtle" cornerRadius={16}>
+              <TextInput 
+                placeholder="Nome completo" 
+                placeholderTextColor={placeholderColor} 
+                onChangeText={setName} 
+                value={name} 
+                style={[inputStyle, { backgroundColor: 'transparent' }]} 
+              />
+            </LiquidGlassView>
+            <LiquidGlassView intensity="subtle" cornerRadius={16}>
+              <TextInput 
+                placeholder="CPF" 
+                placeholderTextColor={placeholderColor} 
+                keyboardType="number-pad" 
+                onChangeText={setCpf} 
+                value={cpf} 
+                style={[inputStyle, { backgroundColor: 'transparent' }]} 
+              />
+            </LiquidGlassView>
+            <LiquidGlassView intensity="subtle" cornerRadius={16}>
+              <TextInput 
+                placeholder="Telefone" 
+                placeholderTextColor={placeholderColor} 
+                keyboardType="phone-pad" 
+                onChangeText={setPhone} 
+                value={phone} 
+                style={[inputStyle, { backgroundColor: 'transparent' }]} 
+              />
+            </LiquidGlassView>
+            <LiquidGlassView intensity="subtle" cornerRadius={16}>
+              <TextInput 
+                placeholder="Endereço" 
+                placeholderTextColor={placeholderColor} 
+                onChangeText={setAddress} 
+                value={address} 
+                style={[inputStyle, { backgroundColor: 'transparent' }]} 
+              />
+            </LiquidGlassView>
+            <LiquidGlassView intensity="subtle" cornerRadius={16}>
+              <TextInput 
+                placeholder="E-mail" 
+                placeholderTextColor={placeholderColor} 
+                autoCapitalize="none" 
+                keyboardType="email-address" 
+                onChangeText={setEmail} 
+                value={email} 
+                style={[inputStyle, { backgroundColor: 'transparent' }]} 
+              />
+            </LiquidGlassView>
+            <LiquidGlassView intensity="subtle" cornerRadius={16}>
+              <TextInput 
+                placeholder="Senha" 
+                placeholderTextColor={placeholderColor} 
+                secureTextEntry 
+                onChangeText={setPassword} 
+                value={password} 
+                style={[inputStyle, { backgroundColor: 'transparent' }]} 
+              />
+            </LiquidGlassView>
+          </View>
 
-        <TouchableOpacity
-          style={{ marginTop: 16, backgroundColor: '#08af0e', paddingVertical: 14, borderRadius: 12, alignItems: 'center', opacity: busy ? 0.7 : 1 }}
-          onPress={onRegister}
-          disabled={busy}
-        >
-          {busy ? <ActivityIndicator color="#fff" /> : <ThemedText type="defaultSemiBold" style={{ color: '#fff' }}>Criar conta</ThemedText>}
-        </TouchableOpacity>
+          <Button
+            variant="primary"
+            onPress={onRegister}
+            disabled={busy}
+            loading={busy}
+            fullWidth
+            style={{ marginBottom: 16 }}
+          >
+            Criar conta
+          </Button>
 
-        <View style={{ marginTop: 16 }}>
-          <Link href="/(auth)/login"><ThemedText>Já tenho conta</ThemedText></Link>
-        </View>
+          <View style={{ paddingTop: 16, borderTopWidth: 1, borderTopColor: palette.border }}>
+            <Link href="/(auth)/login" asChild>
+              <TouchableOpacity>
+                <ThemedText type="body" style={{ textAlign: 'center', color: palette.tint }}>
+                  Já tenho conta? <ThemedText type="headline" style={{ color: palette.tint }}>Entrar</ThemedText>
+                </ThemedText>
+              </TouchableOpacity>
+            </Link>
+          </View>
+        </LiquidGlassView>
       </ThemedView>
     </KeyboardAvoidingView>
   );

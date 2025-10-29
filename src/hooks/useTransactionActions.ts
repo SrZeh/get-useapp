@@ -1,22 +1,15 @@
 // src/hooks/useTransactionActions.ts
 import { doc, runTransaction, serverTimestamp } from "firebase/firestore";
 import type { Firestore } from "firebase/firestore";
+import type { TransactionStatus, TransactionDocument } from "@/types";
 
-type AllowedStatus =
-  | "requested"
-  | "approved"
-  | "rejected"
-  | "in_use"
-  | "returned"
-  | "closed"
-  | "cancelled";
+type AllowedStatus = TransactionStatus;
 
-interface TxDoc {
+interface TxDoc extends Partial<TransactionDocument> {
   lenderId: string;
   borrowerId: string;
   participants: string[];
   status: AllowedStatus;
-  updatedAt?: any;
 }
 
 export function useTransactionActions(db: Firestore, uid?: string | null) {

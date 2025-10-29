@@ -14,6 +14,8 @@ import {
 } from "firebase/firestore";
 import { getFunctions, httpsCallable } from "firebase/functions";
 import React, { useEffect, useRef, useState } from "react";
+import type { FirestoreTimestamp } from "@/types";
+import { logger } from "@/utils/logger";
 import {
   KeyboardAvoidingView,
   Platform,
@@ -24,7 +26,7 @@ import {
   Alert,
 } from "react-native";
 
-type Msg = { id: string; text: string; fromUid: string; createdAt?: any };
+type Msg = { id: string; text: string; fromUid: string; createdAt?: FirestoreTimestamp };
 
 export default function ThreadChatScreen() {
   const params = useLocalSearchParams();
@@ -62,7 +64,15 @@ export default function ThreadChatScreen() {
       q,
       (snap) => {
         const list: Msg[] = [];
-        snap.forEach((d) => list.push({ id: d.id, ...(d.data() as any) }));
+        snap.forEach((d) => {
+          const data = d.data() as Partial<Msg>;
+          list.push({ 
+            id: d.id, 
+            text: data.text ?? '', 
+            fromUid: data.fromUid ?? '', 
+            createdAt: data.createdAt 
+          });
+        });
         setMsgs(list);
         setTimeout(() => {
           scrollRef.current?.scrollToEnd({ animated: true });
@@ -71,7 +81,7 @@ export default function ThreadChatScreen() {
         markRead();
       },
       (err) => {
-        console.log("THREAD CHAT onSnapshot ERROR", err?.code, err?.message);
+        logger.error("Thread chat snapshot listener error", err, { code: err?.code, message: err?.message, threadId: id });
       }
     );
 
@@ -95,9 +105,10 @@ export default function ThreadChatScreen() {
         scrollRef.current?.scrollToEnd({ animated: true });
       }, 50);
       markRead(); // reforça leitura para mim
-    } catch (e: any) {
-      console.log("send ERROR", e?.code, e?.message);
-      Alert.alert("Não foi possível enviar", e?.message ?? "Tente novamente.");
+    } catch (e: unknown) {
+      const error = e as { code?: string; message?: string };
+      logger.error("Error sending thread message", e, { code: error?.code, message: error?.message, threadId: id });
+      Alert.alert("Não foi possível enviar", error?.message ?? "Tente novamente.");
     } finally {
       setSending(false);
     }

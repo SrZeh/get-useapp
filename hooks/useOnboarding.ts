@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { usePathname } from "expo-router";        // ⬅️ novo
 import { auth, db } from "@/lib/firebase";
 import { doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
+import type { UserProfile } from "@/types";
 
 const APP_VERSION = Application.nativeApplicationVersion ?? "0";
 const CONTENT_VERSION = "15";
@@ -53,7 +54,8 @@ export function useOnboardingVisibility() {
         const uid = auth.currentUser?.uid;
         if (uid) {
           const snap = await getDoc(doc(db, "users", uid));
-          const seen = snap.exists() && Boolean((snap.data() as any)?.onboardingSeenAt);
+          const data = snap.data() as Partial<UserProfile> | undefined;
+          const seen = snap.exists() && Boolean(data?.onboardingSeenAt);
           setVisible(!seen);
           if (!seen) ONBOARDING_SHOWN_THIS_SESSION = true;   // ⬅️ marca sessão
         } else {
@@ -78,7 +80,9 @@ export function useOnboardingVisibility() {
     const uid = auth.currentUser?.uid;
     if (!uid) return;
     try {
-      const payload: any = { onboardingSeenAt: serverTimestamp() };
+      const payload: Partial<UserProfile> & { onboardingSeenAt?: ReturnType<typeof serverTimestamp>; termsAcceptedAt?: ReturnType<typeof serverTimestamp> } = { 
+        onboardingSeenAt: serverTimestamp() 
+      };
       if (opts?.termsAccepted) payload.termsAcceptedAt = serverTimestamp();
       const write = setDoc(doc(db, "users", uid), payload, { merge: true });
       const timeout = new Promise((_r, rej) => setTimeout(() => rej(new Error("fs-timeout")), 2500));

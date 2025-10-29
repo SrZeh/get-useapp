@@ -8,6 +8,7 @@ import { GradientTypes } from '@/utils/gradients';
 import { ThemedText } from './themed-text';
 import { VerifiedBadge } from './VerifiedBadge';
 import { AnimatedCard } from './AnimatedCard';
+import { formatBRL } from '@/utils/formatters';
 
 type Item = {
   id: string;
@@ -26,18 +27,6 @@ type EnhancedItemCardProps = {
   onPress?: () => void;
   width?: number;
 };
-
-function formatBRL(n?: number) {
-  if (typeof n !== 'number' || !isFinite(n)) return '';
-  try {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL',
-    }).format(n);
-  } catch {
-    return `R$ ${n.toFixed(2).replace('.', ',')}`;
-  }
-}
 
 export function EnhancedItemCard({ item, onPress, width }: EnhancedItemCardProps) {
   const cardWidth = width || 180;

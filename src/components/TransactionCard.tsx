@@ -4,26 +4,10 @@ import { View, Text, TouchableOpacity, ActivityIndicator } from "react-native";
 import { db } from "../../lib/firebase";
 import { useAuth } from "../providers/AuthProvider";
 import { useTransactionActions } from "../hooks/useTransactionActions";
+import type { Transaction, FirestoreTimestamp } from "@/types";
+import { logger } from "@/utils/logger";
 
-type AllowedStatus =
-  | "requested"
-  | "approved"
-  | "rejected"
-  | "in_use"
-  | "returned"
-  | "closed"
-  | "cancelled";
-
-type Tx = {
-  id: string;
-  itemTitle?: string;
-  status: AllowedStatus;
-  lenderId: string;
-  borrowerId: string;
-  participants: string[];
-  updatedAt?: any;
-  lastMessage?: { text?: string; senderId?: string; createdAt?: any };
-};
+type Tx = Transaction;
 
 interface Props {
   tx: Tx;
@@ -48,7 +32,7 @@ export default function TransactionCard({ tx, onChanged }: Props) {
       await actions.approve(tx.id);
       onChanged?.();
     } catch (e) {
-      console.warn(e);
+      logger.warn("Failed to approve transaction", { error: e, transactionId: tx.id });
     } finally {
       setBusy(null);
     }
@@ -60,7 +44,7 @@ export default function TransactionCard({ tx, onChanged }: Props) {
       await actions.reject(tx.id);
       onChanged?.();
     } catch (e) {
-      console.warn(e);
+      logger.warn("Failed to reject transaction", { error: e, transactionId: tx.id });
     } finally {
       setBusy(null);
     }
