@@ -78,13 +78,7 @@ export default function TabLayout() {
     headerStyle: { backgroundColor: colors.bg.primary },
     headerTintColor: colors.text.primary,
     headerTitleStyle: { color: colors.text.primary },
-    tabBarStyle: isLoggedIn
-      ? {
-          backgroundColor: colors.bg.primary,
-          borderTopColor: colors.border.default,
-          borderTopWidth: 1,
-        }
-      : { display: "none" as const },
+    tabBarStyle: { display: "none" as const }, // Use GlobalTabBar instead
     tabBarActiveTintColor: colors.icon.selected,
     tabBarInactiveTintColor: colors.icon.default,
   }), [colors, isLoggedIn]);

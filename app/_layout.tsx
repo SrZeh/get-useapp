@@ -86,6 +86,7 @@ import { AuthProvider } from '../src/providers/AuthProvider';
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { useThemeColors } from "@/utils";
 import { ServicesProvider } from "@/providers/ServicesProvider";
+import { GlobalTabBar } from "@/components/GlobalTabBar";
 
 export const unstable_settings = {
   anchor: '(tabs)',
@@ -157,6 +158,7 @@ function AppContent() {
           <OnboardingProvider>
             <CoachmarksProvider>
               {content}
+              <GlobalTabBar />
             </CoachmarksProvider>
           </OnboardingProvider>
         </View>
@@ -171,6 +173,7 @@ function AppContent() {
       <OnboardingProvider>
         <CoachmarksProvider>
           {content}
+          <GlobalTabBar />
         </CoachmarksProvider>
       </OnboardingProvider>
       <StatusBar style={scheme === 'dark' ? 'light' : 'dark'} />
