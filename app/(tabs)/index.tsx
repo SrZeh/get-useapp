@@ -38,6 +38,7 @@ import {
   useColorScheme,
 } from "react-native";
 import { Image } from "expo-image";
+import { Ionicons } from "@expo/vector-icons";
 
 const CATEGORIES = [
   "Ferramentas elétricas","Ferramentas manuais","Construção & Reforma","Marcenaria & Carpintaria","Jardinagem",
@@ -46,6 +47,31 @@ const CATEGORIES = [
   "Eletroportáteis","Cozinha & Utensílios","Eventos & Festas","Móveis & Decoração",
   "Automotivo & Moto","Bebê & Infantil","Brinquedos & Jogos","Pet","Saúde & Beleza","Outros",
 ] as const;
+
+// Mapping of categories to Ionicons
+const CATEGORY_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
+  "Ferramentas elétricas": "flash",
+  "Ferramentas manuais": "hammer",
+  "Construção & Reforma": "construct",
+  "Marcenaria & Carpintaria": "cut",
+  "Jardinagem": "leaf",
+  "Camping & Trilha": "trail-sign",
+  "Esportes & Lazer": "football",
+  "Mobilidade (bike/patinete)": "bicycle",
+  "Fotografia & Vídeo": "camera",
+  "Música & Áudio": "musical-notes",
+  "Informática & Acessórios": "laptop",
+  "Eletroportáteis": "tv",
+  "Cozinha & Utensílios": "restaurant",
+  "Eventos & Festas": "balloon",
+  "Móveis & Decoração": "home",
+  "Automotivo & Moto": "car",
+  "Bebê & Infantil": "heart",
+  "Brinquedos & Jogos": "game-controller",
+  "Pet": "paw",
+  "Saúde & Beleza": "medical",
+  "Outros": "apps",
+};
 
 type Item = {
   id: string;
@@ -236,12 +262,14 @@ export default function VitrineScreen() {
   // -------- chips de categoria --------
   const renderChip = (label: string, value: string) => {
     const active = category === value;
+    const icon = value ? CATEGORY_ICONS[value] : undefined;
     return (
       <CategoryChip
         key={value || "_all"}
         label={label}
         selected={active}
         onPress={() => setCategory(active ? "" : value)}
+        icon={icon}
       />
     );
   };
