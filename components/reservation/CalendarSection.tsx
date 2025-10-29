@@ -6,7 +6,7 @@ import { LiquidGlassView } from '@/components/liquid-glass';
 import { Button } from '@/components/Button';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Colors } from '@/constants/theme';
-import { HapticFeedback, todayLocalISO, enumerateInclusive, calculateReservationSummary } from '@/utils';
+import { useThemeColors, HapticFeedback, todayLocalISO, enumerateInclusive, calculateReservationSummary } from '@/utils';
 import type { Item } from '@/types';
 
 type CalendarSectionProps = {
@@ -197,7 +197,12 @@ export function CalendarSection({
             <ThemedText type="caption-1" className="text-light-text-tertiary dark:text-dark-text-tertiary">
               Total
             </ThemedText>
-            <ThemedText type="title-2" style={{ fontWeight: '700', color: '#96ff9a' }}>
+            <ThemedText 
+              type="title-2" 
+              style={{ fontWeight: '700' }}
+              lightColor={Colors.light.tint}
+              darkColor={Colors.dark.tint}
+            >
               {summary.total ? `R$ ${summary.total.toFixed(2)}` : '—'}
             </ThemedText>
           </View>

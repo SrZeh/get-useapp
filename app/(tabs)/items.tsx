@@ -257,14 +257,14 @@ export default function ItemsScreen() {
             </ThemedText>
 
             <LinearGradient
-              colors={item.available ? GradientTypes.success.colors : ['#6b7280', '#4b5563']}
+              colors={item.available ? GradientTypes.success.colors : [colors.text.quaternary, colors.text.tertiary]}
               style={{
                 paddingVertical: 6,
                 paddingHorizontal: 12,
                 borderRadius: 16,
               }}
             >
-              <ThemedText style={{ color: "#fff", fontSize: 12, fontWeight: '600' }}>
+              <ThemedText style={{ color: colors.isDark ? colors.text.primary : '#ffffff', fontSize: 12, fontWeight: '600' }}>
                 {item.available ? "Disponível" : "Alugado"}
               </ThemedText>
             </LinearGradient>
@@ -340,14 +340,19 @@ export default function ItemsScreen() {
               disabled={updatingId === item.id}
               style={{
                 width: 48,
+                minHeight: 48, // Ensure minimum touch target size
                 justifyContent: 'center',
                 alignItems: 'center',
                 borderRadius: 12,
                 backgroundColor: colors.semantic.error,
                 opacity: updatingId === item.id ? 0.6 : 1,
               }}
+              accessibilityLabel="Excluir item"
+              accessibilityHint="Exclui permanentemente este item"
+              accessibilityRole="button"
+              accessibilityState={{ disabled: updatingId === item.id }}
             >
-              <ThemedText style={{ color: "#fff", fontSize: 18, fontWeight: '700' }}>×</ThemedText>
+              <ThemedText style={{ color: colors.isDark ? colors.text.primary : '#ffffff', fontSize: 18, fontWeight: '700' }}>×</ThemedText>
             </TouchableOpacity>
           </View>
         </View>

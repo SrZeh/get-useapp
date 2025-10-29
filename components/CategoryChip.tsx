@@ -55,6 +55,8 @@ export function CategoryChip({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
+    minHeight: 44, // WCAG: Minimum touch target size
+    minWidth: 44, // WCAG: Minimum touch target size
   };
 
   return (
@@ -79,8 +81,7 @@ export function CategoryChip({
         )}
         <ThemedText
           type="caption-1"
-          lightColor={selected ? '#ffffff' : '#374151'} // White text on green for better contrast
-          darkColor={selected ? '#11181C' : '#e5e7eb'} // Dark text on light green in dark mode
+          style={{ color: chipColors.text }}
         >
           {label}
         </ThemedText>

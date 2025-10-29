@@ -3,7 +3,7 @@ import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { auth } from "@/lib/firebase";
 import { Picker } from "@react-native-picker/picker";
-import React, { useMemo, useState } from "react";
+import React, { useState } from "react";
 import { useImagePicker } from "@/hooks/useImagePicker";
 import {
   ActivityIndicator,
@@ -12,19 +12,21 @@ import {
   Platform,
   ScrollView,
   Switch,
-  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
 import { LiquidGlassView } from "@/components/liquid-glass";
 import { Button } from "@/components/Button";
+import { Input } from "@/components/Input";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { Colors } from "@/constants/theme";
-import { useThemeColors, HapticFeedback, logger, validateItemInput, parseDailyRate, parseMinRentalDays } from "@/utils";
+import { useThemeColors, itemTitleSchema, itemDescriptionSchema } from "@/utils";
 import { Image as ExpoImage } from "expo-image";
 import { ITEM_CATEGORIES } from "@/constants/categories";
 import { useItemService, useNavigationService } from "@/providers/ServicesProvider";
 import { uploadUserImageFromUri } from "@/services/images";
+import { Ionicons } from "@expo/vector-icons";
+import { useItemForm } from "@/hooks/useItemForm";
 
 export default function NewItemScreen() {
   const colorScheme = useColorScheme();
@@ -47,100 +49,55 @@ export default function NewItemScreen() {
   const { imageUri, pickFromGallery, pickFromCamera } = useImagePicker();
   const itemService = useItemService();
   const navigation = useNavigationService();
-  const [saving, setSaving] = useState(false);
 
-  const textInputBase = useMemo(
-    () => ({
-      borderWidth: 1,
-      borderRadius: 16,
-      padding: 16,
-      fontSize: 17,
-      color: colors.text.primary,
-      borderColor: colors.border.default,
-      backgroundColor: colors.input.bg,
-    }),
-    [colors]
-  );
-  const placeholderColor = colors.input.placeholder;
-
-  const handleSave = async () => {
-    const uid = auth.currentUser?.uid;
-    if (!uid) {
-      Alert.alert("Sessão expirada", "Faça login novamente para cadastrar itens.");
-      return;
+  const handleSubmit = async (data: {
+    title: string;
+    description: string;
+    category: string;
+    condition: string;
+    minRentalDays: number;
+    dailyRate: number;
+    isFree: boolean;
+    city?: string;
+    neighborhood?: string;
+    photos?: string[];
+    published?: boolean;
+  }) => {
+    // 1) Upload da imagem (opcional) usando ImageUploadService
+    let photoUrl: string | null = null;
+    if (imageUri) {
+      const uploadResult = await uploadUserImageFromUri(imageUri, {
+        forceFormat: 'jpeg',
+        maxBytes: 2 * 1024 * 1024, // 2MB max
+      });
+      photoUrl = uploadResult.url;
     }
 
-    // Validate input using validation utilities
-    const itemValidation = validateItemInput({
+    // 2) Criar item usando service interface
+    const result = await itemService.createItem({
+      ...data,
+      photos: photoUrl ? [photoUrl] : [],
+    });
+
+    Alert.alert("Sucesso", `Item cadastrado! (id: ${result.data.id})`);
+    navigation.navigateToHome();
+  };
+
+  const { submit, loading: saving, errors } = useItemForm(handleSubmit);
+
+  const handleSave = async () => {
+    await submit({
       title,
       description,
       category,
+      condition,
       minRentalDays,
       dailyRate,
       isFree,
+      city,
+      neighborhood,
+      photos: [],
     });
-
-    if (!itemValidation.valid) {
-      Alert.alert("Campos inválidos", itemValidation.error ?? "Verifique os campos preenchidos.");
-      return;
-    }
-
-    // Parse numeric values
-    let days: number;
-    let rate = 0;
-
-    try {
-      days = parseMinRentalDays(minRentalDays);
-    } catch (error) {
-      Alert.alert("Valor inválido", error instanceof Error ? error.message : "Dias mínimos inválido.");
-      return;
-    }
-
-    if (!isFree) {
-      try {
-        rate = parseDailyRate(dailyRate);
-      } catch (error) {
-        Alert.alert("Valor inválido", error instanceof Error ? error.message : "Diária inválida.");
-        return;
-      }
-    }
-
-    setSaving(true);
-    try {
-      // 1) Upload da imagem (opcional) usando ImageUploadService
-      let photoUrl: string | null = null;
-      if (imageUri) {
-        const uploadResult = await uploadUserImageFromUri(imageUri, {
-          forceFormat: 'jpeg',
-          maxBytes: 2 * 1024 * 1024, // 2MB max
-        });
-        photoUrl = uploadResult.url;
-      }
-
-      // 2) Criar item usando service interface
-      const result = await itemService.createItem({
-        title,
-        description,
-        category,
-        condition,
-        minRentalDays: days,
-        dailyRate: isFree ? 0 : rate,
-        isFree,
-        photos: photoUrl ? [photoUrl] : [],
-        city,
-        neighborhood,
-        published: true,
-      });
-
-      Alert.alert("Sucesso", `Item cadastrado! (id: ${result.data.id})`);
-      navigation.navigateToHome();
-    } catch (e: unknown) {
-      const error = e as { code?: string; message?: string };
-      logger.error("Error creating new item", e, { code: error?.code, message: error?.message });
-      Alert.alert("Erro ao salvar", `${error?.code ?? ""} ${error?.message ?? ""}`);
-    } finally {
-      setSaving(false);
-    }
   };
 
   return (
@@ -156,82 +113,112 @@ export default function NewItemScreen() {
         >
           <ThemedText type="title">Novo Item</ThemedText>
 
-          <View style={{ marginTop: 16, gap: 12 }}>
-            <TextInput
-              placeholder="Título"
-              placeholderTextColor={placeholderColor}
+          <View style={{ marginTop: 16, gap: 16 }}>
+            <Input
+              label="Título do item"
+              placeholder="Ex: Furadeira Bosch GSR 180-LI"
               value={title}
               onChangeText={setTitle}
               autoCapitalize="sentences"
-              style={textInputBase}
+              error={errors.title}
+              helperText={!errors.title ? "Nome curto e descritivo do item" : undefined}
+              zodSchema={itemTitleSchema}
+              validateOnBlur={true}
+              leftElement={<Ionicons name="pricetag" size={20} color={colors.icon.default} />}
             />
 
-            <TextInput
-              placeholder="Descrição"
-              placeholderTextColor={placeholderColor}
+            <Input
+              label="Descrição"
+              placeholder="Descreva o item, condições de uso, etc."
               value={description}
               onChangeText={setDescription}
               multiline
-              style={[textInputBase, { minHeight: 100, textAlignVertical: "top" }]}
+              error={errors.description}
+              helperText={!errors.description ? "Seja claro sobre o estado e uso do item" : undefined}
+              style={{ minHeight: 100 }}
+              inputStyle={{ textAlignVertical: "top" }}
+              zodSchema={itemDescriptionSchema}
+              validateOnBlur={true}
+              leftElement={<Ionicons name="document-text" size={20} color={colors.icon.default} />}
             />
 
             {/* Dropdown de categoria */}
-            <View
-              style={[
-                textInputBase,
-                { padding: 0, overflow: "hidden", justifyContent: "center" },
-              ]}
-            >
-              <Picker
-                selectedValue={category}
-                onValueChange={(v) => setCategory(v)}
-                dropdownIconColor={isDark ? "#111827" : "#fff"}
+            <View>
+              <ThemedText type="caption-1" style={{ marginBottom: 8, fontWeight: '600' }}>
+                Categoria *
+              </ThemedText>
+              <View
                 style={{
-                  color: isDark ? "#fff" : "#111827",
-                  backgroundColor: "transparent",
+                  borderWidth: 1,
+                  borderRadius: 16,
+                  overflow: "hidden",
+                  borderColor: !category ? colors.semantic.error : colors.border.default,
+                  backgroundColor: colors.input.bg,
                 }}
               >
-                <Picker.Item
-                  label="Selecione uma categoria…"
-                  value=""
-                  color={placeholderColor}
-                />
-                {ITEM_CATEGORIES.map((c) => (
-                  <Picker.Item key={c} label={c} value={c} />
-                ))}
-              </Picker>
+                <Picker
+                  selectedValue={category}
+                  onValueChange={(v) => setCategory(v)}
+                  dropdownIconColor={isDark ? colors.text.primary : colors.text.primary}
+                  style={{
+                    color: colors.text.primary,
+                    backgroundColor: "transparent",
+                    paddingHorizontal: 16,
+                    paddingVertical: 16,
+                  }}
+                >
+                  <Picker.Item
+                    label="Selecione uma categoria…"
+                    value=""
+                    color={colors.input.placeholder}
+                  />
+                  {ITEM_CATEGORIES.map((c) => (
+                    <Picker.Item key={c} label={c} value={c} />
+                  ))}
+                </Picker>
+              </View>
+              {!category && errors.category && (
+                <ThemedText type="caption-2" style={{ color: colors.semantic.error, marginTop: 8 }}>
+                  {errors.category}
+                </ThemedText>
+              )}
+              {!category && !errors.category && (
+                <ThemedText type="caption-2" style={{ color: colors.semantic.error, marginTop: 8 }}>
+                  Selecione uma categoria
+                </ThemedText>
+              )}
             </View>
 
-            {/* Condição (livre) */}
-            <TextInput
-              placeholder="Condição (ex.: Novo, Usado, Com marcas...)"
-              placeholderTextColor={placeholderColor}
+            <Input
+              label="Condição"
+              placeholder="Ex: Novo, Usado, Com marcas de uso..."
               value={condition}
               onChangeText={setCondition}
               autoCapitalize="sentences"
-              style={textInputBase}
+              helperText="Estado atual do item"
+              leftElement={<Ionicons name="information-circle" size={20} color={colors.icon.default} />}
             />
 
-            {/* Mínimo de dias */}
-            <ThemedText>Mínimo de dias para aluguel</ThemedText>
-            <TextInput
-              placeholder="Dias mínimos de aluguel"
-              placeholderTextColor={placeholderColor}
+            <Input
+              label="Dias mínimos para aluguel"
+              placeholder="Ex: 1, 3, 7..."
               value={minRentalDays}
               onChangeText={setMinRentalDays}
               keyboardType="number-pad"
-              style={textInputBase}
+              helperText="Número mínimo de dias que o item pode ser alugado"
+              leftElement={<Ionicons name="calendar" size={20} color={colors.icon.default} />}
             />
 
             {/* Diária do item */}
             {!isFree && (
-              <TextInput
-                placeholder="Valor da diária (ex.: 25,00)"
-                placeholderTextColor={placeholderColor}
+              <Input
+                label="Valor da diária"
+                placeholder="Ex: 25,00 ou 30.50"
                 value={dailyRate}
                 onChangeText={setDailyRate}
                 keyboardType={Platform.OS === "ios" ? "decimal-pad" : "numeric"}
-                style={textInputBase}
+                helperText="Valor em reais (R$) por dia de aluguel"
+                leftElement={<Ionicons name="cash" size={20} color={colors.icon.default} />}
               />
             )}
 
@@ -241,21 +228,23 @@ export default function NewItemScreen() {
             </View>
 
             {/* Cidade / Bairro */}
-            <TextInput
-              placeholder="Cidade"
-              placeholderTextColor={placeholderColor}
+            <Input
+              label="Cidade"
+              placeholder="Ex: São Paulo, Rio de Janeiro..."
               value={city}
               onChangeText={setCity}
               autoCapitalize="words"
-              style={textInputBase}
+              helperText="Opcional - ajuda outros usuários a encontrarem seu item"
+              leftElement={<Ionicons name="location" size={20} color={colors.icon.default} />}
             />
-            <TextInput
-              placeholder="Bairro"
-              placeholderTextColor={placeholderColor}
+            <Input
+              label="Bairro"
+              placeholder="Ex: Centro, Vila Madalena..."
               value={neighborhood}
               onChangeText={setNeighborhood}
               autoCapitalize="words"
-              style={textInputBase}
+              helperText="Opcional - localização mais específica"
+              leftElement={<Ionicons name="location" size={20} color={colors.icon.default} />}
             />
           </View>
 
@@ -284,7 +273,7 @@ export default function NewItemScreen() {
             style={{
               marginTop: 24,
               opacity: saving ? 0.6 : 1,
-              backgroundColor: isDark ? "#08af0e" : "#08af0e",
+              backgroundColor: colors.brand.dark,
               paddingVertical: 14,
               borderRadius: 12,
               alignItems: "center",
@@ -292,16 +281,10 @@ export default function NewItemScreen() {
             onPress={handleSave}
             disabled={saving}
           >
-            <ThemedText type="defaultSemiBold" style={{ color: "#fff" }}>
+            <ThemedText type="defaultSemiBold" style={{ color: colors.isDark ? colors.text.primary : '#ffffff' }}>
               {saving ? "Salvando..." : "Salvar Item"}
             </ThemedText>
           </TouchableOpacity>
-
-          {saving && (
-            <View style={{ marginTop: 12 }}>
-              <ActivityIndicator />
-            </View>
-          )}
         </ScrollView>
       </ThemedView>
     </KeyboardAvoidingView>

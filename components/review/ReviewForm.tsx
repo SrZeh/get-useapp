@@ -95,11 +95,15 @@ export function ReviewForm({
                 paddingHorizontal: 12,
                 borderRadius: 9999,
                 borderWidth: 1,
-                backgroundColor: active ? (isDark ? '#2563eb' : '#1d4ed8') : 'transparent',
-                borderColor: active ? 'transparent' : (isDark ? '#374151' : '#d1d5db'),
+                backgroundColor: active ? colors.brand.primary : 'transparent',
+                borderColor: active ? 'transparent' : colors.border.default,
               }}
             >
-              <ThemedText style={{ color: active ? '#fff' : undefined }}>{r.label}</ThemedText>
+              <ThemedText 
+                style={{ color: active ? (colors.isDark ? colors.text.primary : '#ffffff') : colors.text.primary }}
+              >
+                {r.label}
+              </ThemedText>
             </TouchableOpacity>
           );
         })}

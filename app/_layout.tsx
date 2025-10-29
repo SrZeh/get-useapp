@@ -153,11 +153,14 @@ function AppContent() {
             flex: 1,
             width: '100%',
             backgroundColor: colors.bg.tertiary,
+            flexDirection: 'column',
           }}
         >
           <OnboardingProvider>
             <CoachmarksProvider>
-              {content}
+              <View style={{ flex: 1 }}>
+                {content}
+              </View>
               <GlobalTabBar />
             </CoachmarksProvider>
           </OnboardingProvider>
@@ -170,12 +173,16 @@ function AppContent() {
   // Native mobile
   return (
     <ThemeProvider value={navigationTheme}>
-      <OnboardingProvider>
-        <CoachmarksProvider>
-          {content}
-          <GlobalTabBar />
-        </CoachmarksProvider>
-      </OnboardingProvider>
+      <View style={{ flex: 1, flexDirection: 'column' }}>
+        <OnboardingProvider>
+          <CoachmarksProvider>
+            <View style={{ flex: 1 }}>
+              {content}
+            </View>
+            <GlobalTabBar />
+          </CoachmarksProvider>
+        </OnboardingProvider>
+      </View>
       <StatusBar style={scheme === 'dark' ? 'light' : 'dark'} />
     </ThemeProvider>
   );

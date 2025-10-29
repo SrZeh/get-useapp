@@ -9,11 +9,64 @@ import { z } from 'zod';
 import { ValidationError } from '@/types/errors';
 
 /**
+ * Custom error map for better Portuguese error messages
+ */
+export const customErrorMap: z.ZodErrorMap = (issue, ctx) => {
+  switch (issue.code) {
+    case z.ZodIssueCode.invalid_type:
+      if (issue.received === 'undefined') {
+        return { message: 'Campo obrigatório' };
+      }
+      return { message: `Valor inválido. Esperado ${issue.expected}, recebido ${issue.received}` };
+    
+    case z.ZodIssueCode.invalid_string:
+      if (issue.validation === 'email') {
+        return { message: 'E-mail inválido. Exemplo: seu@email.com' };
+      }
+      if (issue.validation === 'url') {
+        return { message: 'URL inválida' };
+      }
+      return { message: 'Formato inválido' };
+    
+    case z.ZodIssueCode.too_small:
+      if (issue.type === 'string') {
+        return { message: `Mínimo de ${issue.minimum} caracteres` };
+      }
+      if (issue.type === 'number') {
+        return { message: `Valor deve ser maior ou igual a ${issue.minimum}` };
+      }
+      return { message: 'Valor muito pequeno' };
+    
+    case z.ZodIssueCode.too_big:
+      if (issue.type === 'string') {
+        return { message: `Máximo de ${issue.maximum} caracteres` };
+      }
+      if (issue.type === 'number') {
+        return { message: `Valor deve ser menor ou igual a ${issue.maximum}` };
+      }
+      return { message: 'Valor muito grande' };
+    
+    case z.ZodIssueCode.custom:
+      return { message: issue.message || ctx.defaultError };
+    
+    default:
+      return { message: ctx.defaultError };
+  }
+};
+
+// Apply custom error map globally
+z.setErrorMap(customErrorMap);
+
+/**
  * Validation schemas
  */
 
-// Email validation
-export const emailSchema = z.string().email('E-mail inválido').trim();
+// Email validation - Enhanced with better messages
+export const emailSchema = z
+  .string()
+  .min(1, 'E-mail é obrigatório')
+  .email('E-mail inválido. Exemplo: seu@email.com')
+  .trim();
 
 // CPF validation (Brazilian tax ID)
 const cpfRegex = /^\d{3}\.\d{3}\.\d{3}-\d{2}$|^\d{11}$/;
@@ -46,16 +99,64 @@ export const cpfSchema = z
   .refine(validateCPFChecksum, 'CPF inválido');
 
 // Phone validation (Brazilian format)
+// Enhanced schema with DDD validation and formatting support
+const validDDDs = [
+  '11', '12', '13', '14', '15', '16', '17', '18', '19', // SP
+  '21', '22', '24', // RJ/ES
+  '27', '28', // ES
+  '31', '32', '33', '34', '35', '37', '38', // MG
+  '41', '42', '43', '44', '45', '46', // PR
+  '47', '48', '49', // SC
+  '51', '53', '54', '55', // RS
+  '61', // DF
+  '62', '64', // GO
+  '63', // TO
+  '65', '66', // MT
+  '67', // MS
+  '68', // AC
+  '69', // RO
+  '71', '73', '74', '75', '77', // BA
+  '79', // SE
+  '81', '87', // PE
+  '82', // AL
+  '83', // PB
+  '84', // RN
+  '85', '88', // CE
+  '86', '89', // PI
+  '91', '93', '94', // PA
+  '92', '97', // AM
+  '95', // RR
+  '96', // AP
+  '98', '99', // MA
+] as const;
+
 export const phoneSchema = z
   .string()
   .trim()
-  .regex(/^\+?55\s?\(?\d{2}\)?\s?\d{4,5}-?\d{4}$/, 'Telefone em formato inválido');
+  .transform((val) => val.replace(/\D/g, '')) // Remove formatting for validation
+  .refine((digits) => digits.length === 10 || digits.length === 11, {
+    message: 'Telefone deve ter 10 ou 11 dígitos (com DDD)',
+  })
+  .refine((digits) => {
+    const ddd = digits.substring(0, 2);
+    return validDDDs.includes(ddd as any);
+  }, {
+    message: 'DDD inválido',
+  });
 
-// Password validation
+// CEP validation (Brazilian postal code)
+export const cepSchema = z
+  .string()
+  .trim()
+  .regex(/^\d{5}-?\d{3}$/, 'CEP inválido. Formato: 00000-000')
+  .transform((val) => val.replace(/\D/g, ''))
+  .refine((val) => val.length === 8, 'CEP deve ter 8 dígitos');
+
+// Password validation - Enhanced with better messages
 export const passwordSchema = z
   .string()
   .min(6, 'Senha deve ter pelo menos 6 caracteres')
-  .max(100, 'Senha muito longa');
+  .max(100, 'Senha muito longa (máximo 100 caracteres)');
 
 // Item schemas
 export const itemTitleSchema = z

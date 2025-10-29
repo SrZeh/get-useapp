@@ -70,7 +70,7 @@ export function WebStyles() {
 
     // Inject input colors
     root.style.setProperty('--input-bg', colors.input.bg);
-    root.style.setProperty('--input-text', isDark ? '#e5e7eb' : '#0a0a0a');
+    root.style.setProperty('--input-text', colors.text.primary);
     root.style.setProperty('--input-border', colors.border.default);
     root.style.setProperty(
       '--input-border-focus',
@@ -79,7 +79,7 @@ export function WebStyles() {
 
     // Inject badge colors
     root.style.setProperty('--badge-primary-bg', colors.brand.primary);
-    root.style.setProperty('--badge-primary-text', isDark ? '#0a0a0a' : '#0a0a0a'); // Dark text on light green
+    root.style.setProperty('--badge-primary-text', colors.text.primary); // Dark text on light green
     root.style.setProperty('--badge-success-bg', colors.semantic.success);
     root.style.setProperty('--badge-success-text', '#ffffff');
     root.style.setProperty('--badge-warning-bg', colors.semantic.warning);

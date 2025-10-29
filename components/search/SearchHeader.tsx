@@ -6,6 +6,8 @@ import { LiquidGlassView } from '@/components/liquid-glass';
 import { ScrollableCategories } from '@/components/ScrollableCategories';
 import { ShimmerLoader } from '@/components/ShimmerLoader';
 import { CategoryChip } from '@/components/CategoryChip';
+import { DropdownFilter } from '@/components/DropdownFilter';
+import { PriceInputFilter } from '@/components/PriceInputFilter';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -57,6 +59,17 @@ type SearchHeaderProps = {
    * Allows adding new filter types without modifying the component
    */
   filterConfig?: FilterConfiguration;
+  // Dropdown filter props
+  cities?: string[];
+  neighborhoods?: string[];
+  selectedCity?: string;
+  selectedNeighborhood?: string;
+  onCitySelect?: (city: string) => void;
+  onNeighborhoodSelect?: (neighborhood: string) => void;
+  locationsLoading?: boolean;
+  // Price filter props
+  maxPrice?: string;
+  onMaxPriceChange?: (price: string) => void;
 };
 
 /**
@@ -83,6 +96,15 @@ export function SearchHeader({
   screenPadding = 16,
   style,
   filterConfig,
+  cities = [],
+  neighborhoods = [],
+  selectedCity = '',
+  selectedNeighborhood = '',
+  onCitySelect,
+  onNeighborhoodSelect,
+  locationsLoading = false,
+  maxPrice = '',
+  onMaxPriceChange,
 }: SearchHeaderProps) {
   const colorScheme = useColorScheme() ?? 'light';
   const palette = Colors[colorScheme];
@@ -155,22 +177,39 @@ export function SearchHeader({
 
       {/* Search Input */}
       <LiquidGlassView intensity="subtle" cornerRadius={16} style={{ marginBottom: 12 }}>
-        <TextInput
-          placeholder="Buscar por título, descrição…"
-          placeholderTextColor={palette.textTertiary}
-          value={search}
-          onChangeText={onSearchChange}
+        <View
           style={{
-            width: '100%',
+            flexDirection: 'row',
+            alignItems: 'center',
             paddingHorizontal: 16,
             paddingVertical: 12,
-            backgroundColor: 'transparent',
-            color: palette.text,
-            fontSize: 17,
+            gap: 12,
           }}
-          accessibilityLabel="Buscar itens"
-          accessibilityHint="Digite para buscar por título ou descrição"
-        />
+        >
+          <Ionicons
+            name="search"
+            size={20}
+            color={palette.textTertiary}
+          />
+          <TextInput
+            placeholder="Buscar por título, descrição…"
+            placeholderTextColor={palette.textTertiary}
+            value={search}
+            onChangeText={onSearchChange}
+            onSubmitEditing={() => {
+              // Handle search submission if needed
+            }}
+            returnKeyType="search"
+            style={{
+              flex: 1,
+              backgroundColor: 'transparent',
+              color: palette.text,
+              fontSize: 17,
+            }}
+            accessibilityLabel="Buscar itens"
+            accessibilityHint="Digite para buscar por título ou descrição e pressione Enter"
+          />
+        </View>
       </LiquidGlassView>
 
       {/* Location Filters */}
@@ -218,6 +257,52 @@ export function SearchHeader({
           </LiquidGlassView>
         </View>
       </View>
+
+      {/* Dropdown Filters for Cities, Neighborhoods, and Price */}
+      {(cities.length > 0 || neighborhoods.length > 0 || onMaxPriceChange) && (
+        <View style={{ marginBottom: 12 }}>
+          <View style={{ flexDirection: 'row', gap: 12 }}>
+            {cities.length > 0 && onCitySelect && (
+              <View style={{ flex: 1 }}>
+                <DropdownFilter
+                  title="Filtrar por Cidade"
+                  options={cities}
+                  selectedValue={selectedCity}
+                  onValueChange={onCitySelect}
+                  placeholder="Todas as cidades"
+                  icon="location"
+                  loading={locationsLoading}
+                />
+              </View>
+            )}
+            
+            {neighborhoods.length > 0 && onNeighborhoodSelect && (
+              <View style={{ flex: 1 }}>
+                <DropdownFilter
+                  title="Filtrar por Bairro"
+                  options={neighborhoods}
+                  selectedValue={selectedNeighborhood}
+                  onValueChange={onNeighborhoodSelect}
+                  placeholder="Todos os bairros"
+                  icon="location-outline"
+                  loading={locationsLoading}
+                />
+              </View>
+            )}
+            
+            {onMaxPriceChange && (
+              <View style={{ flex: 1 }}>
+                <PriceInputFilter
+                  title="Preço máximo"
+                  value={maxPrice}
+                  onChangeText={onMaxPriceChange}
+                  placeholder="Ex: 100"
+                />
+              </View>
+            )}
+          </View>
+        </View>
+      )}
 
       {/* Category Chips */}
       <ScrollableCategories>

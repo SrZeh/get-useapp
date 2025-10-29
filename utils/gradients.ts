@@ -1,23 +1,25 @@
 import { LinearGradient } from 'expo-linear-gradient';
+import { ExtendedColors } from '@/constants/colors';
 
 export const GradientTypes = {
   brand: {
-    colors: ['#96ff9a', '#80e685', '#6acc6f'],
+    colors: [ExtendedColors.brand.primary, ExtendedColors.brand.secondary, ExtendedColors.brand.tertiary],
     start: { x: 0, y: 0 },
     end: { x: 1, y: 1 },
   },
   premium: {
-    colors: ['#96ff9a', '#7fe884', '#66cc6b'],
+    colors: [ExtendedColors.brand.primary, ExtendedColors.premium.middle, ExtendedColors.premium.end],
     start: { x: 0, y: 0 },
     end: { x: 1, y: 0 },
   },
   success: {
-    colors: ['#08af0e', '#00ce08'],
+    colors: [ExtendedColors.success.start, ExtendedColors.success.end],
     start: { x: 0, y: 0 },
     end: { x: 1, y: 0 },
   },
   overlay: {
-    colors: ['rgba(150, 255, 154, 0.1)', 'rgba(150, 255, 154, 0.05)', 'transparent'],
+    // Uses brand color with opacity - note: rgba values need to be computed from hex if we want to reference ExtendedColors
+    colors: ['rgba(150, 255, 154, 0.1)', 'rgba(150, 255, 154, 0.05)', 'transparent'], // Brand glow overlay
     start: { x: 0, y: 0 },
     end: { x: 0, y: 1 },
   },

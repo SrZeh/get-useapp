@@ -16,7 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { GradientTypes, HapticFeedback } from '@/utils';
 import type { UserProfile } from '@/types';
-import { useThemeColors, useBorderColorsWithOpacity, useBrandColorsWithOpacity } from '@/utils/theme';
+import { useThemeColors, useBorderColorsWithOpacity, useBrandColorsWithOpacity, hexToRgba } from '@/utils/theme';
 
 export default function ProfileScreen() {
   const uid = auth.currentUser?.uid;
@@ -144,7 +144,7 @@ export default function ProfileScreen() {
                 colors={GradientTypes.brand.colors}
                 style={{ width: 120, height: 120, borderRadius: 60, alignItems: 'center', justifyContent: 'center' }}
               >
-                <ThemedText style={{ color: '#fff', fontSize: 48 }}>👤</ThemedText>
+                <ThemedText style={{ color: colors.isDark ? colors.text.primary : '#ffffff', fontSize: 48 }}>👤</ThemedText>
               </LinearGradient>
             )}
             <ThemedText type="title" style={{ fontWeight: '700' }}>
@@ -189,7 +189,7 @@ export default function ProfileScreen() {
               <Ionicons 
                 name={u?.emailVerified ? "checkmark-circle" : "close-circle"} 
                 size={20} 
-                color={u?.emailVerified ? '#08af0e' : '#ef4444'} 
+                color={u?.emailVerified ? colors.brand.dark : colors.semantic.error} 
               />
               <ThemedText>
                 E-mail: {u?.emailVerified ? "verificado ✅" : "não verificado ❌"}
@@ -199,7 +199,7 @@ export default function ProfileScreen() {
               <Ionicons 
                 name={u?.cpf ? "checkmark-circle" : "close-circle"} 
                 size={20} 
-                color={u?.cpf ? '#08af0e' : '#ef4444'} 
+                color={u?.cpf ? colors.brand.dark : colors.semantic.error} 
               />
               <ThemedText>
                 {u?.cpf ? "CPF verificado" : "CPF não verificado"}
@@ -322,7 +322,7 @@ export default function ProfileScreen() {
               justifyContent: 'center',
               minHeight: 48,
               marginTop: 8,
-              backgroundColor: colors.isDark ? 'rgba(239, 68, 68, 0.2)' : 'rgba(239, 68, 68, 0.15)',
+              backgroundColor: colors.isDark ? hexToRgba(colors.semantic.error, 0.2) : hexToRgba(colors.semantic.error, 0.15),
               borderWidth: 1,
               borderColor: colors.semantic.error,
               flexDirection: 'row',

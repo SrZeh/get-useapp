@@ -118,7 +118,7 @@ const styles = StyleSheet.create({
     fontSize: 17,
     lineHeight: 22,
     fontWeight: '400',
-    color: '#0a7ea4',
+    color: '#0a7ea4', // Keep as link blue - could use colors.semantic.info but link blue is standard
     fontFamily: SF_PRO_TEXT,
   },
   // iOS 26 Typography Scale (official Apple HIG)

@@ -140,7 +140,7 @@ export default function ReservationChatScreen() {
                     backgroundColor: mine ? colors.brand.dark : colors.brand.primary,
                   }}
                 >
-                  <ThemedText style={{ color: colors.isDark ? colors.text.primary : "#111827" }}>
+                  <ThemedText style={{ color: colors.isDark ? colors.text.primary : colors.text.primary }}>
                     {m.text}
                   </ThemedText>
                 </View>
@@ -182,7 +182,7 @@ export default function ReservationChatScreen() {
               backgroundColor: colors.brand.dark,
             }}
           >
-            <ThemedText type="defaultSemiBold" style={{ color: "#fff" }}>
+            <ThemedText type="defaultSemiBold" style={{ color: colors.isDark ? colors.text.primary : '#ffffff' }}>
               Enviar
             </ThemedText>
           </TouchableOpacity>

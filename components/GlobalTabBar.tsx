@@ -104,10 +104,6 @@ export function GlobalTabBar() {
   return (
     <View
       style={{
-        position: "absolute",
-        bottom: 0,
-        left: 0,
-        right: 0,
         backgroundColor: colors.bg.primary,
         borderTopWidth: 1,
         borderTopColor: colors.border.default,

@@ -156,7 +156,7 @@ export default function ReviewScreen() {
                         <ThemedText 
                           type="title-2" 
                           style={{ 
-                            color: stars >= n ? (colors.isDark ? colors.text.primary : '#000') : colors.text.primary,
+                            color: stars >= n ? colors.brand.primary : colors.text.primary,
                             fontWeight: '700',
                           }}
                         >

@@ -165,7 +165,7 @@ export default function ThreadChatScreen() {
                     backgroundColor: mine ? colors.brand.dark : colors.brand.primary,
                   }}
                 >
-                  <ThemedText style={{ color: colors.isDark ? colors.text.primary : "#111827" }}>
+                  <ThemedText style={{ color: colors.isDark ? colors.text.primary : '#ffffff' }}>
                     {m.text}
                   </ThemedText>
                 </View>
@@ -209,7 +209,7 @@ export default function ThreadChatScreen() {
               backgroundColor: sending || !text.trim() ? colors.text.tertiary : colors.brand.dark,
             }}
           >
-            <ThemedText type="defaultSemiBold" style={{ color: "#fff" }}>
+            <ThemedText type="defaultSemiBold" style={{ color: colors.isDark ? colors.text.primary : '#ffffff' }}>
               Enviar
             </ThemedText>
           </TouchableOpacity>

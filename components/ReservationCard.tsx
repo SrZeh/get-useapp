@@ -8,7 +8,7 @@ import { AnimatedCard } from "@/components/AnimatedCard";
 import { LiquidGlassView } from "@/components/liquid-glass";
 import { Button } from "@/components/Button";
 import { LinearGradient } from "expo-linear-gradient";
-import { HapticFeedback, useThemeColors } from "@/utils";
+import { HapticFeedback, useThemeColors, type ThemeColors } from "@/utils";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import type { Reservation } from "@/types";
 import { View } from "react-native";
@@ -27,15 +27,28 @@ type ReservationCardProps = BaseCardProps & {
   actions?: React.ReactNode;
 };
 
-const STATUS_COLORS: Record<string, [string, string]> = {
-  requested: ['#f59e0b', '#d97706'],
-  accepted: ['#10b981', '#059669'],
-  rejected: ['#ef4444', '#dc2626'],
-  paid: ['#2563eb', '#1d4ed8'],
-  picked_up: ['#0891b2', '#0e7490'],
-  paid_out: ['#7c3aed', '#6d28d9'],
-  returned: ['#16a34a', '#15803d'],
-  canceled: ['#6b7280', '#4b5563'],
+// Status color mapping - uses theme colors where applicable
+const getStatusColors = (status: string, colors: ThemeColors): [string, string] => {
+  switch (status) {
+    case 'requested':
+      return [colors.semantic.warning, colors.isDark ? '#d97706' : '#f59e0b']; // Use theme warning
+    case 'accepted':
+      return [colors.semantic.success, colors.brand.dark]; // Use theme success
+    case 'rejected':
+      return [colors.semantic.error, colors.isDark ? '#dc2626' : '#ef4444']; // Use theme error
+    case 'paid':
+      return [colors.semantic.info, colors.isDark ? '#3b82f6' : '#2563eb']; // Use theme info
+    case 'picked_up':
+      return ['#0891b2', '#0e7490']; // Cyan - keep as is (not in theme)
+    case 'paid_out':
+      return ['#7c3aed', '#6d28d9']; // Purple - keep as is (not in theme)
+    case 'returned':
+      return [colors.semantic.success, colors.brand.dark]; // Use theme success
+    case 'canceled':
+      return [colors.text.quaternary, colors.text.tertiary]; // Use theme neutral colors
+    default:
+      return [colors.text.quaternary, colors.text.tertiary]; // Default to neutral
+  }
 };
 
 export const ReservationCard = React.memo(function ReservationCard({ reservation: r, actions }: ReservationCardProps) {
@@ -47,7 +60,7 @@ export const ReservationCard = React.memo(function ReservationCard({ reservation
     ? `${r.days} ${r.days === 1 ? 'dia' : 'dias'}`
     : "Duração não informada";
 
-  const statusColors = STATUS_COLORS[r.status] || ['#6b7280', '#4b5563'];
+  const statusColors = getStatusColors(r.status, colors);
 
   return (
     <AnimatedCard>
@@ -65,7 +78,7 @@ export const ReservationCard = React.memo(function ReservationCard({ reservation
                 borderRadius: 16,
               }}
             >
-              <ThemedText style={{ color: "#fff", fontSize: 12, fontWeight: '600', textTransform: 'capitalize' }}>
+              <ThemedText style={{ color: colors.isDark ? colors.text.primary : '#ffffff', fontSize: 12, fontWeight: '600', textTransform: 'capitalize' }}>
                 {r.status}
               </ThemedText>
             </LinearGradient>
@@ -78,7 +91,7 @@ export const ReservationCard = React.memo(function ReservationCard({ reservation
             <ThemedText className="text-light-text-secondary dark:text-dark-text-secondary">
               ⏱️ {daysLabel}
             </ThemedText>
-            <ThemedText type="body" style={{ fontWeight: '600', color: '#96ff9a', marginTop: 4 }}>
+            <ThemedText type="body" style={{ fontWeight: '600', color: colors.brand.primary, marginTop: 4 }}>
               💰 Total: R$ {typeof r.total === 'number' ? r.total.toFixed(2) : r.total ?? "-"}
             </ThemedText>
           </View>

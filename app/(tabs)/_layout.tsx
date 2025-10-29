@@ -50,7 +50,7 @@ function HeaderTitle() {
       style={{
         color: colors.brand.primary,
         fontWeight: "600",
-        textShadowColor: colors.isDark ? "#000000" : "rgba(0,0,0,0.1)",
+        textShadowColor: colors.isDark ? 'rgba(0,0,0,0.3)' : 'rgba(0,0,0,0.1)',
         textShadowOffset: { width: 0, height: 2 },
         textShadowRadius: 4,
       }}

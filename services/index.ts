@@ -7,6 +7,8 @@ export * from "./items";
 export * from "./uploadImage";
 export * from "./reservations";
 export * from "./reviews";
+export * from "./auth";
+export * from "./profile";
 
 // Service interfaces for dependency injection (OCP)
 export * from "./interfaces";

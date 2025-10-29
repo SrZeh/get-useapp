@@ -8,7 +8,7 @@ import { auth } from '@/lib/firebase';
 import { markPickup, cancelWithRefund as cancelWithRefundService } from '@/services/cloudFunctions';
 import { Alert } from 'react-native';
 import type { Reservation } from '@/types';
-import { logger } from '@/utils';
+import { logger, useThemeColors } from '@/utils';
 import { isRefundable, canDeleteByRenter, canMarkPickup, canPay, canReview } from '@/services/reservations/ReservationRules';
 import { useReservationService, useNavigationService } from '@/providers/ServicesProvider';
 
@@ -38,6 +38,7 @@ export function MyReservations() {
   const uid = auth.currentUser?.uid ?? '';
   const [rows, setRows] = useState<Reservation[]>([]);
   const [busyPickId, setBusyPickId] = useState<string | null>(null);
+  const colors = useThemeColors();
 
   useEffect(() => {
     if (!uid) return;
@@ -132,7 +133,7 @@ export function MyReservations() {
                 </View>
               ) : r.status === 'rejected' ? (
                 <View style={{ gap: 8 }}>
-                  <ThemedText style={{ color: '#ef4444' }}>Seu pedido foi recusado</ThemedText>
+                  <ThemedText style={{ color: colors.semantic.error }}>Seu pedido foi recusado</ThemedText>
                   {canDeleteByRenter(r) && (
                     <Button
                       variant="ghost"

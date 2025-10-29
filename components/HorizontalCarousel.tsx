@@ -10,6 +10,7 @@ import {
 import { useResponsive } from '@/hooks/useResponsive';
 import { LiquidGlassView } from './liquid-glass';
 import { ThemedText } from '@/components/themed-text';
+import { useThemeColors } from '@/utils/theme';
 
 type CarouselItem = {
   id: string;
@@ -38,6 +39,7 @@ export function HorizontalCarousel({
   const { width: screenWidth } = useResponsive();
   const scrollViewRef = useRef<ScrollView>(null);
   const [activeIndex, setActiveIndex] = useState(0);
+  const colors = useThemeColors();
 
   // Calculate item width - for 'auto', don't constrain width (let content determine)
   const calculatedWidth = itemWidth === 'auto' ? undefined : itemWidth;
@@ -122,7 +124,7 @@ export function HorizontalCarousel({
                   height: 8,
                   borderRadius: 4,
                   backgroundColor:
-                    index === activeIndex ? '#96ff9a' : '#d1d5db',
+                    index === activeIndex ? colors.brand.primary : colors.border.default,
                   opacity: index === activeIndex ? 1 : 0.5,
                 }}
               />

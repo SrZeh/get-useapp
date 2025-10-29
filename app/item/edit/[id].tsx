@@ -4,7 +4,7 @@ import { auth } from "@/lib/firebase";
 import { Picker } from "@react-native-picker/picker";
 import { useLocalSearchParams } from "expo-router";
 import { useImagePicker } from "@/hooks/useImagePicker";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useState } from "react";
 import type { Item } from "@/types";
 import {
   ActivityIndicator,
@@ -14,16 +14,17 @@ import {
   Platform,
   ScrollView,
   Switch,
-  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
+import { Input } from "@/components/Input";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { Colors } from "@/constants/theme";
-import { useThemeColors, validateItemInput, parseDailyRate, parseMinRentalDays } from "@/utils";
+import { useThemeColors, validateItemInput, parseDailyRate, parseMinRentalDays, itemTitleSchema, itemDescriptionSchema } from "@/utils";
 import { ITEM_CATEGORIES } from "@/constants/categories";
 import { useItemService, useNavigationService } from "@/providers/ServicesProvider";
 import { uploadUserImageFromUri } from "@/services/images";
+import { Ionicons } from "@expo/vector-icons";
 
 export default function EditItemScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -53,19 +54,9 @@ export default function EditItemScreen() {
   const itemService = useItemService();
   const navigation = useNavigationService();
 
-  const textInputBase = useMemo(
-    () => ({
-      borderWidth: 1,
-      borderRadius: 10,
-      padding: 12,
-      fontSize: 16,
-      color: colors.text.primary,
-      borderColor: colors.border.default,
-      backgroundColor: colors.input.bg,
-    }),
-    [colors]
-  );
-  const placeholderColor = colors.input.placeholder;
+  // Validation errors
+  const [titleError, setTitleError] = useState<string | undefined>();
+  const [descriptionError, setDescriptionError] = useState<string | undefined>();
 
   useEffect(() => {
     (async () => {
@@ -107,7 +98,33 @@ export default function EditItemScreen() {
       return;
     }
 
-    // Validate input using validation utilities
+    // Validate input
+    setTitleError(undefined);
+    setDescriptionError(undefined);
+
+    if (!title.trim()) {
+      setTitleError("Título é obrigatório");
+      Alert.alert("Título obrigatório", "Digite um título para o item.");
+      return;
+    }
+
+    const titleResult = itemTitleSchema.safeParse(title);
+    if (!titleResult.success) {
+      setTitleError(titleResult.error.errors[0]?.message ?? "Título inválido");
+      return;
+    }
+
+    if (!description.trim()) {
+      setDescriptionError("Descrição é obrigatória");
+      Alert.alert("Descrição obrigatória", "Descreva o item para ajudar outros usuários.");
+      return;
+    }
+
+    if (!category) {
+      Alert.alert("Categoria obrigatória", "Selecione uma categoria para o item.");
+      return;
+    }
+
     const itemValidation = validateItemInput({
       title,
       description,
@@ -117,8 +134,8 @@ export default function EditItemScreen() {
       isFree: false, // Edit screen doesn't have isFree toggle
     });
 
-    if (!itemValidation.valid || !category) {
-      Alert.alert("Campos inválidos", itemValidation.error ?? "Preencha título, descrição e categoria.");
+    if (!itemValidation.valid) {
+      Alert.alert("Campos inválidos", itemValidation.error ?? "Verifique os campos preenchidos.");
       return;
     }
 
@@ -196,80 +213,121 @@ export default function EditItemScreen() {
         <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 32 }}>
           <ThemedText type="title">Editar Item</ThemedText>
 
-          <View style={{ marginTop: 16, gap: 12 }}>
-            <TextInput
-              placeholder="Título"
-              placeholderTextColor={placeholderColor}
+          <View style={{ marginTop: 16, gap: 16 }}>
+            <Input
+              label="Título do item"
+              placeholder="Ex: Furadeira Bosch GSR 180-LI"
               value={title}
               onChangeText={setTitle}
-              style={textInputBase}
+              autoCapitalize="sentences"
+              error={titleError}
+              helperText={!titleError ? "Nome curto e descritivo do item" : undefined}
+              zodSchema={itemTitleSchema}
+              validateOnBlur={true}
+              leftElement={<Ionicons name="pricetag" size={20} color={colors.icon.default} />}
             />
-            <TextInput
-              placeholder="Descrição"
-              placeholderTextColor={placeholderColor}
+
+            <Input
+              label="Descrição"
+              placeholder="Descreva o item, condições de uso, etc."
               value={description}
               onChangeText={setDescription}
               multiline
-              style={[textInputBase, { minHeight: 100, textAlignVertical: "top" }]}
+              error={descriptionError}
+              helperText={!descriptionError ? "Seja claro sobre o estado e uso do item" : undefined}
+              style={{ minHeight: 100 }}
+              inputStyle={{ textAlignVertical: "top" }}
+              zodSchema={itemDescriptionSchema}
+              validateOnBlur={true}
+              leftElement={<Ionicons name="document-text" size={20} color={colors.icon.default} />}
             />
 
             {/* Categoria */}
-            <View style={[textInputBase, { padding: 0, overflow: "hidden" }]}>
-              <Picker
-                selectedValue={category}
-                onValueChange={setCategory}
-                dropdownIconColor={isDark ? "#fff" : "#111827"}
-                style={{ color: isDark ? "#fff" : "#111827", backgroundColor: "transparent" }}
+            <View>
+              <ThemedText type="caption-1" style={{ marginBottom: 8, fontWeight: '600' }}>
+                Categoria *
+              </ThemedText>
+              <View
+                style={{
+                  borderWidth: 1,
+                  borderRadius: 16,
+                  overflow: "hidden",
+                  borderColor: !category ? colors.semantic.error : colors.border.default,
+                  backgroundColor: colors.input.bg,
+                }}
               >
-                <Picker.Item label="Selecione uma categoria…" value="" color={placeholderColor} />
-                {ITEM_CATEGORIES.map((c) => (
-                  <Picker.Item key={c} label={c} value={c} />
-                ))}
-              </Picker>
+                <Picker
+                  selectedValue={category}
+                  onValueChange={setCategory}
+                  dropdownIconColor={colors.text.primary}
+                  style={{
+                    color: colors.text.primary,
+                    backgroundColor: "transparent",
+                    paddingHorizontal: 16,
+                    paddingVertical: 16,
+                  }}
+                >
+                  <Picker.Item label="Selecione uma categoria…" value="" color={colors.input.placeholder} />
+                  {ITEM_CATEGORIES.map((c) => (
+                    <Picker.Item key={c} label={c} value={c} />
+                  ))}
+                </Picker>
+              </View>
+              {!category && (
+                <ThemedText type="caption-2" style={{ color: colors.semantic.error, marginTop: 8 }}>
+                  Selecione uma categoria
+                </ThemedText>
+              )}
             </View>
 
-            <TextInput
-              placeholder="Condição (ex.: Novo, Usado, Com marcas...)"
-              placeholderTextColor={placeholderColor}
+            <Input
+              label="Condição"
+              placeholder="Ex: Novo, Usado, Com marcas de uso..."
               value={condition}
               onChangeText={setCondition}
-              style={textInputBase}
+              autoCapitalize="sentences"
+              helperText="Estado atual do item"
+              leftElement={<Ionicons name="information-circle" size={20} color={colors.icon.default} />}
             />
 
-            <TextInput
-              placeholder="Dias mínimos de aluguel"
-              placeholderTextColor={placeholderColor}
+            <Input
+              label="Dias mínimos para aluguel"
+              placeholder="Ex: 1, 3, 7..."
               value={minRentalDays}
               onChangeText={setMinRentalDays}
               keyboardType="number-pad"
-              style={textInputBase}
+              helperText="Número mínimo de dias que o item pode ser alugado"
+              leftElement={<Ionicons name="calendar" size={20} color={colors.icon.default} />}
             />
 
-            <TextInput
-              placeholder="Valor da diária (ex.: 25,00)"
-              placeholderTextColor={placeholderColor}
+            <Input
+              label="Valor da diária"
+              placeholder="Ex: 25,00 ou 30.50"
               value={dailyRate}
               onChangeText={setDailyRate}
               keyboardType={Platform.OS === "ios" ? "decimal-pad" : "numeric"}
-              style={textInputBase}
+              helperText="Valor em reais (R$) por dia de aluguel"
+              leftElement={<Ionicons name="cash" size={20} color={colors.icon.default} />}
             />
 
             {/* Cidade / Bairro */}
-            <TextInput
-              placeholder="Cidade"
-              placeholderTextColor={placeholderColor}
+            <Input
+              label="Cidade"
+              placeholder="Ex: São Paulo, Rio de Janeiro..."
               value={city}
               onChangeText={setCity}
               autoCapitalize="words"
-              style={textInputBase}
+              helperText="Opcional - ajuda outros usuários a encontrarem seu item"
+              leftElement={<Ionicons name="location" size={20} color={colors.icon.default} />}
             />
-            <TextInput
-              placeholder="Bairro"
-              placeholderTextColor={placeholderColor}
+            <Input
+              label="Bairro"
+              placeholder="Ex: Centro, Vila Madalena..."
               value={neighborhood}
               onChangeText={setNeighborhood}
               autoCapitalize="words"
-              style={textInputBase}
+              helperText="Opcional - localização mais específica"
+              leftElement={<Ionicons name="location" size={20} color={colors.icon.default} />}
             />
 
             {/* Publicar item */}
@@ -302,7 +360,7 @@ export default function EditItemScreen() {
             style={{
               marginTop: 24,
               opacity: saving ? 0.6 : 1,
-              backgroundColor: isDark ? "#2563eb" : "#1d4ed8",
+              backgroundColor: colors.semantic.info,
               paddingVertical: 14,
               borderRadius: 12,
               alignItems: "center",
@@ -310,7 +368,7 @@ export default function EditItemScreen() {
             onPress={handleSave}
             disabled={saving}
           >
-            <ThemedText type="defaultSemiBold" style={{ color: "#fff" }}>
+            <ThemedText type="defaultSemiBold" style={{ color: colors.isDark ? colors.text.primary : '#ffffff' }}>
               {saving ? "Salvando..." : "Salvar alterações"}
             </ThemedText>
           </TouchableOpacity>

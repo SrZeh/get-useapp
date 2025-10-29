@@ -36,9 +36,38 @@ export {
 // Validation utilities
 export {
   validateItemInput,
+  phoneSchema,
+  cepSchema,
+  emailSchema,
+  passwordSchema,
+  cpfSchema,
+  userNameSchema,
+  customErrorMap,
+  itemTitleSchema,
+  itemDescriptionSchema,
   parseDailyRate,
   parseMinRentalDays,
 } from "./validation";
+
+// Phone formatter utilities
+export {
+  formatPhone,
+  validatePhone,
+  cleanPhone,
+  displayPhone,
+} from "./phoneFormatter";
+
+// Address utilities
+export {
+  parseAddress,
+  formatAddress,
+} from "./address";
+
+// Keyboard navigation utilities
+export {
+  useKeyboardShortcuts,
+  useFormKeyboardNavigation,
+} from "./keyboardNavigation";
 
 // Filter utilities
 export { filterItems, type ItemFilters } from "./filters";

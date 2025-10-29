@@ -5,13 +5,17 @@ import { doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import * as ImagePicker from 'expo-image-picker';
 import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
 import { router } from 'expo-router';
-import React, { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Alert, KeyboardAvoidingView, Platform, ScrollView, TextInput, TouchableOpacity, View } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { ActivityIndicator, Alert, KeyboardAvoidingView, Platform, ScrollView, TouchableOpacity, View } from 'react-native';
 import { LiquidGlassView } from '@/components/liquid-glass';
 import { Button } from '@/components/Button';
-import { useThemeColors, HapticFeedback, GradientTypes } from '@/utils';
+import { Input } from '@/components/Input';
+import { useThemeColors, HapticFeedback, GradientTypes, formatPhone, phoneSchema, displayPhone, emailSchema } from '@/utils';
+import { AddressInput } from '@/components/forms';
+import { parseAddress, formatAddress } from '@/utils/address';
 import { Image as ExpoImage } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 import type { UserProfile } from '@/types';
 
 export default function EditProfile() {
@@ -21,18 +25,25 @@ export default function EditProfile() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  const [name, setName] = useState(""); const [phone, setPhone] = useState("");
-  const [address, setAddress] = useState(""); const [email, setEmail] = useState("");
+  const [name, setName] = useState(""); 
+  const [phone, setPhone] = useState("");
+  
+  // Structured address fields
+  const [cep, setCep] = useState("");
+  const [street, setStreet] = useState("");
+  const [number, setNumber] = useState("");
+  const [complement, setComplement] = useState("");
+  const [neighborhood, setNeighborhood] = useState("");
+  const [city, setCity] = useState("");
+  const [state, setState] = useState("");
+  
+  const [email, setEmail] = useState("");
   const [photoURL, setPhotoURL] = useState<string | null>(null);
   const [localUri, setLocalUri] = useState<string | null>(null);
-
-  const inputStyle = useMemo(() => ({
-    borderWidth: 1, borderRadius: 16, padding: 16, fontSize: 17,
-    color: colors.text.primary,
-    borderColor: colors.border.default,
-    backgroundColor: colors.input.bg,
-  }), [colors]);
-  const placeholderColor = colors.input.placeholder;
+  
+  // Validation errors
+  const [nameError, setNameError] = useState<string | undefined>();
+  const [phoneError, setPhoneError] = useState<string | undefined>();
 
   useEffect(() => {
     (async () => {
@@ -40,8 +51,19 @@ export default function EditProfile() {
       const snap = await getDoc(doc(db, "users", uid));
       const d = snap.data() as Partial<UserProfile> | undefined;
       setName(d?.name ?? "");
-      setPhone(d?.phone ?? "");
-      setAddress(d?.address ?? "");
+      // Format phone for display if it exists
+      setPhone(d?.phone ? displayPhone(d.phone) : "");
+      
+      // Parse address into structured components
+      const parsedAddress = parseAddress(d?.address);
+      setCep(parsedAddress.cep);
+      setStreet(parsedAddress.street);
+      setNumber(parsedAddress.number);
+      setComplement(parsedAddress.complement);
+      setNeighborhood(parsedAddress.neighborhood);
+      setCity(parsedAddress.city);
+      setState(parsedAddress.state);
+      
       setEmail(d?.email ?? auth.currentUser?.email ?? "");
       setPhotoURL(d?.photoURL ?? null);
       setLoading(false);
@@ -63,6 +85,22 @@ export default function EditProfile() {
 
   const save = async () => {
     if (!uid) return;
+    
+    // Clear previous errors
+    setNameError(undefined);
+    setPhoneError(undefined);
+    
+    // Validate name
+    if (!name.trim()) {
+      setNameError('Nome é obrigatório');
+      Alert.alert('Nome obrigatório', 'Digite seu nome completo');
+      return;
+    }
+    if (name.trim().length < 2) {
+      setNameError('Nome deve ter pelo menos 2 caracteres');
+      return;
+    }
+    
     setSaving(true);
     HapticFeedback.medium();
     try {
@@ -80,17 +118,41 @@ export default function EditProfile() {
         newPhotoURL = await getDownloadURL(rf);
       }
 
+      // Validate and clean phone if provided
+      let phoneClean: string | null = null;
+      if (phone.trim()) {
+        const phoneResult = phoneSchema.safeParse(phone);
+        if (!phoneResult.success) {
+          const errorMsg = phoneResult.error.errors[0]?.message ?? 'Verifique o número de telefone';
+          setPhoneError(errorMsg);
+          Alert.alert('Telefone inválido', errorMsg);
+          return;
+        }
+        phoneClean = phoneResult.data; // Zod already cleaned it
+      }
+      
+      // Format address from structured components
+      const formattedAddress = formatAddress({
+        street: street.trim(),
+        number: number.trim(),
+        complement: complement.trim() || undefined,
+        neighborhood: neighborhood.trim(),
+        city: city.trim(),
+        state: state.trim().toUpperCase(),
+        cep: cep.trim() || undefined,
+      });
+
       await updateDoc(doc(db, "users", uid), {
         name: name.trim(),
-        phone: phone.trim(),
-        address: address.trim(),
+        phone: phoneClean,
+        address: formattedAddress || null,
         // email no auth/credencial; aqui mantemos referência
         photoURL: newPhotoURL ?? null,
         updatedAt: serverTimestamp(),
       });
 
       HapticFeedback.success();
-      Alert.alert("Perfil atualizado!");
+      Alert.alert("Perfil atualizado!", "Suas informações foram salvas com sucesso.");
       router.back();
     } catch (e: unknown) {
       HapticFeedback.error();
@@ -144,7 +206,7 @@ export default function EditProfile() {
                 colors={GradientTypes.brand.colors}
                 style={{ width: 120, height: 120, borderRadius: 60, alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}
               >
-                <ThemedText style={{ color: '#fff', fontSize: 48 }}>👤</ThemedText>
+                <ThemedText style={{ color: colors.isDark ? colors.text.primary : '#ffffff', fontSize: 48 }}>👤</ThemedText>
               </LinearGradient>
             )}
             <Button variant="secondary" onPress={pickAvatar}>
@@ -154,43 +216,61 @@ export default function EditProfile() {
 
           <LiquidGlassView intensity="standard" cornerRadius={20} style={{ padding: 20 }}>
             <View style={{ gap: 16 }}>
-              <LiquidGlassView intensity="subtle" cornerRadius={16}>
-                <TextInput 
-                  placeholder="Nome" 
-                  placeholderTextColor={placeholderColor}
-                  value={name} 
-                  onChangeText={setName} 
-                  style={[inputStyle, { backgroundColor: 'transparent' }]} 
+              <Input
+                label="Nome completo"
+                placeholder="Digite seu nome completo"
+                value={name}
+                onChangeText={setName}
+                autoCapitalize="words"
+                error={nameError}
+                helperText={!nameError ? "Como você gostaria de ser chamado" : undefined}
+                leftElement={<Ionicons name="person" size={20} color={colors.icon.default} />}
+              />
+
+              <Input
+                label="Telefone"
+                placeholder="(00) 00000-0000"
+                value={phone}
+                onChangeText={(value) => setPhone(formatPhone(value))}
+                keyboardType="phone-pad"
+                maxLength={15}
+                error={phoneError}
+                helperText={!phoneError ? "Inclua DDD. Formato: (00) 00000-0000" : undefined}
+                zodSchema={phoneSchema}
+                validateOnBlur={true}
+                onValidationChange={(isValid, error) => setPhoneError(error)}
+                leftElement={<Ionicons name="call" size={20} color={colors.icon.default} />}
+              />
+              
+              {/* Address Input with ViaCEP */}
+              <View style={{ marginTop: 8 }}>
+                <AddressInput
+                  cep={cep}
+                  street={street}
+                  number={number}
+                  complement={complement}
+                  neighborhood={neighborhood}
+                  city={city}
+                  state={state}
+                  onCepChange={setCep}
+                  onStreetChange={setStreet}
+                  onNumberChange={setNumber}
+                  onComplementChange={setComplement}
+                  onNeighborhoodChange={setNeighborhood}
+                  onCityChange={setCity}
+                  onStateChange={setState}
                 />
-              </LiquidGlassView>
-              <LiquidGlassView intensity="subtle" cornerRadius={16}>
-                <TextInput 
-                  placeholder="Telefone" 
-                  placeholderTextColor={placeholderColor}
-                  value={phone} 
-                  onChangeText={setPhone} 
-                  keyboardType="phone-pad" 
-                  style={[inputStyle, { backgroundColor: 'transparent' }]} 
-                />
-              </LiquidGlassView>
-              <LiquidGlassView intensity="subtle" cornerRadius={16}>
-                <TextInput 
-                  placeholder="Endereço" 
-                  placeholderTextColor={placeholderColor}
-                  value={address} 
-                  onChangeText={setAddress} 
-                  style={[inputStyle, { backgroundColor: 'transparent' }]} 
-                />
-              </LiquidGlassView>
-              <LiquidGlassView intensity="subtle" cornerRadius={16} style={{ opacity: 0.7 }}>
-                <TextInput 
-                  placeholder="E-mail" 
-                  placeholderTextColor={placeholderColor}
-                  value={email} 
-                  editable={false} 
-                  style={[inputStyle, { backgroundColor: 'transparent' }]} 
-                />
-              </LiquidGlassView>
+              </View>
+              
+              <Input
+                label="E-mail"
+                placeholder="seu@email.com"
+                value={email}
+                editable={false}
+                helperText="E-mail não pode ser alterado"
+                leftElement={<Ionicons name="mail" size={20} color={colors.text.tertiary} />}
+                inputStyle={{ opacity: 0.7 }}
+              />
             </View>
 
             <Button

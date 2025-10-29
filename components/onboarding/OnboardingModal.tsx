@@ -32,7 +32,7 @@ export function OnboardingModal({ visible, onClose }: Props) {
     track: colors.bg.tertiary,
     accent: colors.brand.primary,
     overlay: "rgba(0,0,0,0.6)", // Standard modal overlay
-    primaryTextOnAccent: colors.isDark ? colors.text.primary : "#000000",
+    primaryTextOnAccent: colors.isDark ? colors.text.primary : colors.text.primary,
     dotActive: colors.brand.primary,
     dotInactive: colors.isDark ? colors.bg.tertiary : colors.border.alt,
   };

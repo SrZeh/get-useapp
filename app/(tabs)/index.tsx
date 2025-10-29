@@ -10,6 +10,7 @@ import { useResponsive } from "@/hooks/useResponsive";
 import { ItemCard } from "@/components/items";
 import { SearchHeader } from "@/components/search";
 import { EmptyState } from "@/components/states";
+import { useLocations } from "@/hooks/useLocations";
 import {
   collection,
   limit,
@@ -68,6 +69,14 @@ export default function VitrineScreen() {
   const [category, setCategory] = useState<string>("");
   const [city, setCity] = useState<string>("");
   const [neighborhood, setNeighborhood] = useState<string>("");
+  
+  // Dropdown filter states for single selections
+  const [selectedCity, setSelectedCity] = useState<string>("");
+  const [selectedNeighborhood, setSelectedNeighborhood] = useState<string>("");
+  const [maxPrice, setMaxPrice] = useState<string>("");
+
+  // Fetch cities and neighborhoods from Firebase
+  const { cities, neighborhoods, loading: locationsLoading } = useLocations();
 
   const { visible: showOnboarding, loading: onboardingLoading, markSeen } = useOnboardingVisibility();
 
@@ -102,16 +111,19 @@ export default function VitrineScreen() {
   const onRefresh = refresh;
 
 
-  // -------- filtros locais (texto/cidade/bairro/categoria) --------
+  // -------- filtros locais (texto/cidade/bairro/categoria/preço) --------
+  // Combine text input filters with dropdown selections
+  // If dropdowns are selected, use them; otherwise fall back to text inputs
   const filters: ItemFilters = useMemo(
     () => ({
       search,
       category,
-      city,
-      neighborhood,
+      city: selectedCity || city || undefined,
+      neighborhood: selectedNeighborhood || neighborhood || undefined,
+      maxPrice: maxPrice ? (isNaN(parseFloat(maxPrice)) ? undefined : parseFloat(maxPrice)) : undefined,
       excludeOwnerUid: me || undefined,
     }),
-    [search, category, city, neighborhood, me]
+    [search, category, city, neighborhood, selectedCity, selectedNeighborhood, maxPrice, me]
   );
 
   const filteredItems = useMemo(() => filterItems(items, filters), [items, filters]);
@@ -152,6 +164,15 @@ export default function VitrineScreen() {
       categories={CATEGORIES}
       loading={loading}
       screenPadding={screenPadding}
+      cities={cities}
+      neighborhoods={neighborhoods}
+      selectedCity={selectedCity}
+      selectedNeighborhood={selectedNeighborhood}
+      onCitySelect={setSelectedCity}
+      onNeighborhoodSelect={setSelectedNeighborhood}
+      locationsLoading={locationsLoading}
+      maxPrice={maxPrice}
+      onMaxPriceChange={setMaxPrice}
     />
   );
 

@@ -1,5 +1,5 @@
-import React from 'react';
-import { TouchableOpacity, ViewStyle, ActivityIndicator } from 'react-native';
+import React, { useState } from 'react';
+import { TouchableOpacity, ViewStyle, ActivityIndicator, Animated } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { GradientTypes, HapticFeedback, useThemeColors, useButtonColors } from '@/utils';
 import { ThemedText } from './themed-text';
@@ -24,7 +24,7 @@ type ButtonProps = {
 };
 
 const sizeMap: Record<ButtonSize, { paddingVertical: number; paddingHorizontal: number; minHeight: number; fontSize: number }> = {
-  sm: { paddingVertical: 12, paddingHorizontal: 16, minHeight: 40, fontSize: 15 },
+  sm: { paddingVertical: 12, paddingHorizontal: 16, minHeight: 44, fontSize: 15 }, // WCAG: Minimum 44x44px
   md: { paddingVertical: 16, paddingHorizontal: 24, minHeight: 48, fontSize: 17 },
   lg: { paddingVertical: 20, paddingHorizontal: 32, minHeight: 56, fontSize: 19 },
 };
@@ -51,6 +51,29 @@ export function Button({
   const ghostColors = useButtonColors('ghost');
   const outlineColors = useButtonColors('outline');
   const destructiveColors = useButtonColors('destructive');
+  
+  const [scaleAnim] = useState(new Animated.Value(1));
+
+  const handlePressIn = () => {
+    if (disabled || loading) return;
+    HapticFeedback.light();
+    Animated.spring(scaleAnim, {
+      toValue: 0.98,
+      useNativeDriver: true,
+      tension: 300,
+      friction: 10,
+    }).start();
+  };
+
+  const handlePressOut = () => {
+    if (disabled || loading) return;
+    Animated.spring(scaleAnim, {
+      toValue: 1,
+      useNativeDriver: true,
+      tension: 300,
+      friction: 10,
+    }).start();
+  };
 
   const handlePress = () => {
     if (disabled || loading) return;
@@ -133,66 +156,117 @@ export function Button({
 
     if (variant === 'secondary') {
       return (
-        <TouchableOpacity
-          onPress={handlePress}
-          disabled={disabled || loading}
-          activeOpacity={0.8}
-          style={[
-            baseStyle,
-            {
-              borderWidth: 2,
-              borderColor: secondaryColors.border,
-              backgroundColor: secondaryColors.bg,
-            },
-            fullWidth && { width: '100%' },
-            (disabled || loading) && { opacity: 0.6 },
-            style,
-          ]}
-          accessibilityLabel={accessibilityLabel}
-          accessibilityHint={accessibilityHint}
-          accessibilityRole="button"
-        >
-          {renderButtonContent(secondaryColors.text)}
-        </TouchableOpacity>
+        <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
+          <TouchableOpacity
+            onPress={handlePress}
+            onPressIn={handlePressIn}
+            onPressOut={handlePressOut}
+            disabled={disabled || loading}
+            activeOpacity={0.8}
+            style={[
+              baseStyle,
+              {
+                borderWidth: 2,
+                borderColor: secondaryColors.border,
+                backgroundColor: secondaryColors.bg,
+              },
+              fullWidth && { width: '100%' },
+              (disabled || loading) && { opacity: 0.6 },
+              style,
+            ]}
+            accessibilityLabel={accessibilityLabel}
+            accessibilityHint={accessibilityHint}
+            accessibilityRole="button"
+            accessibilityState={{
+              disabled: disabled || loading,
+              busy: loading,
+            }}
+          >
+            {renderButtonContent(secondaryColors.text)}
+          </TouchableOpacity>
+        </Animated.View>
       );
     }
 
     if (variant === 'outline') {
       return (
-        <TouchableOpacity
-          onPress={handlePress}
-          disabled={disabled || loading}
-          activeOpacity={0.8}
-          style={[
-            baseStyle,
-            {
-              borderWidth: 1,
-              borderColor: outlineColors.border,
-              backgroundColor: outlineColors.bg,
-            },
-            fullWidth && { width: '100%' },
-            (disabled || loading) && { opacity: 0.6 },
-            style,
-          ]}
-          accessibilityLabel={accessibilityLabel}
-          accessibilityHint={accessibilityHint}
-          accessibilityRole="button"
-        >
-          {renderButtonContent(outlineColors.text)}
-        </TouchableOpacity>
+        <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
+          <TouchableOpacity
+            onPress={handlePress}
+            onPressIn={handlePressIn}
+            onPressOut={handlePressOut}
+            disabled={disabled || loading}
+            activeOpacity={0.8}
+            style={[
+              baseStyle,
+              {
+                borderWidth: 1,
+                borderColor: outlineColors.border,
+                backgroundColor: outlineColors.bg,
+              },
+              fullWidth && { width: '100%' },
+              (disabled || loading) && { opacity: 0.6 },
+              style,
+            ]}
+            accessibilityLabel={accessibilityLabel}
+            accessibilityHint={accessibilityHint}
+            accessibilityRole="button"
+            accessibilityState={{
+              disabled: disabled || loading,
+              busy: loading,
+            }}
+          >
+            {renderButtonContent(outlineColors.text)}
+          </TouchableOpacity>
+        </Animated.View>
       );
     }
 
     if (variant === 'destructive') {
       return (
+        <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
+          <TouchableOpacity
+            onPress={handlePress}
+            onPressIn={handlePressIn}
+            onPressOut={handlePressOut}
+            disabled={disabled || loading}
+            activeOpacity={0.8}
+            style={[
+              baseStyle,
+              {
+                backgroundColor: destructiveColors.bg,
+              },
+              fullWidth && { width: '100%' },
+              (disabled || loading) && { opacity: 0.6 },
+              style,
+            ]}
+            accessibilityLabel={accessibilityLabel}
+            accessibilityHint={accessibilityHint}
+            accessibilityRole="button"
+            accessibilityState={{
+              disabled: disabled || loading,
+              busy: loading,
+            }}
+          >
+            {renderButtonContent(destructiveColors.text)}
+          </TouchableOpacity>
+        </Animated.View>
+      );
+    }
+
+    // Ghost variant
+    return (
+      <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
         <TouchableOpacity
           onPress={handlePress}
+          onPressIn={handlePressIn}
+          onPressOut={handlePressOut}
           disabled={disabled || loading}
           activeOpacity={0.8}
           style={[
             baseStyle,
             {
-              backgroundColor: destructiveColors.bg,
+              backgroundColor: ghostColors.bg,
             },
             fullWidth && { width: '100%' },
             (disabled || loading) && { opacity: 0.6 },
@@ -201,48 +275,37 @@ export function Button({
           accessibilityLabel={accessibilityLabel}
           accessibilityHint={accessibilityHint}
           accessibilityRole="button"
+          accessibilityState={{
+            disabled: disabled || loading,
+            busy: loading,
+          }}
         >
-          {renderButtonContent(destructiveColors.text)}
+          {renderButtonContent(ghostColors.text)}
         </TouchableOpacity>
-      );
-    }
-
-    // Ghost variant
-    return (
-      <TouchableOpacity
-        onPress={handlePress}
-        disabled={disabled || loading}
-        activeOpacity={0.8}
-        style={[
-          baseStyle,
-          {
-            backgroundColor: ghostColors.bg,
-          },
-          fullWidth && { width: '100%' },
-          (disabled || loading) && { opacity: 0.6 },
-          style,
-        ]}
-        accessibilityLabel={accessibilityLabel}
-        accessibilityHint={accessibilityHint}
-        accessibilityRole="button"
-      >
-        {renderButtonContent(ghostColors.text)}
-      </TouchableOpacity>
+      </Animated.View>
     );
   };
 
   if (variant === 'premium' || variant === 'primary') {
     return (
-      <TouchableOpacity
-        onPress={handlePress}
-        disabled={disabled || loading}
-        activeOpacity={0.8}
-        accessibilityLabel={accessibilityLabel}
-        accessibilityHint={accessibilityHint}
-        accessibilityRole="button"
-      >
-        {getButtonContent()}
-      </TouchableOpacity>
+      <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
+        <TouchableOpacity
+          onPress={handlePress}
+          onPressIn={handlePressIn}
+          onPressOut={handlePressOut}
+          disabled={disabled || loading}
+          activeOpacity={0.8}
+          accessibilityLabel={accessibilityLabel}
+          accessibilityHint={accessibilityHint}
+          accessibilityRole="button"
+          accessibilityState={{
+            disabled: disabled || loading,
+            busy: loading,
+          }}
+        >
+          {getButtonContent()}
+        </TouchableOpacity>
+      </Animated.View>
     );
   }
 
