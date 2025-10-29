@@ -14,7 +14,7 @@ import type { Reservation } from '@/types';
 import type { BaseCardProps } from '@/components/types';
 import { useNavigationService } from '@/providers/ServicesProvider';
 import { Spacing, BorderRadius } from '@/constants/spacing';
-import { ItemCard } from '@/components/items/ItemCard';
+import { ItemCard } from '@/components/features/items/ItemCard';
 import { useReservationData } from '@/hooks/useReservationData';
 import {
   isExpired,

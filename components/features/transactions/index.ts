@@ -7,6 +7,7 @@
 
 export { OwnerInbox } from './OwnerInbox';
 export { MyReservations } from './MyReservations';
+export { TransactionsTabs } from './TransactionsTabs';
 
 // Re-export types for convenience
 export type * from './types';

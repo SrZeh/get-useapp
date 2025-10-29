@@ -36,15 +36,246 @@ This is an Expo React Native application built with TypeScript, Firebase, and Na
 ```
 /app                  # Expo Router file-based routes
 /components          # Shared UI components
+  /features          # Feature-specific components organized by domain
 /hooks              # Custom React hooks
+  /features          # Feature-specific hooks organized by domain
 /lib                # Core libraries (Firebase, auth utilities)
 /providers          # React Context providers
 /services           # Business logic and API services
-/src                # Additional source code
 /utils              # Pure utility functions
 /types              # TypeScript type definitions
 /constants          # App constants (theme, config)
 /functions          # Firebase Cloud Functions
+```
+
+### Feature-Based Organization Pattern
+
+The project uses a **feature-first** organization strategy where code is grouped by domain/feature rather than by technical type. This improves discoverability, maintainability, and follows SOLID principles.
+
+#### Component Organization: `/components/features/[feature-name]/`
+
+**Structure:**
+```
+/components
+  /features
+    /auth              # Auth-related components (e.g., AuthHeaderRight)
+      - index.ts       # Barrel export (required)
+    /items             # Item-related components (e.g., ItemCard, ItemHeader)
+      - index.ts       # Barrel export (required)
+    /transactions      # Transaction components (e.g., OwnerInbox, MyReservations)
+      - index.ts       # Barrel export (required)
+    /messages          # Message/chat components
+    /profile           # Profile-related components
+  /ui                 # Shared UI primitives (buttons, inputs, etc.)
+  /forms              # Shared form components
+  /layouts            # Layout components
+```
+
+**Rules:**
+- Feature-specific components belong in `/components/features/[feature-name]/`
+- Shared/reusable components stay in `/components/[category]/` (e.g., `/components/ui/`, `/components/forms/`)
+- Each feature folder MUST have an `index.ts` barrel export
+- Main `/components/index.ts` re-exports from feature folders
+- Route-specific components should NOT live in route folders - use feature folders instead
+
+**Examples:**
+```typescript
+// ✅ Good: Import from feature folder
+import { ItemCard } from '@/components/features/items';
+import { OwnerInbox } from '@/components/features/transactions';
+
+// ✅ Good: Import from barrel export
+import { ItemCard, ItemHeader } from '@/components/features/items';
+
+// ❌ Bad: Import from route folder
+import { ItemCard } from '@/app/item/_components/ItemCard';
+
+// ❌ Bad: Import from root components
+import { ItemCard } from '@/components/ItemCard';
+```
+
+#### Hook Organization: `/hooks/features/[feature-name]/`
+
+**Structure:**
+```
+/hooks
+  /features
+    /auth              # Auth-related hooks
+      - useTermsAccepted.ts
+      - index.ts       # Barrel export (required)
+    /items             # Item-related hooks
+      - useItemForm.ts
+      - useItemOperations.ts
+      - useUserItems.ts
+      - useItemList.ts
+      - useResponsiveGrid.ts
+      - index.ts       # Barrel export (required)
+    /transactions      # Transaction hooks
+      - useTransactions.ts
+      - useTransactionActions.ts
+      - useTransactionsDot.ts
+      - index.ts       # Barrel export (required)
+    /messages          # Message hooks
+      - useUnreadMessages.ts
+      - useUnreadMessagesDot.ts
+      - index.ts
+  - useAuth.ts         # Core/shared hooks at root level
+  - useFormValidation.ts
+  - useResponsive.ts
+  - index.ts           # Root barrel export
+```
+
+**Rules:**
+- Feature-specific hooks belong in `/hooks/features/[feature-name]/`
+- Core/shared hooks (used across features) stay at `/hooks/` root level
+- Each feature folder MUST have an `index.ts` barrel export
+- Root `/hooks/index.ts` re-exports from feature folders for convenience
+- Never duplicate hooks in multiple locations
+- Follow naming: `use[Feature][Action]` (e.g., `useItemForm`, `useTransactionActions`)
+
+**Examples:**
+```typescript
+// ✅ Good: Import from feature folder
+import { useItemForm, useItemOperations } from '@/hooks/features/items';
+import { useTransactions } from '@/hooks/features/transactions';
+
+// ✅ Good: Import from root (re-exported for convenience)
+import { useItemForm } from '@/hooks';
+
+// ✅ Good: Core hooks from root
+import { useAuth } from '@/hooks/useAuth';
+import { useResponsive } from '@/hooks/useResponsive';
+
+// ❌ Bad: Duplicate hook in root AND features
+// hooks/useItemForm.ts AND hooks/features/items/useItemForm.ts
+```
+
+#### Type Organization Strategy
+
+**Structure:**
+```
+/types
+  - index.ts           # Main type exports
+  - item.ts            # Item-related types
+  - reservation.ts     # Reservation types
+  - transaction.ts     # Transaction types
+  - review.ts          # Review types
+  - user.ts            # User types
+```
+
+**Rules:**
+- **Shared types** → `/types/[feature].ts` (source of truth)
+- **Feature folders** → Re-export types from `/types` (convenience)
+- **Never duplicate** type definitions in feature folders
+- Feature-specific types belong in `/types/[feature].ts`
+
+**Pattern:**
+```typescript
+// ✅ Good: Type definition in /types
+// /types/reservation.ts
+export type ReservationStatus = 'requested' | 'accepted' | 'rejected' | ...;
+
+// ✅ Good: Feature folder re-exports
+// /components/features/transactions/types.ts
+export type * from '@/types/reservation';
+
+// ✅ Good: Import from type source
+import type { ReservationStatus } from '@/types/reservation';
+
+// ✅ Good: Import from feature (re-exported)
+import type { ReservationStatus } from '@/components/features/transactions';
+
+// ❌ Bad: Duplicate type definition in feature folder
+// /components/features/transactions/types.ts
+export type ReservationStatus = 'requested' | ...; // DUPLICATE!
+```
+
+#### Nesting Depth Guidelines
+
+**Rule: Maximum 3 levels of folder nesting**
+
+**Structure Examples:**
+```
+✅ Good: 3 levels maximum
+/components/features/transactions/
+  owner-actions/
+    AcceptedActions.tsx
+    RequestActions.tsx
+
+❌ Bad: 4+ levels
+/components/features/transactions/
+  actions/
+    owner/
+      inbox/
+        AcceptedActions.tsx  // Too deep!
+```
+
+**Best Practices:**
+- Keep nesting shallow (prefer 2-3 levels)
+- If you find yourself at 4+ levels, consider flattening or reorganizing
+- Use descriptive folder names to reduce need for deep nesting
+- Group related files together, but not at the cost of discoverability
+
+#### Route Organization Guidelines
+
+**Structure:**
+```
+/app
+  /(auth)              # Auth route group
+    - login.tsx
+    - register.tsx
+  /(tabs)              # Tab navigation group
+    - index.tsx        # Home/Vitrine
+    - items.tsx
+    - transactions.tsx
+  /item
+    - [id].tsx         # Dynamic route
+    - new.tsx
+    - edit/
+      - [id].tsx
+  /transaction
+    - [id]/
+      - accept.tsx
+      - reject.tsx
+```
+
+**Rules:**
+- Routes should be **thin wrappers** that compose feature components
+- Route files handle routing logic only - delegate to components
+- Complex route logic should be extracted to:
+  - Components in `/components/features/[route-name]/`
+  - Hooks in `/hooks/features/[route-name]/`
+- **Never** put components inside route folders (e.g., `/app/item/_components/`)
+- Use route groups `(group-name)` for logical grouping without affecting URLs
+- Use dynamic routes `[id].tsx` for parameterized routes
+
+**Examples:**
+```typescript
+// ✅ Good: Thin route, delegates to feature component
+// app/(tabs)/transactions.tsx
+export default function TransactionsScreen() {
+  return <TransactionsTabs />; // From components/features/transactions
+}
+
+// ✅ Good: Route composes feature components
+// app/item/new.tsx
+import { useItemForm } from '@/hooks/features/items';
+import { ItemCreateForm } from '@/components/features/items';
+
+export default function NewItemScreen() {
+  const form = useItemForm();
+  return <ItemCreateForm {...form} />;
+}
+
+// ❌ Bad: Fat route with business logic
+// app/item/new.tsx
+export default function NewItemScreen() {
+  const [items, setItems] = useState([]);
+  // ... 200 lines of business logic
+}
+
+// ❌ Bad: Components in route folder
+// app/item/_components/ItemCard.tsx
 ```
 
 ### File Naming Conventions
@@ -68,14 +299,27 @@ import { collection, getDocs } from 'firebase/firestore';
 // 3. Expo modules
 import { useThemeColor } from '@/hooks/use-theme-color';
 
-// 4. Local imports (absolute paths with @/)
+// 4. Feature imports (organized by feature)
+import { ItemCard } from '@/components/features/items';
+import { useItemForm } from '@/hooks/features/items';
+import { OwnerInbox } from '@/components/features/transactions';
+
+// 5. Shared/local imports (absolute paths with @/)
 import { ThemedText } from '@/components/themed-text';
 import { auth, db } from '@/lib/firebase';
-import { useAuth } from '@/src/providers/AuthProvider';
+import { useAuth } from '@/providers/AuthProvider';
 
-// 5. Types (only if needed, prefer inline types)
+// 6. Types (only if needed, prefer inline types)
 import type { User } from 'firebase/auth';
+import type { Item } from '@/types';
 ```
+
+**Import Path Guidelines:**
+- Use absolute imports with `@/` prefix
+- Import from feature folders: `@/components/features/[feature]/` or `@/hooks/features/[feature]/`
+- Use barrel exports (`index.ts`) when available
+- Prefer feature imports over root-level imports for feature code
+- Avoid relative imports (`../`) - use absolute paths instead
 
 ## TypeScript Guidelines
 
@@ -422,6 +666,16 @@ async function handleSubmit() {
 - ❌ Don't create god components (components that do everything)
 - ❌ Don't skip error handling
 - ❌ Don't optimize prematurely
+
+### File Organization Anti-patterns
+- ❌ Don't put components inside route folders (`app/route/_components/`)
+- ❌ Don't duplicate hooks in multiple locations (`/hooks/` AND `/src/hooks/`)
+- ❌ Don't mix `/src` and root-level directories for same purpose
+- ❌ Don't create deep nesting (>3 levels)
+- ❌ Don't duplicate type definitions (keep in `/types`, re-export in features)
+- ❌ Don't use relative imports when absolute available (`../` vs `@/`)
+- ❌ Don't scatter feature code in root directories - use feature folders
+- ❌ Don't forget barrel exports (`index.ts`) in feature folders
 
 ## Code Generation Preferences
 

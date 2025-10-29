@@ -30,8 +30,8 @@ export { LoadingState } from './states/LoadingState';
 // Liquid Glass Components
 export { LiquidGlassView } from './liquid-glass';
 
-// Item Components
-export * from './items';
+// Item Components (moved to features)
+// export * from './items'; // Removed - now in features/items
 
 // Form Components
 export * from './forms';
@@ -48,6 +48,7 @@ export * from './search';
 // Feature Components (by domain)
 export * from './features/auth';
 export * from './features/transactions';
+export * from './features/items';
 
 // Layout Components
 export { HeaderLogo } from './layouts/HeaderLogo';

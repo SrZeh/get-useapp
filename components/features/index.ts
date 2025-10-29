@@ -6,4 +6,6 @@
  */
 
 export * from './transactions';
+export * from './items';
+export * from './auth';
 

@@ -23,7 +23,7 @@ import type { Item, Review } from "@/types";
 import { logger, nextDay, diffDaysExclusive, enumerateInclusive } from "@/utils";
 import { CalendarSection } from "@/components/reservation";
 import { ReviewSection, ReviewList } from "@/components/review";
-import { ItemHeader } from "@/components/items";
+import { ItemHeader } from "@/components/features/items";
 import { LoadingState } from "@/components/states";
 import { useReservationService, useReviewService } from "@/providers/ServicesProvider";
 import { Spacing } from "@/constants/spacing";

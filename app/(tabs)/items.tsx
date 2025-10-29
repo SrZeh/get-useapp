@@ -6,11 +6,10 @@ import { ThemedView } from '@/components/themed-view';
 import { LiquidGlassView } from '@/components/liquid-glass';
 import { Button } from '@/components/Button';
 import { ShimmerLoader } from '@/components/ShimmerLoader';
-import { ItemManagementCard } from '@/components/items';
+import { ItemManagementCard } from '@/components/features/items';
 import { useThemeColors } from '@/utils';
 import { useNavigationService } from '@/providers/ServicesProvider';
-import { useUserItems } from '@/hooks/useUserItems';
-import { useItemOperations } from '@/hooks/useItemOperations';
+import { useUserItems, useItemOperations } from '@/hooks/features/items';
 import type { Item } from '@/types';
 import { Spacing, BorderRadius } from '@/constants/spacing';
 

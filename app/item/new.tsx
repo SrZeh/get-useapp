@@ -51,7 +51,7 @@ import { ITEM_CATEGORIES } from "@/constants/categories";
 import { useItemService, useNavigationService } from "@/providers/ServicesProvider";
 import { uploadUserImageFromUri } from "@/services/images";
 import { Ionicons } from "@expo/vector-icons";
-import { useItemForm } from "@/hooks/useItemForm";
+import { useItemForm } from "@/hooks/features/items";
 import { Spacing, BorderRadius } from "@/constants/spacing";
 import { useResponsive } from "@/hooks/useResponsive";
 import { useViaCEP, formatCEPValue } from "@/hooks/useViaCEP";
@@ -171,10 +171,10 @@ export default function NewItemScreen() {
           {/* Main Form Container */}
           <View style={[
             styles.formContainer,
-            useTwoColumns && styles.formContainerTwoColumns,
+            useTwoColumns ? styles.formContainerTwoColumns : styles.formContainerMobile,
           ]}>
             {/* Left Column / Full Width */}
-            <View style={styles.column}>
+            <View style={useTwoColumns ? styles.column : styles.columnMobile}>
               {/* Basic Information Section */}
               <Animated.View entering={FadeInDown.duration(300).delay(0)}>
                 <LiquidGlassView
@@ -332,7 +332,7 @@ export default function NewItemScreen() {
             </View>
 
             {/* Right Column (only on larger screens) */}
-            <View style={styles.column}>
+            <View style={useTwoColumns ? styles.column : styles.columnMobile}>
               {/* Location Section */}
               <Animated.View entering={FadeInUp.duration(300).delay(200)}>
                 <LiquidGlassView
@@ -505,6 +505,7 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: Spacing.sm,
     paddingBottom: Spacing['3xl'],
+    width: '100%',
   },
   scrollContentTwoColumns: {
     padding: Spacing.md,
@@ -514,6 +515,10 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
   },
   formContainer: {
+    width: '100%',
+  },
+  formContainerMobile: {
+    flexDirection: 'column',
     gap: Spacing.md,
   },
   formContainerTwoColumns: {
@@ -524,14 +529,22 @@ const styles = StyleSheet.create({
   column: {
     flex: 1,
     gap: Spacing.md,
+    minWidth: 0, // Prevents flex items from overflowing
+  },
+  columnMobile: {
+    width: '100%',
+    gap: Spacing.md,
+    flexShrink: 0,
   },
   section: {
     gap: Spacing.sm,
     padding: Spacing.md,
+    width: '100%',
   },
   sectionGlass: {
     marginBottom: Spacing.md,
     overflow: 'hidden',
+    width: '100%',
   },
   sectionTitle: {
     marginBottom: Spacing.xs,

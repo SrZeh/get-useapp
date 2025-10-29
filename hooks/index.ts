@@ -9,10 +9,9 @@
 export { useColorScheme } from './use-color-scheme';
 export { useThemeColor } from './use-theme-color';
 
-// Item hooks
-export { useUserItems } from './useUserItems';
-export { useItemOperations } from './useItemOperations';
-export { useItemForm } from './useItemForm';
+// Item hooks (re-exported from features)
+export { useUserItems, useItemOperations, useItemForm } from './features/items';
+export type { ItemFormInput, ItemListFilters, ItemListActions, UseItemListResult, ResponsiveGridConfig } from './features/items';
 
 // Auth hooks
 export { useFormValidation } from './useFormValidation';
