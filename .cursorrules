@@ -1,0 +1,463 @@
+# Get-UseApp - Cursor Rules
+
+## Project Overview
+This is an Expo React Native application built with TypeScript, Firebase, and NativeWind (Tailwind CSS for React Native). The project follows the iOS 26 Liquid Glass design system and adheres to clean code and SOLID principles.
+
+## Core Technologies
+- **Framework**: Expo SDK ~54.0.10 with Expo Router (file-based routing)
+- **Language**: TypeScript (strict mode enabled)
+- **UI**: React Native with NativeWind v4 (Tailwind CSS)
+- **Backend**: Firebase (Firestore, Auth, Storage, Functions)
+- **State Management**: React Context API + Custom Hooks
+- **Navigation**: Expo Router with React Navigation
+- **Platform Support**: iOS, Android, Web
+
+## Architecture Principles
+
+### SOLID Principles
+1. **Single Responsibility**: Each component, hook, service, or utility should have one clear purpose
+2. **Open/Closed**: Components should be open for extension but closed for modification
+3. **Liskov Substitution**: Components should be replaceable with their subtypes
+4. **Interface Segregation**: Use specific, focused prop types instead of bloated interfaces
+5. **Dependency Inversion**: Depend on abstractions (interfaces/types), not concrete implementations
+
+### Clean Code Standards
+- Functions should be small, focused, and do one thing
+- Use descriptive names that reveal intent
+- Avoid deep nesting (max 3 levels)
+- Extract complex logic into custom hooks or utilities
+- Prefer composition over inheritance
+- Use early returns to reduce nesting
+- Keep components under 200 lines when possible
+
+## File Organization
+
+### Directory Structure
+```
+/app                  # Expo Router file-based routes
+/components          # Shared UI components
+/hooks              # Custom React hooks
+/lib                # Core libraries (Firebase, auth utilities)
+/providers          # React Context providers
+/services           # Business logic and API services
+/src                # Additional source code
+/utils              # Pure utility functions
+/types              # TypeScript type definitions
+/constants          # App constants (theme, config)
+/functions          # Firebase Cloud Functions
+```
+
+### File Naming Conventions
+- **Components**: PascalCase (e.g., `ThemedText.tsx`, `TransactionCard.tsx`)
+- **Hooks**: camelCase starting with "use" (e.g., `useAuth.ts`, `useTransactions.ts`)
+- **Utilities**: camelCase (e.g., `upload.ts`, `deleteItem.ts`)
+- **Services**: camelCase (e.g., `items.ts`, `cloudFunctions.ts`)
+- **Types**: PascalCase for types/interfaces (e.g., `Item`, `Transaction`)
+- **Platform-specific**: Use `.native.ts`, `.web.ts`, `.ios.ts`, `.android.ts` suffixes
+
+### Import Organization
+```typescript
+// 1. React and React Native
+import React, { useState, useEffect } from 'react';
+import { View, Text, TouchableOpacity } from 'react-native';
+
+// 2. Third-party libraries
+import { router } from 'expo-router';
+import { collection, getDocs } from 'firebase/firestore';
+
+// 3. Expo modules
+import { useThemeColor } from '@/hooks/use-theme-color';
+
+// 4. Local imports (absolute paths with @/)
+import { ThemedText } from '@/components/themed-text';
+import { auth, db } from '@/lib/firebase';
+import { useAuth } from '@/src/providers/AuthProvider';
+
+// 5. Types (only if needed, prefer inline types)
+import type { User } from 'firebase/auth';
+```
+
+## TypeScript Guidelines
+
+### Type Definitions
+- Always use TypeScript strict mode
+- Prefer `interface` for object shapes, `type` for unions/intersections
+- Export types/interfaces that are reused
+- Use `type` for props: `type ComponentProps = { ... }`
+- Avoid `any` - use `unknown` if type is truly unknown
+- Use generic types for reusable components/functions
+
+### Example Type Patterns
+```typescript
+// ✅ Good: Specific, focused interface
+interface ItemCardProps {
+  item: Item;
+  onPress?: (id: string) => void;
+  showOwner?: boolean;
+}
+
+// ✅ Good: Union types for states
+type LoadingState = 'idle' | 'loading' | 'success' | 'error';
+
+// ✅ Good: Use const assertions for constants
+const CATEGORIES = ['Tool', 'Car', 'Book'] as const;
+type Category = typeof CATEGORIES[number];
+```
+
+## Expo Router Patterns
+
+### Route Structure
+- Use file-based routing in `/app` directory
+- Route groups use parentheses: `(auth)`, `(tabs)`
+- Dynamic routes use brackets: `[id].tsx`
+- Layouts are prefixed with `_layout.tsx`
+- Special files: `_layout.tsx`, `index.tsx`, `+not-found.tsx`
+
+### Navigation
+```typescript
+// ✅ Good: Use typed navigation
+import { router } from 'expo-router';
+router.push('/item/123');
+router.replace('/login');
+router.back();
+
+// ✅ Good: Type-safe navigation with params
+router.push({
+  pathname: '/item/[id]',
+  params: { id: itemId }
+});
+```
+
+## React Native Component Patterns
+
+### Component Structure
+```typescript
+// ✅ Preferred structure
+import React from 'react';
+import { View, Text, StyleSheet } from 'react-native';
+import type { ViewProps } from 'react-native';
+
+type MyComponentProps = ViewProps & {
+  title: string;
+  onPress?: () => void;
+};
+
+export function MyComponent({ title, onPress, style, ...rest }: MyComponentProps) {
+  return (
+    <View style={[styles.container, style]} {...rest}>
+      <Text>{title}</Text>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    padding: 16,
+  },
+});
+```
+
+### Styling Guidelines
+- Use NativeWind (Tailwind) classes for most styling
+- Use StyleSheet for complex or performance-critical styles
+- Combine both: `style={[styles.container, className="flex-1"]}`
+- Prefer NativeWind utility classes over inline styles
+- Use themed components (`ThemedText`, `ThemedView`) for dark mode support
+
+### Platform-Specific Code
+```typescript
+// ✅ Good: Platform-specific implementations
+// lib/auth.native.ts
+export function createAuth(app) { /* native impl */ }
+
+// lib/auth.web.ts
+export function createAuth(app) { /* web impl */ }
+
+// lib/auth.ts (barrel file)
+export { createAuth } from './auth.native';
+
+// ✅ Good: Conditional rendering
+import { Platform } from 'react-native';
+{Platform.OS === 'web' && <WebOnlyComponent />}
+```
+
+## NativeWind/Tailwind Guidelines
+
+### Design System Adherence
+- Follow the iOS 26 Liquid Glass design system (see `design-system.md`)
+- Use semantic color tokens: `bg-light-bg-primary`, `text-dark-text-primary`
+- Brand color: `#96ff9a` (use `brand-primary` class when available)
+- Always provide both light and dark mode variants
+
+### Tailwind Best Practices
+```typescript
+// ✅ Good: Use design system classes
+<View className="bg-light-bg-primary dark:bg-dark-bg-primary 
+                 rounded-xl p-md gap-sm">
+  <Text className="text-title text-light-text-primary dark:text-dark-text-primary">
+    Title
+  </Text>
+</View>
+
+// ❌ Bad: Arbitrary values
+<View className="p-[13px] bg-[#ff0000]">
+
+// ✅ Good: Use spacing scale
+className="p-sm gap-md mt-lg"
+
+// ✅ Good: Responsive (when needed)
+className="flex-1 md:flex-row lg:max-w-4xl"
+```
+
+## Firebase Patterns
+
+### Firebase Initialization
+- Firebase config is in `lib/firebase.ts`
+- Use named database: `getFirestore(app, "appdb")`
+- Auth platform-specific: `lib/auth.native.ts` and `lib/auth.web.ts`
+- Set log level to "error" in production
+
+### Firestore Queries
+```typescript
+// ✅ Good: Typed queries with error handling
+import { collection, query, where, getDocs, orderBy } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
+
+async function fetchItems(category: string) {
+  try {
+    const q = query(
+      collection(db, 'items'),
+      where('category', '==', category),
+      where('published', '==', true),
+      orderBy('createdAt', 'desc')
+    );
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  } catch (error) {
+    console.error('Error fetching items:', error);
+    throw error;
+  }
+}
+```
+
+### Firebase Rules
+- Always validate on client, but never trust client-side validation
+- Security rules are in `firestore.appdb.rules`
+- Use Firebase Functions for sensitive operations
+- Implement proper error handling for auth/firestore errors
+
+## React Hooks Patterns
+
+### Custom Hooks
+```typescript
+// ✅ Good: Custom hook with proper typing
+export function useItems(category?: string) {
+  const [items, setItems] = useState<Item[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+
+  useEffect(() => {
+    async function loadItems() {
+      try {
+        setLoading(true);
+        const data = await fetchItems(category);
+        setItems(data);
+      } catch (err) {
+        setError(err instanceof Error ? err : new Error('Unknown error'));
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadItems();
+  }, [category]);
+
+  return { items, loading, error };
+}
+```
+
+### Hook Rules
+- Custom hooks must start with "use"
+- Extract complex state logic into custom hooks
+- Use `useCallback` for function props passed to memoized components
+- Use `useMemo` for expensive computations
+- Clean up subscriptions in `useEffect` return
+
+## Error Handling
+
+### Error Patterns
+```typescript
+// ✅ Good: Try-catch with proper error types
+try {
+  await someAsyncOperation();
+} catch (error) {
+  if (error instanceof Error) {
+    console.error('Operation failed:', error.message);
+    // Show user-friendly error
+  }
+}
+
+// ✅ Good: Error boundaries for React components
+// Implement ErrorBoundary component for critical sections
+```
+
+## Performance Best Practices
+
+### Optimization Guidelines
+- Use `React.memo` for expensive components
+- Implement pagination for large lists (use `FlatList` with `onEndReached`)
+- Lazy load images with `expo-image`
+- Use `useMemo`/`useCallback` appropriately (don't over-optimize)
+- Debounce search inputs
+- Cache Firestore queries when appropriate
+
+### List Rendering
+```typescript
+// ✅ Good: FlatList with proper keys
+<FlatList
+  data={items}
+  renderItem={({ item }) => <ItemCard item={item} />}
+  keyExtractor={(item) => item.id}
+  onEndReached={loadMore}
+  onEndReachedThreshold={0.5}
+  ListEmptyComponent={<EmptyState />}
+/>
+```
+
+## Testing Considerations
+
+### Code Structure for Testing
+- Keep components pure and testable
+- Extract business logic from components into hooks/services
+- Use dependency injection for services
+- Mock Firebase functions in tests
+
+## Security Best Practices
+
+### Authentication
+- Always verify auth state before sensitive operations
+- Use Firebase Security Rules properly
+- Store sensitive data in `expo-secure-store` (not AsyncStorage)
+- Validate inputs on both client and server
+
+### Data Validation
+```typescript
+// ✅ Good: Validate user input
+function validateItem(item: Partial<Item>): item is Item {
+  return (
+    typeof item.title === 'string' && item.title.length > 0 &&
+    typeof item.dailyRate === 'number' && item.dailyRate > 0 &&
+    // ... more validations
+  );
+}
+```
+
+## Code Style
+
+### General Rules
+- Use 2 spaces for indentation
+- Use semicolons
+- Prefer `const` over `let`, avoid `var`
+- Use arrow functions for callbacks
+- Use template literals for string concatenation
+- Maximum line length: 100 characters (prefer breaking)
+
+### Comments
+- Write self-documenting code (good names > comments)
+- Use comments for "why", not "what"
+- Document complex business logic
+- Use JSDoc for exported functions
+
+### Naming Conventions
+- Components: PascalCase
+- Functions/Variables: camelCase
+- Constants: UPPER_SNAKE_CASE or camelCase (depending on context)
+- Types/Interfaces: PascalCase
+- Files: Match export name (component file = component name)
+
+## Common Patterns to Follow
+
+### Async Operations
+```typescript
+// ✅ Good: Loading and error states
+const [loading, setLoading] = useState(false);
+const [error, setError] = useState<string | null>(null);
+
+async function handleSubmit() {
+  try {
+    setLoading(true);
+    setError(null);
+    await submitForm();
+  } catch (err) {
+    setError(err instanceof Error ? err.message : 'Unknown error');
+  } finally {
+    setLoading(false);
+  }
+}
+```
+
+### Form Handling
+- Use controlled components for forms
+- Validate on submit, show errors clearly
+- Disable submit button during loading
+- Provide clear success/error feedback
+
+### Image Handling
+- Use `expo-image` instead of `react-native` Image
+- Optimize images before upload
+- Handle loading and error states
+- Use appropriate image formats
+
+## What NOT to Do
+
+### Anti-patterns to Avoid
+- ❌ Don't mutate props or state directly
+- ❌ Don't use `any` type
+- ❌ Don't ignore TypeScript errors
+- ❌ Don't create deep prop drilling (use Context)
+- ❌ Don't hardcode magic numbers/strings (use constants)
+- ❌ Don't ignore dark mode (always provide variants)
+- ❌ Don't use inline styles when Tailwind class exists
+- ❌ Don't bypass Firebase Security Rules
+- ❌ Don't store sensitive data in AsyncStorage
+- ❌ Don't create god components (components that do everything)
+- ❌ Don't skip error handling
+- ❌ Don't optimize prematurely
+
+## Code Generation Preferences
+
+When generating code:
+1. Always use TypeScript with proper types
+2. Follow the project's file structure
+3. Use NativeWind classes for styling
+4. Implement both light and dark mode
+5. Include proper error handling
+6. Use absolute imports with `@/` prefix
+7. Export components as named exports (prefer) or default
+8. Include loading and error states
+9. Add JSDoc comments for complex functions
+10. Follow SOLID principles in architecture decisions
+
+## Additional Notes
+
+### Design System
+- Reference `design-system.md` for color tokens, spacing, typography
+- Brand color: `#96ff9a` (mint green)
+- Use glassmorphism effects where appropriate
+- Animations should be under 400ms
+- Maintain WCAG AA contrast ratios
+
+### Platform Considerations
+- Test on iOS, Android, and Web
+- Handle platform-specific UI/UX differences
+- Use platform-specific file extensions when needed
+- Consider safe area insets on mobile
+
+### Firebase Functions
+- Keep business logic in `/functions` directory
+- Use TypeScript strict mode
+- Handle errors properly
+- Validate inputs server-side
+
+---
+
+**Remember**: Write code as if the next developer is a violent psychopath who knows where you live. Make it readable, maintainable, and self-documenting.
