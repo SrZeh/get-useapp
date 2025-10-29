@@ -27,6 +27,31 @@ export const PRICE_RANGES: PriceRange[] = [
   { id: '500+', label: 'R$ 500+', min: 500, max: null },
 ];
 
+// Individual price options for min/max dropdowns
+export const PRICE_OPTIONS: { id: string; label: string; value: number | null }[] = [
+  { id: 'none', label: 'Qualquer', value: null },
+  { id: '0', label: 'R$ 0', value: 0 },
+  { id: '5', label: 'R$ 5', value: 5 },
+  { id: '10', label: 'R$ 10', value: 10 },
+  { id: '15', label: 'R$ 15', value: 15 },
+  { id: '20', label: 'R$ 20', value: 20 },
+  { id: '25', label: 'R$ 25', value: 25 },
+  { id: '30', label: 'R$ 30', value: 30 },
+  { id: '35', label: 'R$ 35', value: 35 },
+  { id: '40', label: 'R$ 40', value: 40 },
+  { id: '45', label: 'R$ 45', value: 45 },
+  { id: '50', label: 'R$ 50', value: 50 },
+  { id: '60', label: 'R$ 60', value: 60 },
+  { id: '70', label: 'R$ 70', value: 70 },
+  { id: '80', label: 'R$ 80', value: 80 },
+  { id: '90', label: 'R$ 90', value: 90 },
+  { id: '100', label: 'R$ 100', value: 100 },
+  { id: '150', label: 'R$ 150', value: 150 },
+  { id: '200', label: 'R$ 200', value: 200 },
+  { id: '250', label: 'R$ 250', value: 250 },
+  { id: '300', label: 'R$ 300', value: 300 },
+];
+
 type PriceRangeFilterProps = {
   title: string;
   priceRanges?: PriceRange[];

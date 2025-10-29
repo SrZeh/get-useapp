@@ -63,6 +63,7 @@ export { ReservationCard } from './ReservationCard';
 export { ResponsiveGrid } from './ResponsiveGrid';
 export { ScrollableCategories } from './ScrollableCategories';
 export { GlobalTabBar } from './GlobalTabBar';
+export { Footer } from './Footer';
 
 // Coachmarks
 export * from './coachmarks';

@@ -7,9 +7,10 @@ import { router } from 'expo-router';
 import { doc, getDoc } from 'firebase/firestore';
 import { signOut } from 'firebase/auth';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Platform, ScrollView, TouchableOpacity, View, useColorScheme } from 'react-native';
+import { ActivityIndicator, Alert, ScrollView, TouchableOpacity, View, useColorScheme, Platform, Linking, Modal, Pressable, Dimensions, TouchableWithoutFeedback } from 'react-native';
 import { Image } from 'expo-image';
 import { LiquidGlassView } from '@/components/liquid-glass';
+import { BlurView } from 'expo-blur';
 import { Button } from '@/components/Button';
 import { useTheme } from '@/providers/ThemeProvider';
 import { Ionicons } from '@expo/vector-icons';
@@ -18,16 +19,27 @@ import { GradientTypes, HapticFeedback } from '@/utils';
 import type { UserProfile } from '@/types';
 import { useThemeColors, useBorderColorsWithOpacity, useBrandColorsWithOpacity, hexToRgba } from '@/utils/theme';
 import { Spacing, BorderRadius } from '@/constants/spacing';
+import { TERMS_URL } from '@/constants/terms';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function ProfileScreen() {
   const uid = auth.currentUser?.uid;
   const [u, setU] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [supportModalVisible, setSupportModalVisible] = useState(false);
   const { themeMode, setThemeMode, colorScheme } = useTheme();
   const isDark = colorScheme === 'dark';
   const colors = useThemeColors();
   const borderOpacity = useBorderColorsWithOpacity();
   const brandOpacity = useBrandColorsWithOpacity();
+  const insets = useSafeAreaInsets();
+  
+  // Calculate bottom padding for GlobalTabBar (approx 70px + safe area insets)
+  const tabBarHeight = Platform.select({
+    ios: 70 + insets.bottom,
+    android: 70 + insets.bottom,
+    default: 70,
+  });
 
   useEffect(() => {
     (async () => {
@@ -94,6 +106,29 @@ export default function ProfileScreen() {
     }
   };
 
+  const handleSupportPress = () => {
+    HapticFeedback.light();
+    setSupportModalVisible(true);
+  };
+
+  const handleEmailPress = () => {
+    HapticFeedback.medium();
+    const supportEmail = 'contato@getuseapp.com';
+    Linking.openURL(`mailto:${supportEmail}`).catch((error) => {
+      Alert.alert('Erro', 'Não foi possível abrir o cliente de e-mail');
+    });
+    setSupportModalVisible(false);
+  };
+
+  const handlePhonePress = () => {
+    HapticFeedback.medium();
+    const supportPhone = '+5511999999999';
+    Linking.openURL(`tel:${supportPhone}`).catch((error) => {
+      Alert.alert('Erro', 'Não foi possível fazer a ligação');
+    });
+    setSupportModalVisible(false);
+  };
+
   if (!uid) {
     return (
       <ThemedView style={{ flex: 1, padding: Spacing.sm, justifyContent: "center", alignItems: "center" }}>
@@ -123,7 +158,7 @@ export default function ProfileScreen() {
 
   return (
     <ThemedView style={{ flex: 1 }}>
-      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 32 }}>
+      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 32 + tabBarHeight }}>
         <ThemedText type="large-title" style={{ marginBottom: 24 }}>
           Meu Perfil
         </ThemedText>
@@ -349,6 +384,35 @@ export default function ProfileScreen() {
             Ver avaliações
           </Button>
           <TouchableOpacity
+            onPress={handleSupportPress}
+            activeOpacity={0.8}
+            style={{ width: '100%' }}
+          >
+            <LiquidGlassView
+              intensity="standard"
+              tint="light"
+              cornerRadius={20}
+              opacity={0.7}
+              style={{
+                paddingVertical: 16,
+                paddingHorizontal: 24,
+                alignItems: 'center',
+                justifyContent: 'center',
+                minHeight: 48,
+                flexDirection: 'row',
+                gap: 8,
+                backgroundColor: 'rgba(0, 122, 255, 0.25)', // iOS blue with transparency for glass effect
+                borderWidth: 1,
+                borderColor: '#007AFF',
+              }}
+            >
+              <Ionicons name="help-circle-outline" size={20} color="#007AFF" />
+              <ThemedText style={{ color: '#007AFF', fontWeight: '600', fontSize: 17 }}>
+                Suporte
+              </ThemedText>
+            </LiquidGlassView>
+          </TouchableOpacity>
+          <TouchableOpacity
             onPress={handleLogout}
             activeOpacity={0.8}
             style={{
@@ -373,6 +437,174 @@ export default function ProfileScreen() {
           </TouchableOpacity>
         </View>
       </ScrollView>
+
+      {/* Support Modal */}
+      <Modal
+        visible={supportModalVisible}
+        animationType="fade"
+        transparent
+        statusBarTranslucent
+        onRequestClose={() => setSupportModalVisible(false)}
+        presentationStyle="overFullScreen"
+      >
+        <Pressable
+          style={{
+            flex: 1,
+            backgroundColor: 'rgba(0, 0, 0, 0.6)',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: Spacing.sm,
+          }}
+          onPress={() => setSupportModalVisible(false)}
+        >
+          <TouchableWithoutFeedback>
+            <View
+              style={{
+                width: '100%',
+                maxWidth: Math.min(Dimensions.get('window').width - 32, 400),
+              }}
+            >
+              <LiquidGlassView
+              intensity="standard"
+              cornerRadius={BorderRadius.xl}
+              style={{
+                padding: Spacing.md,
+                gap: Spacing.md,
+              }}
+            >
+              <View style={{ alignItems: 'center', marginBottom: Spacing.xs }}>
+                <Ionicons name="help-circle" size={48} color="#004085" style={{ marginBottom: Spacing.xs }} />
+                <ThemedText type="title" style={{ fontWeight: '700', marginBottom: Spacing.xs }}>
+                  Suporte Get & Use
+                </ThemedText>
+                <ThemedText className="text-light-text-secondary dark:text-dark-text-secondary" style={{ textAlign: 'center' }}>
+                  Entre em contato conosco através dos canais abaixo:
+                </ThemedText>
+              </View>
+
+              <View style={{ gap: Spacing.xs, marginBottom: Spacing.md }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.xs }}>
+                  <Ionicons name="mail-outline" size={20} color={colors.text.primary} />
+                  <ThemedText>contato@getuseapp.com</ThemedText>
+                </View>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.xs }}>
+                  <Ionicons name="call-outline" size={20} color={colors.text.primary} />
+                  <ThemedText>(11) 99999-9999</ThemedText>
+                </View>
+              </View>
+
+              <View style={{ gap: Spacing.xs }}>
+                <TouchableOpacity
+                  onPress={handleEmailPress}
+                  activeOpacity={0.8}
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: Spacing.xs,
+                    paddingVertical: Spacing.sm,
+                    paddingHorizontal: Spacing.md,
+                    borderRadius: BorderRadius.lg,
+                    backgroundColor: 'rgba(0, 64, 133, 0.25)',
+                    borderWidth: 1,
+                    borderColor: '#004085',
+                  }}
+                >
+                  <Ionicons name="mail" size={20} color="#004085" />
+                  <ThemedText style={{ color: '#004085', fontWeight: '600' }}>
+                    Enviar E-mail
+                  </ThemedText>
+                </TouchableOpacity>
+
+                {Platform.OS !== 'web' && (
+                  <TouchableOpacity
+                    onPress={handlePhonePress}
+                    activeOpacity={0.8}
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: Spacing.xs,
+                      paddingVertical: Spacing.sm,
+                      paddingHorizontal: Spacing.md,
+                      borderRadius: BorderRadius.lg,
+                      backgroundColor: colors.isDark ? brandOpacity.primary.medium : brandOpacity.dark.medium,
+                      borderWidth: 1,
+                      borderColor: colors.isDark ? colors.brand.primary : colors.brand.dark,
+                    }}
+                  >
+                    <Ionicons name="call" size={20} color={colors.isDark ? colors.brand.primary : colors.brand.dark} />
+                    <ThemedText style={{ color: colors.isDark ? colors.brand.primary : colors.brand.dark, fontWeight: '600' }}>
+                      Ligar
+                    </ThemedText>
+                  </TouchableOpacity>
+                )}
+
+                {/* Terms and Conditions Link */}
+                <View style={{ 
+                  marginTop: Spacing.xs,
+                }}>
+                  <TouchableOpacity
+                    onPress={() => {
+                      HapticFeedback.light();
+                      router.push(TERMS_URL);
+                      setSupportModalVisible(false);
+                    }}
+                    activeOpacity={0.8}
+                    style={{
+                      width: '100%',
+                      borderRadius: BorderRadius.lg,
+                      overflow: 'hidden',
+                    }}
+                  >
+                    <BlurView
+                      intensity={50}
+                      tint={isDark ? 'dark' : 'light'}
+                      style={{
+                        paddingVertical: Spacing.sm,
+                        paddingHorizontal: Spacing.md,
+                        backgroundColor: 'rgba(255, 215, 0, 0.7)',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      <ThemedText 
+                        style={{ 
+                          fontWeight: '600',
+                          color: '#000000',
+                        }}
+                      >
+                        Termos e Condições
+                      </ThemedText>
+                    </BlurView>
+                  </TouchableOpacity>
+                </View>
+
+                <TouchableOpacity
+                  onPress={() => {
+                    HapticFeedback.light();
+                    setSupportModalVisible(false);
+                  }}
+                  activeOpacity={0.8}
+                  style={{
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    paddingVertical: Spacing.sm,
+                    paddingHorizontal: Spacing.md,
+                    borderRadius: BorderRadius.lg,
+                    marginTop: Spacing.xs,
+                  }}
+                >
+                  <ThemedText className="text-light-text-secondary dark:text-dark-text-secondary" style={{ fontWeight: '500' }}>
+                    Fechar
+                  </ThemedText>
+                </TouchableOpacity>
+              </View>
+              </LiquidGlassView>
+            </View>
+          </TouchableWithoutFeedback>
+        </Pressable>
+      </Modal>
     </ThemedView>
   );
 }

@@ -21,7 +21,8 @@ export type ItemFilters = {
   city?: string | string[]; // Support both single string and array for backward compatibility
   neighborhood?: string | string[]; // Support both single string and array for backward compatibility
   priceRange?: string; // Single price range ID (e.g., 'free', '0-50', '50-100', etc.) - legacy dropdown
-  maxPrice?: number; // Maximum price filter (number input)
+  minPrice?: number; // Minimum price filter
+  maxPrice?: number; // Maximum price filter
   excludeOwnerUid?: string;
 };
 
@@ -33,7 +34,7 @@ export type ItemFilters = {
  * @returns Filtered array of items
  */
 export function filterItems(items: Item[], filters: ItemFilters): Item[] {
-  const { search, category, city, neighborhood, priceRange, maxPrice, excludeOwnerUid } = filters;
+  const { search, category, city, neighborhood, priceRange, minPrice, maxPrice, excludeOwnerUid } = filters;
   
   const q = (search ?? '').trim().toLowerCase();
   
@@ -83,12 +84,13 @@ export function filterItems(items: Item[], filters: ItemFilters): Item[] {
       }
     }
 
+    // Calculate item effective rate once
+    const itemDailyRate = it.dailyRate ?? 0;
+    const itemIsFree = it.isFree ?? false;
+    const itemEffectiveRate = itemIsFree ? 0 : itemDailyRate;
+
     // Price range filter - legacy dropdown (still supported)
     if (selectedRange) {
-      const itemDailyRate = it.dailyRate ?? 0;
-      const itemIsFree = it.isFree ?? false;
-      const itemEffectiveRate = itemIsFree ? 0 : itemDailyRate;
-
       // Handle "free" range (both min and max are 0)
       if (selectedRange.id === 'free') {
         if (!(itemIsFree || itemEffectiveRate === 0)) {
@@ -112,12 +114,16 @@ export function filterItems(items: Item[], filters: ItemFilters): Item[] {
       }
     }
 
-    // Max price filter (number input) - items with dailyRate <= maxPrice
-    if (maxPrice !== undefined && maxPrice !== null && maxPrice > 0) {
-      const itemDailyRate = it.dailyRate ?? 0;
-      const itemIsFree = it.isFree ?? false;
-      const itemEffectiveRate = itemIsFree ? 0 : itemDailyRate;
+    // Min/Max price filter - items with dailyRate within range
+    // Min price filter
+    if (minPrice !== undefined && minPrice !== null && minPrice > 0) {
+      if (itemEffectiveRate < minPrice) {
+        return false;
+      }
+    }
 
+    // Max price filter
+    if (maxPrice !== undefined && maxPrice !== null && maxPrice > 0) {
       if (itemEffectiveRate > maxPrice) {
         return false;
       }

@@ -1,90 +1,179 @@
 /**
- * Price input filter component (number input for max price)
+ * Price min/max dropdown filter component
  */
 
-import React from 'react';
-import { View, TextInput, ViewStyle } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import React, { memo } from 'react';
+import { View, ViewStyle } from 'react-native';
 import { ThemedText } from '@/components/themed-text';
 import { LiquidGlassView } from '@/components/liquid-glass';
 import { useThemeColors } from '@/utils/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
-import { Colors } from '@/constants/theme';
+import { Ionicons } from '@expo/vector-icons';
+import { Picker } from '@react-native-picker/picker';
+import { PRICE_OPTIONS } from './PriceRangeFilter';
+import { Spacing, BorderRadius } from '@/constants/spacing';
 
 type PriceInputFilterProps = {
-  title: string;
-  value: string;
-  onChangeText: (value: string) => void;
-  placeholder?: string;
+  minPrice?: number | null;
+  maxPrice?: number | null;
+  onMinPriceChange?: (price: number | null) => void;
+  onMaxPriceChange?: (price: number | null) => void;
   style?: ViewStyle;
 };
 
 /**
- * Price input filter component for entering max price
+ * Get the value ID from a price value
  */
-export function PriceInputFilter({
-  title,
-  value,
-  onChangeText,
-  placeholder = 'Ex: 100',
+function getValueId(value: number | null | undefined): string {
+  if (value === null || value === undefined) {
+    return 'none';
+  }
+  const found = PRICE_OPTIONS.find((opt) => opt.value === value);
+  return found ? found.id : 'none';
+}
+
+/**
+ * Get the value from an option ID
+ */
+function getValueFromId(id: string): number | null {
+  const found = PRICE_OPTIONS.find((opt) => opt.id === id);
+  return found ? found.value : null;
+}
+
+/**
+ * Price min/max dropdown filter component
+ */
+export const PriceInputFilter = memo(function PriceInputFilter({
+  minPrice,
+  maxPrice,
+  onMinPriceChange,
+  onMaxPriceChange,
   style,
 }: PriceInputFilterProps) {
   const colors = useThemeColors();
-  const colorScheme = useColorScheme() ?? 'light';
-  const palette = Colors[colorScheme];
+
+  const minPriceId = getValueId(minPrice);
+  const maxPriceId = getValueId(maxPrice);
+
+  const handleMinPriceChange = (id: string) => {
+    const value = getValueFromId(id);
+    onMinPriceChange?.(value);
+  };
+
+  const handleMaxPriceChange = (id: string) => {
+    const value = getValueFromId(id);
+    onMaxPriceChange?.(value);
+  };
 
   return (
-    <View style={[{ marginBottom: 12 }, style]}>
-      {/* Title */}
-      <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8, gap: 6 }}>
-        <Ionicons
-          name="cash"
-          size={18}
-          color={colors.text.primary}
-        />
-        <ThemedText
-          type="caption-1"
-          style={{ fontWeight: '600', color: colors.text.primary }}
-        >
-          {title}
-        </ThemedText>
-      </View>
+    <View style={style}>
+      {/* Min and Max Price Dropdowns */}
+      <View style={{ flexDirection: 'row', gap: 8 }}>
+        {/* Min Price */}
+        {onMinPriceChange && (
+          <View style={{ flex: 1 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8, gap: 6 }}>
+              <Ionicons
+                name="cash"
+                size={18}
+                color={colors.text.primary}
+              />
+              <ThemedText
+                type="caption-1"
+                style={{ fontWeight: '600', color: colors.text.primary }}
+              >
+                Preço Mín
+              </ThemedText>
+            </View>
+            <LiquidGlassView intensity="subtle" cornerRadius={BorderRadius.md}>
+              <View
+                style={{
+                  borderWidth: 1,
+                  borderRadius: BorderRadius.md,
+                  borderColor: colors.border.default,
+                  backgroundColor: 'transparent',
+                }}
+              >
+                <Picker
+                  selectedValue={minPriceId}
+                  onValueChange={handleMinPriceChange}
+                  dropdownIconColor={colors.text.primary}
+                  style={{
+                    color: colors.text.primary,
+                    backgroundColor: 'transparent',
+                    paddingHorizontal: Spacing.sm,
+                    paddingVertical: Spacing.xs,
+                    borderRadius: BorderRadius.md,
+                  }}
+                  accessibilityLabel="Preço mínimo"
+                  accessibilityHint="Selecione o preço mínimo"
+                >
+                  {PRICE_OPTIONS.map((option) => (
+                    <Picker.Item
+                      key={option.id}
+                      label={option.label}
+                      value={option.id}
+                      color={colors.text.primary}
+                    />
+                  ))}
+                </Picker>
+              </View>
+            </LiquidGlassView>
+          </View>
+        )}
 
-      {/* Price Input */}
-      <LiquidGlassView intensity="subtle" cornerRadius={16}>
-        <View
-          style={{
-            flexDirection: 'row',
-            alignItems: 'center',
-            paddingHorizontal: 16,
-            paddingVertical: 12,
-            gap: 8,
-          }}
-        >
-          <ThemedText
-            type="body"
-            style={{ color: colors.text.primary, fontWeight: '600' }}
-          >
-            R$
-          </ThemedText>
-          <TextInput
-            placeholder={placeholder}
-            placeholderTextColor={palette.textTertiary}
-            value={value}
-            onChangeText={onChangeText}
-            keyboardType="numeric"
-            style={{
-              flex: 1,
-              color: palette.text,
-              fontSize: 17,
-              backgroundColor: 'transparent',
-            }}
-            accessibilityLabel={title}
-            accessibilityHint="Digite o preço máximo em reais"
-          />
-        </View>
-      </LiquidGlassView>
+        {/* Max Price */}
+        {onMaxPriceChange && (
+          <View style={{ flex: 1 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8, gap: 6 }}>
+              <Ionicons
+                name="cash"
+                size={18}
+                color={colors.text.primary}
+              />
+              <ThemedText
+                type="caption-1"
+                style={{ fontWeight: '600', color: colors.text.primary }}
+              >
+                Preço Máx
+              </ThemedText>
+            </View>
+            <LiquidGlassView intensity="subtle" cornerRadius={BorderRadius.md}>
+              <View
+                style={{
+                  borderWidth: 1,
+                  borderRadius: BorderRadius.md,
+                  borderColor: colors.border.default,
+                  backgroundColor: 'transparent',
+                }}
+              >
+                <Picker
+                  selectedValue={maxPriceId}
+                  onValueChange={handleMaxPriceChange}
+                  dropdownIconColor={colors.text.primary}
+                  style={{
+                    color: colors.text.primary,
+                    backgroundColor: 'transparent',
+                    paddingHorizontal: Spacing.sm,
+                    paddingVertical: Spacing.xs,
+                    borderRadius: BorderRadius.md,
+                  }}
+                  accessibilityLabel="Preço máximo"
+                  accessibilityHint="Selecione o preço máximo"
+                >
+                  {PRICE_OPTIONS.map((option) => (
+                    <Picker.Item
+                      key={option.id}
+                      label={option.label}
+                      value={option.id}
+                      color={colors.text.primary}
+                    />
+                  ))}
+                </Picker>
+              </View>
+            </LiquidGlassView>
+          </View>
+        )}
+      </View>
     </View>
   );
-}
-
+});

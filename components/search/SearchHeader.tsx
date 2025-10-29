@@ -68,8 +68,10 @@ type SearchHeaderProps = {
   onNeighborhoodSelect?: (neighborhood: string) => void;
   locationsLoading?: boolean;
   // Price filter props
-  maxPrice?: string;
-  onMaxPriceChange?: (price: string) => void;
+  minPrice?: number | null;
+  maxPrice?: number | null;
+  onMinPriceChange?: (price: number | null) => void;
+  onMaxPriceChange?: (price: number | null) => void;
 };
 
 /**
@@ -103,7 +105,9 @@ export function SearchHeader({
   onCitySelect,
   onNeighborhoodSelect,
   locationsLoading = false,
-  maxPrice = '',
+  minPrice = null,
+  maxPrice = null,
+  onMinPriceChange,
   onMaxPriceChange,
 }: SearchHeaderProps) {
   const colorScheme = useColorScheme() ?? 'light';
@@ -259,50 +263,58 @@ export function SearchHeader({
       </View>
 
       {/* Dropdown Filters for Cities, Neighborhoods, and Price */}
-      {(cities.length > 0 || neighborhoods.length > 0 || onMaxPriceChange) && (
+      {((cities.length > 0 || neighborhoods.length > 0) && (onCitySelect || onNeighborhoodSelect)) || (onMinPriceChange || onMaxPriceChange) ? (
         <View style={{ marginBottom: 12 }}>
-          <View style={{ flexDirection: 'row', gap: 12 }}>
-            {cities.length > 0 && onCitySelect && (
+          <View style={{ flexDirection: 'row', gap: 8 }}>
+            {/* Location Filters - Left Half */}
+            {(cities.length > 0 || neighborhoods.length > 0) && (onCitySelect || onNeighborhoodSelect) && (
               <View style={{ flex: 1 }}>
-                <DropdownFilter
-                  title="Filtrar por Cidade"
-                  options={cities}
-                  selectedValue={selectedCity}
-                  onValueChange={onCitySelect}
-                  placeholder="Todas as cidades"
-                  icon="location"
-                  loading={locationsLoading}
-                />
+                <View style={{ flexDirection: 'row', gap: 8 }}>
+                  {cities.length > 0 && onCitySelect && (
+                    <View style={{ flex: 1 }}>
+                      <DropdownFilter
+                        title="Filtrar por Cidade"
+                        options={cities}
+                        selectedValue={selectedCity}
+                        onValueChange={onCitySelect}
+                        placeholder="Todas as cidades"
+                        icon="location"
+                        loading={locationsLoading}
+                      />
+                    </View>
+                  )}
+                  
+                  {neighborhoods.length > 0 && onNeighborhoodSelect && (
+                    <View style={{ flex: 1 }}>
+                      <DropdownFilter
+                        title="Filtrar por Bairro"
+                        options={neighborhoods}
+                        selectedValue={selectedNeighborhood}
+                        onValueChange={onNeighborhoodSelect}
+                        placeholder="Todos os bairros"
+                        icon="location-outline"
+                        loading={locationsLoading}
+                      />
+                    </View>
+                  )}
+                </View>
               </View>
             )}
             
-            {neighborhoods.length > 0 && onNeighborhoodSelect && (
-              <View style={{ flex: 1 }}>
-                <DropdownFilter
-                  title="Filtrar por Bairro"
-                  options={neighborhoods}
-                  selectedValue={selectedNeighborhood}
-                  onValueChange={onNeighborhoodSelect}
-                  placeholder="Todos os bairros"
-                  icon="location-outline"
-                  loading={locationsLoading}
-                />
-              </View>
-            )}
-            
-            {onMaxPriceChange && (
+            {/* Price Min/Max Filters - Right Half */}
+            {(onMinPriceChange || onMaxPriceChange) && (
               <View style={{ flex: 1 }}>
                 <PriceInputFilter
-                  title="Preço máximo"
-                  value={maxPrice}
-                  onChangeText={onMaxPriceChange}
-                  placeholder="Ex: 100"
+                  minPrice={minPrice}
+                  maxPrice={maxPrice}
+                  onMinPriceChange={onMinPriceChange}
+                  onMaxPriceChange={onMaxPriceChange}
                 />
               </View>
             )}
           </View>
         </View>
-      )}
+      ) : null}
 
       {/* Category Chips */}
       <ScrollableCategories>

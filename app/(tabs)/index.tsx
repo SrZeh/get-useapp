@@ -74,7 +74,8 @@ export default function VitrineScreen() {
   // Dropdown filter states for single selections
   const [selectedCity, setSelectedCity] = useState<string>("");
   const [selectedNeighborhood, setSelectedNeighborhood] = useState<string>("");
-  const [maxPrice, setMaxPrice] = useState<string>("");
+  const [minPrice, setMinPrice] = useState<number | null>(null);
+  const [maxPrice, setMaxPrice] = useState<number | null>(null);
 
   // Fetch cities and neighborhoods from Firebase
   const { cities, neighborhoods, loading: locationsLoading } = useLocations();
@@ -121,10 +122,11 @@ export default function VitrineScreen() {
       category,
       city: selectedCity || city || undefined,
       neighborhood: selectedNeighborhood || neighborhood || undefined,
-      maxPrice: maxPrice ? (isNaN(parseFloat(maxPrice)) ? undefined : parseFloat(maxPrice)) : undefined,
+      minPrice: minPrice !== null ? minPrice : undefined,
+      maxPrice: maxPrice !== null ? maxPrice : undefined,
       excludeOwnerUid: me || undefined,
     }),
-    [search, category, city, neighborhood, selectedCity, selectedNeighborhood, maxPrice, me]
+    [search, category, city, neighborhood, selectedCity, selectedNeighborhood, minPrice, maxPrice, me]
   );
 
   const filteredItems = useMemo(() => filterItems(items, filters), [items, filters]);
@@ -172,7 +174,9 @@ export default function VitrineScreen() {
       onCitySelect={setSelectedCity}
       onNeighborhoodSelect={setSelectedNeighborhood}
       locationsLoading={locationsLoading}
+      minPrice={minPrice}
       maxPrice={maxPrice}
+      onMinPriceChange={setMinPrice}
       onMaxPriceChange={setMaxPrice}
     />
   );
