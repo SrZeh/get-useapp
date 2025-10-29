@@ -10,7 +10,6 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, ScrollView, TouchableOpacity, View, useColorScheme, Platform, Linking, Modal, Pressable, Dimensions, TouchableWithoutFeedback } from 'react-native';
 import { Image } from 'expo-image';
 import { LiquidGlassView } from '@/components/liquid-glass';
-import { BlurView } from 'expo-blur';
 import { Button } from '@/components/Button';
 import { useTheme } from '@/providers/ThemeProvider';
 import { Ionicons } from '@expo/vector-icons';
@@ -453,7 +452,7 @@ export default function ProfileScreen() {
             backgroundColor: 'rgba(0, 0, 0, 0.6)',
             alignItems: 'center',
             justifyContent: 'center',
-            padding: Spacing.sm,
+            padding: Spacing.md,
           }}
           onPress={() => setSupportModalVisible(false)}
         >
@@ -461,64 +460,75 @@ export default function ProfileScreen() {
             <View
               style={{
                 width: '100%',
-                maxWidth: Math.min(Dimensions.get('window').width - 32, 400),
+                maxWidth: Math.min(Dimensions.get('window').width - 32, 480),
               }}
+              onStartShouldSetResponder={() => true}
             >
               <LiquidGlassView
-              intensity="standard"
-              cornerRadius={BorderRadius.xl}
-              style={{
-                padding: Spacing.md,
-                gap: Spacing.md,
-              }}
-            >
-              <View style={{ alignItems: 'center', marginBottom: Spacing.xs }}>
-                <Ionicons name="help-circle" size={48} color="#004085" style={{ marginBottom: Spacing.xs }} />
-                <ThemedText type="title" style={{ fontWeight: '700', marginBottom: Spacing.xs }}>
-                  Suporte Get & Use
-                </ThemedText>
-                <ThemedText className="text-light-text-secondary dark:text-dark-text-secondary" style={{ textAlign: 'center' }}>
-                  Entre em contato conosco através dos canais abaixo:
-                </ThemedText>
-              </View>
-
-              <View style={{ gap: Spacing.xs, marginBottom: Spacing.md }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.xs }}>
-                  <Ionicons name="mail-outline" size={20} color={colors.text.primary} />
-                  <ThemedText>contato@getuseapp.com</ThemedText>
+                intensity="standard"
+                cornerRadius={BorderRadius.xl}
+                style={{
+                  padding: Spacing.lg,
+                  gap: Spacing.md,
+                }}
+              >
+                {/* Header */}
+                <View style={{ alignItems: 'center', marginBottom: Spacing.sm }}>
+                  <Ionicons 
+                    name="help-circle" 
+                    size={48} 
+                    color={colors.isDark ? colors.brand.primary : colors.brand.dark} 
+                    style={{ marginBottom: Spacing.xs }} 
+                  />
+                  <ThemedText type="title" style={{ fontWeight: '700', marginBottom: Spacing.xs, textAlign: 'center' }}>
+                    Suporte Get & Use
+                  </ThemedText>
+                  <ThemedText 
+                    className="text-light-text-secondary dark:text-dark-text-secondary" 
+                    style={{ textAlign: 'center', fontSize: 15, lineHeight: 22 }}
+                  >
+                    Entre em contato conosco através dos canais abaixo:
+                  </ThemedText>
                 </View>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.xs }}>
-                  <Ionicons name="call-outline" size={20} color={colors.text.primary} />
-                  <ThemedText>(11) 99999-9999</ThemedText>
-                </View>
-              </View>
 
-              <View style={{ gap: Spacing.xs }}>
-                <TouchableOpacity
-                  onPress={handleEmailPress}
-                  activeOpacity={0.8}
-                  style={{
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: Spacing.xs,
-                    paddingVertical: Spacing.sm,
+                {/* Contact Info */}
+                <View 
+                  style={{ 
+                    gap: Spacing.sm, 
+                    marginBottom: Spacing.md,
+                    paddingVertical: Spacing.md,
                     paddingHorizontal: Spacing.md,
-                    borderRadius: BorderRadius.lg,
-                    backgroundColor: 'rgba(0, 64, 133, 0.25)',
-                    borderWidth: 1,
-                    borderColor: '#004085',
+                    backgroundColor: colors.isDark ? brandOpacity.primary.low : brandOpacity.dark.low,
+                    borderRadius: BorderRadius.md,
                   }}
                 >
-                  <Ionicons name="mail" size={20} color="#004085" />
-                  <ThemedText style={{ color: '#004085', fontWeight: '600' }}>
-                    Enviar E-mail
-                  </ThemedText>
-                </TouchableOpacity>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.sm }}>
+                    <Ionicons 
+                      name="mail-outline" 
+                      size={20} 
+                      color={colors.isDark ? colors.brand.primary : colors.brand.dark} 
+                    />
+                    <ThemedText style={{ fontSize: 15, flex: 1 }}>
+                      contato@getuseapp.com
+                    </ThemedText>
+                  </View>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.sm }}>
+                    <Ionicons 
+                      name="call-outline" 
+                      size={20} 
+                      color={colors.isDark ? colors.brand.primary : colors.brand.dark} 
+                    />
+                    <ThemedText style={{ fontSize: 15, flex: 1 }}>
+                      (11) 99999-9999
+                    </ThemedText>
+                  </View>
+                </View>
 
-                {Platform.OS !== 'web' && (
+                {/* Action Buttons */}
+                <View style={{ gap: Spacing.sm }}>
+                  {/* Email Button - Blue Background */}
                   <TouchableOpacity
-                    onPress={handlePhonePress}
+                    onPress={handleEmailPress}
                     activeOpacity={0.8}
                     style={{
                       flexDirection: 'row',
@@ -528,22 +538,34 @@ export default function ProfileScreen() {
                       paddingVertical: Spacing.sm,
                       paddingHorizontal: Spacing.md,
                       borderRadius: BorderRadius.lg,
-                      backgroundColor: colors.isDark ? brandOpacity.primary.medium : brandOpacity.dark.medium,
-                      borderWidth: 1,
-                      borderColor: colors.isDark ? colors.brand.primary : colors.brand.dark,
+                      backgroundColor: '#3b82f6', // Blue-500
+                      minHeight: 48,
                     }}
                   >
-                    <Ionicons name="call" size={20} color={colors.isDark ? colors.brand.primary : colors.brand.dark} />
-                    <ThemedText style={{ color: colors.isDark ? colors.brand.primary : colors.brand.dark, fontWeight: '600' }}>
-                      Ligar
+                    <Ionicons name="mail" size={20} color="#ffffff" />
+                    <ThemedText style={{ color: '#ffffff', fontWeight: '600', fontSize: 17 }}>
+                      Enviar E-mail
                     </ThemedText>
                   </TouchableOpacity>
-                )}
 
-                {/* Terms and Conditions Link */}
-                <View style={{ 
-                  marginTop: Spacing.xs,
-                }}>
+                  {Platform.OS !== 'web' && (
+                    <Button
+                      variant="secondary"
+                      onPress={handlePhonePress}
+                      fullWidth
+                      iconLeft={
+                        <Ionicons 
+                          name="call" 
+                          size={20} 
+                          color={colors.isDark ? colors.brand.primary : colors.brand.dark} 
+                        />
+                      }
+                    >
+                      Ligar
+                    </Button>
+                  )}
+
+                  {/* Terms and Conditions Button - Yellow Background */}
                   <TouchableOpacity
                     onPress={() => {
                       HapticFeedback.light();
@@ -552,54 +574,63 @@ export default function ProfileScreen() {
                     }}
                     activeOpacity={0.8}
                     style={{
-                      width: '100%',
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: Spacing.xs,
+                      paddingVertical: Spacing.sm,
+                      paddingHorizontal: Spacing.md,
                       borderRadius: BorderRadius.lg,
-                      overflow: 'hidden',
+                      backgroundColor: colors.isDark ? '#fbbf24' : '#fbbf24', // Amber-400 (works well in both modes)
+                      minHeight: 48,
+                      borderWidth: 1,
+                      borderColor: colors.isDark ? '#f59e0b' : '#d97706', // Amber-500/600 for border
                     }}
                   >
-                    <BlurView
-                      intensity={50}
-                      tint={isDark ? 'dark' : 'light'}
-                      style={{
-                        paddingVertical: Spacing.sm,
-                        paddingHorizontal: Spacing.md,
-                        backgroundColor: 'rgba(255, 215, 0, 0.7)',
-                        alignItems: 'center',
-                        justifyContent: 'center',
+                    <Ionicons 
+                      name="document-text-outline" 
+                      size={20} 
+                      color={colors.isDark ? '#1f2937' : '#1f2937'} 
+                    />
+                    <ThemedText style={{ color: colors.isDark ? '#1f2937' : '#1f2937', fontWeight: '600', fontSize: 17 }}>
+                      Termos e Condições
+                    </ThemedText>
+                  </TouchableOpacity>
+
+                  {/* Close Button - Light Blur Red */}
+                  <TouchableOpacity
+                    onPress={() => {
+                      HapticFeedback.light();
+                      setSupportModalVisible(false);
+                    }}
+                    activeOpacity={0.7}
+                    style={{
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      paddingVertical: Spacing.md,
+                      paddingHorizontal: Spacing.md,
+                      marginTop: Spacing.xs,
+                      borderRadius: BorderRadius.lg,
+                      backgroundColor: colors.isDark 
+                        ? 'rgba(248, 113, 113, 0.2)' // Light red with transparency for dark mode
+                        : 'rgba(239, 68, 68, 0.15)', // Light red with transparency for light mode
+                      borderWidth: 1,
+                      borderColor: colors.isDark 
+                        ? 'rgba(248, 113, 113, 0.4)' // Red border for dark mode
+                        : 'rgba(239, 68, 68, 0.3)', // Red border for light mode
+                    }}
+                  >
+                    <ThemedText 
+                      style={{ 
+                        color: colors.semantic.error, 
+                        fontWeight: '500', 
+                        fontSize: 15 
                       }}
                     >
-                      <ThemedText 
-                        style={{ 
-                          fontWeight: '600',
-                          color: '#000000',
-                        }}
-                      >
-                        Termos e Condições
-                      </ThemedText>
-                    </BlurView>
+                      Fechar
+                    </ThemedText>
                   </TouchableOpacity>
                 </View>
-
-                <TouchableOpacity
-                  onPress={() => {
-                    HapticFeedback.light();
-                    setSupportModalVisible(false);
-                  }}
-                  activeOpacity={0.8}
-                  style={{
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    paddingVertical: Spacing.sm,
-                    paddingHorizontal: Spacing.md,
-                    borderRadius: BorderRadius.lg,
-                    marginTop: Spacing.xs,
-                  }}
-                >
-                  <ThemedText className="text-light-text-secondary dark:text-dark-text-secondary" style={{ fontWeight: '500' }}>
-                    Fechar
-                  </ThemedText>
-                </TouchableOpacity>
-              </View>
               </LiquidGlassView>
             </View>
           </TouchableWithoutFeedback>
