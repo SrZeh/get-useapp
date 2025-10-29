@@ -12,6 +12,7 @@ import { ShimmerLoader } from "@/components/ShimmerLoader";
 import { Button } from "@/components/Button";
 import { useResponsive } from "@/hooks/useResponsive";
 import { HorizontalCarousel } from "@/components/HorizontalCarousel";
+import { ScrollableCategories } from "@/components/ScrollableCategories";
 import {
   collection,
   getDocs,
@@ -500,33 +501,11 @@ export default function VitrineScreen() {
         </View>
       </View>
 
-      {/* Responsive Categories: Carousel on mobile, ScrollView on larger screens */}
-      {isMobile && CATEGORIES.length > 5 ? (
-        <HorizontalCarousel
-          items={[
-            { id: "_all", render: () => renderChip("Todas", "") },
-            ...CATEGORIES.map((c) => ({
-              id: c,
-              render: () => renderChip(c, c),
-            })),
-          ]}
-          itemWidth="auto"
-          spacing={8}
-          showIndicators={false}
-          useLiquidGlass={false}
-          snapToInterval={false}
-        />
-      ) : (
-        <ScrollView 
-          horizontal 
-          showsHorizontalScrollIndicator={false}
-          style={{ marginBottom: 12 }}
-          contentContainerStyle={{ paddingRight: 16 }}
-        >
-          {renderChip("Todas", "")}
-          {CATEGORIES.map((c) => renderChip(c, c))}
-        </ScrollView>
-      )}
+      {/* Responsive Categories with Navigation Arrows */}
+      <ScrollableCategories>
+        {renderChip("Todas", "")}
+        {CATEGORIES.map((c) => renderChip(c, c))}
+      </ScrollableCategories>
 
       {/* Loading no topo enquanto busca a 1ª página */}
       {loading && (
