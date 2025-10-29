@@ -27,7 +27,21 @@ module.exports = {
   ],
   rules: {
     "quotes": ["error", "double"],
-    "import/no-unresolved": 0,
+    "import/no-unresolved": "off",
+    "import/namespace": ["error", { "allowComputed": true }],
     "indent": ["error", 2],
+    "@typescript-eslint/no-unused-vars": ["warn", { "argsIgnorePattern": "^_" }],
+    "@typescript-eslint/array-type": ["warn", { "default": "array" }],
+  },
+  settings: {
+    "import/resolver": {
+      "typescript": {
+        "alwaysTryTypes": true,
+        "project": "./tsconfig.json",
+      },
+      "node": {
+        "extensions": [".js", ".jsx", ".ts", ".tsx"],
+      },
+    },
   },
 };

@@ -1,11 +1,11 @@
+/* eslint-disable import/namespace */
 // functions/src/index.ts
 import * as admin from "firebase-admin";
 import { App as AdminApp, initializeApp } from "firebase-admin/app";
-import { getFirestore, FieldValue } from "firebase-admin/firestore";
+import { getFirestore } from "firebase-admin/firestore";
 import { setGlobalOptions } from "firebase-functions/v2";
 import { onDocumentCreated } from "firebase-functions/v2/firestore";
 import { HttpsError, onCall, onRequest } from "firebase-functions/v2/https";
-import * as functions from "firebase-functions"; 
 import * as functionsV1 from "firebase-functions/v1";
 import Stripe from "stripe";
 
@@ -94,11 +94,13 @@ async function cleanupUserData(uid: string) {
   // 1) Perfil (users/{uid})
   try {
     await db.collection("users").doc(uid).delete();
-  } catch (_) {}
+  } catch {
+    // Ignore errors during cleanup
+  }
 
   // 2) Coleções relacionadas (ajuste/expanda conforme seu schema)
   // Evita duplicar deleção da mesma doc: (se quiser, pode usar Set de ids)
-  const COLS: Array<{ name: string; field: string }> = [
+  const COLS: { name: string; field: string }[] = [
     // Itens do usuário (dono)
     { name: "items", field: "ownerUid" },
     // Reservas em que participou
@@ -109,13 +111,17 @@ async function cleanupUserData(uid: string) {
     { name: "messages", field: "toUid" },
   ];
   for (const c of COLS) {
-    try { await deleteWhere(c.name, c.field, uid); } catch (_) {}
+    try { await deleteWhere(c.name, c.field, uid); } catch {
+      // Ignore errors during cleanup
+    }
   }
 
   // 3) Storage (apagar arquivos do usuário)
   try {
     await admin.storage().bucket().deleteFiles({ prefix: `users/${uid}/` });
-  } catch (_) {}
+  } catch {
+    // Ignore errors during cleanup
+  }
 }
 
 
