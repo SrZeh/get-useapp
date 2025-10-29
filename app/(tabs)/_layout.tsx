@@ -1,7 +1,7 @@
 // app/(tabs)/_layout.tsx
 import AuthHeaderRight from "@/components/AuthHeaderRight";
-import { HeaderMenu } from "@/components/HeaderMenu";
 import { TabIcon } from "@/components/ui/TabIcon";
+import { ThemedText } from "@/components/themed-text";
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { Link, Tabs } from "expo-router";
@@ -18,13 +18,14 @@ import ShippingBoxSvg from "@/assets/icons/shippingbox.svg";
 // const ItemsUrl = "https://example.com/box.png";
 
 import { useTransactionsDot } from "@/src/hooks/usePendingTransactions";
+import { useAuth } from "@/src/providers/AuthProvider";
 
 function LogoIcon() {
   return (
     <Link href="/" asChild>
       <Pressable
         accessibilityRole="link"
-        style={{ alignItems: "center", justifyContent: "center" }}
+        style={{ alignItems: "center", justifyContent: "center", marginLeft: 16 }}
         android_ripple={{ borderless: true }}
         accessibilityLabel="Get & Use"
       >
@@ -38,11 +39,30 @@ function LogoIcon() {
   );
 }
 
+function HeaderTitle() {
+  return (
+    <ThemedText
+      type="headline"
+      style={{
+        color: "#96ff9a",
+        fontWeight: "600",
+        textShadowColor: "#000000",
+        textShadowOffset: { width: 0, height: 2 },
+        textShadowRadius: 4,
+      }}
+    >
+      Get&Use
+    </ThemedText>
+  );
+}
+
 export default function TabLayout() {
   const scheme = useColorScheme() ?? "light";
   const palette = Colors[scheme];
 
   const showTxDot = useTransactionsDot();
+  const { user } = useAuth();
+  const isLoggedIn = !!user;
 
   return (
     <Tabs
@@ -50,17 +70,19 @@ export default function TabLayout() {
       screenOptions={{
         headerShown: true,
         headerTitleAlign: "center",
-        headerTitle: () => <LogoIcon />,
-        headerLeft: () => <HeaderMenu />,
+        headerTitle: () => <HeaderTitle />,
+        headerLeft: () => <LogoIcon />,
         headerRight: () => <AuthHeaderRight />,
         headerStyle: { backgroundColor: palette.background },
         headerTintColor: palette.text,
         headerTitleStyle: { color: palette.text },
-        tabBarStyle: {
-          backgroundColor: palette.background,
-          borderTopColor: palette.border,
-          borderTopWidth: 1,
-        },
+        tabBarStyle: isLoggedIn
+          ? {
+              backgroundColor: palette.background,
+              borderTopColor: palette.border,
+              borderTopWidth: 1,
+            }
+          : { display: "none" },
         tabBarActiveTintColor: palette.tabIconSelected,
         tabBarInactiveTintColor: palette.tabIconDefault,
       }}

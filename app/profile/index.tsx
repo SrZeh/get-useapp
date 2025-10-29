@@ -5,8 +5,9 @@ import { ThemedView } from '@/components/themed-view';
 import { auth, db } from '@/lib/firebase';
 import { router } from 'expo-router';
 import { doc, getDoc } from 'firebase/firestore';
+import { signOut } from 'firebase/auth';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Image, ScrollView, TouchableOpacity, View, useColorScheme } from 'react-native';
+import { ActivityIndicator, Alert, Image, Platform, ScrollView, TouchableOpacity, View, useColorScheme } from 'react-native';
 import { LiquidGlassView } from '@/components/liquid-glass';
 import { Button } from '@/components/Button';
 import { useTheme } from '@/providers/ThemeProvider';
@@ -40,6 +41,52 @@ export default function ProfileScreen() {
   const handleThemeChange = (mode: 'light' | 'dark' | 'system') => {
     HapticFeedback.selection();
     setThemeMode(mode);
+  };
+
+  const handleLogout = () => {
+    HapticFeedback.medium();
+
+    if (Platform.OS === 'web') {
+      const confirmed = window.confirm('Tem certeza que deseja sair?');
+      if (!confirmed) return;
+
+      signOut(auth)
+        .then(() => {
+          HapticFeedback.success();
+          router.replace('/(auth)/login');
+        })
+        .catch((error) => {
+          HapticFeedback.error();
+          const errorMessage = error instanceof Error ? error.message : 'Erro ao fazer logout';
+          window.alert(`Erro ao sair\n\n${errorMessage}`);
+        });
+    } else {
+      Alert.alert(
+        'Sair',
+        'Tem certeza que deseja sair?',
+        [
+          {
+            text: 'Cancelar',
+            style: 'cancel',
+          },
+          {
+            text: 'Sair',
+            style: 'destructive',
+            onPress: async () => {
+              try {
+                await signOut(auth);
+                HapticFeedback.success();
+                router.replace('/(auth)/login');
+              } catch (error) {
+                HapticFeedback.error();
+                const errorMessage = error instanceof Error ? error.message : 'Erro ao fazer logout';
+                Alert.alert('Erro ao sair', errorMessage);
+              }
+            },
+          },
+        ]
+      );
+    }
   };
 
   if (!uid) {
@@ -256,6 +303,29 @@ export default function ProfileScreen() {
           >
             Ver avaliações
           </Button>
+          <TouchableOpacity
+            onPress={handleLogout}
+            activeOpacity={0.8}
+            style={{
+              paddingVertical: 16,
+              paddingHorizontal: 24,
+              borderRadius: 20,
+              alignItems: 'center',
+              justifyContent: 'center',
+              minHeight: 48,
+              marginTop: 8,
+              backgroundColor: isDark ? 'rgba(239, 68, 68, 0.2)' : 'rgba(239, 68, 68, 0.15)',
+              borderWidth: 1,
+              borderColor: '#ef4444',
+              flexDirection: 'row',
+              gap: 8,
+            }}
+          >
+            <Ionicons name="log-out-outline" size={20} color="#ef4444" />
+            <ThemedText style={{ color: '#ef4444', fontWeight: '600' }}>
+              Sair
+            </ThemedText>
+          </TouchableOpacity>
         </View>
       </ScrollView>
     </ThemedView>
