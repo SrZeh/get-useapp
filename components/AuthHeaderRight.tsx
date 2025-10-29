@@ -1,15 +1,19 @@
 // components/AuthHeaderRight.tsx
-import { ThemedText } from "@/components/themed-text";
 import { auth, db } from "@/lib/firebase";
 import { router } from "expo-router";
-import { onAuthStateChanged, signOut } from "firebase/auth";
+import { onAuthStateChanged } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
 import React, { useEffect, useState } from "react";
-import { Image, TouchableOpacity, View } from "react-native";
+import { Image, TouchableOpacity } from "react-native";
+import { MaterialIcons } from "@expo/vector-icons";
+import { Colors } from "@/constants/theme";
+import { useColorScheme } from "@/hooks/use-color-scheme";
 
 export default function AuthHeaderRight() {
   const [user, setUser] = useState(auth.currentUser);
   const [photoURL, setPhotoURL] = useState<string | null>(null);
+  const scheme = useColorScheme() ?? "light";
+  const palette = Colors[scheme];
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (u) => {
@@ -29,40 +33,34 @@ export default function AuthHeaderRight() {
     return () => unsub();
   }, []);
 
-  if (!user) {
-    return (
-      <View style={{ flexDirection: "row", gap: 12, marginRight: 8 }}>
-        <TouchableOpacity onPress={() => router.push("/(auth)/login")}>
-          <ThemedText type="defaultSemiBold">Entrar</ThemedText>
-        </TouchableOpacity>
-        <TouchableOpacity onPress={() => router.push("/(auth)/register")}>
-          <ThemedText>Cadastre-se</ThemedText>
-        </TouchableOpacity>
-      </View>
-    );
-  }
+  const handlePress = () => {
+    if (user) {
+      router.push("/profile");
+    } else {
+      router.push("/(auth)/login");
+    }
+  };
 
   return (
-    <View style={{ flexDirection: "row", gap: 12, marginRight: 8, alignItems: "center" }}>
-      <TouchableOpacity onPress={() => router.push("/profile")}>
-        {photoURL ? (
-          <Image
-            source={{ uri: photoURL }}
-            style={{ width: 32, height: 32, borderRadius: 16 }}
-          />
-        ) : (
-          <View style={{
-            width: 32, height: 32, borderRadius: 16, backgroundColor: "#6b7280",
-            alignItems: "center", justifyContent: "center"
-          }}>
-            <ThemedText style={{ color: "#fff" }}>👤</ThemedText>
-          </View>
-        )}
-      </TouchableOpacity>
-
-      <TouchableOpacity onPress={async () => { await signOut(auth); }}>
-        <ThemedText>Sair</ThemedText>
-      </TouchableOpacity>
-    </View>
+    <TouchableOpacity
+      onPress={handlePress}
+      style={{ marginRight: 16 }}
+      android_ripple={{ borderless: true }}
+      accessibilityRole="button"
+      accessibilityLabel={user ? "Perfil" : "Entrar"}
+    >
+      {user && photoURL ? (
+        <Image
+          source={{ uri: photoURL }}
+          style={{ width: 32, height: 32, borderRadius: 16 }}
+        />
+      ) : (
+        <MaterialIcons
+          name="account-circle"
+          size={32}
+          color={palette.icon}
+        />
+      )}
+    </TouchableOpacity>
   );
 }

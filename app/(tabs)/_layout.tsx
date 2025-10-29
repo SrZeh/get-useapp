@@ -1,6 +1,6 @@
 // app/(tabs)/_layout.tsx
 import AuthHeaderRight from "@/components/AuthHeaderRight";
-import { ThemedText } from "@/components/themed-text";
+import { HeaderMenu } from "@/components/HeaderMenu";
 import { TabIcon } from "@/components/ui/TabIcon";
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -19,20 +19,20 @@ import ShippingBoxSvg from "@/assets/icons/shippingbox.svg";
 
 import { useTransactionsDot } from "@/src/hooks/usePendingTransactions";
 
-function TitleLogoLink() {
+function LogoIcon() {
   return (
     <Link href="/" asChild>
       <Pressable
         accessibilityRole="link"
-        style={{ flexDirection: "row", alignItems: "center" }}
+        style={{ alignItems: "center", justifyContent: "center" }}
         android_ripple={{ borderless: true }}
+        accessibilityLabel="Get & Use"
       >
         <Image
           source={require("@/assets/images/logo.png")}
-          style={{ width: 24, height: 24, marginRight: 8 }}
+          style={{ width: 28, height: 28 }}
           resizeMode="contain"
         />
-        <ThemedText type="defaultSemiBold">Get &amp; Use</ThemedText>
       </Pressable>
     </Link>
   );
@@ -49,10 +49,12 @@ export default function TabLayout() {
 
   return (
     <Tabs
+      initialRouteName="index"
       screenOptions={{
         headerShown: true,
-        headerTitleAlign: "left",
-        headerTitle: () => <TitleLogoLink />,
+        headerTitleAlign: "center",
+        headerTitle: () => <LogoIcon />,
+        headerLeft: () => <HeaderMenu />,
         headerRight: () => <AuthHeaderRight />,
         headerStyle: { backgroundColor: palette.background },
         headerTintColor: palette.text,

@@ -1,29 +1,86 @@
 /**
- * Below are the colors that are used in the app. The colors are defined in the light and dark mode.
- * There are many other ways to style your app. For example, [Nativewind](https://www.nativewind.dev/), [Tamagui](https://tamagui.dev/), [unistyles](https://reactnativeunistyles.vercel.app), etc.
+ * Design system colors aligned with iOS 26 Liquid Glass Design System
+ * Brand Color: #96ff9a (Light Green/Mint)
+ * 
+ * For most styling, prefer using NativeWind classes directly.
+ * This file is maintained for backwards compatibility with themed components.
  */
 
 import { Platform } from 'react-native';
 
+// Brand color tint for light mode (darker green)
 const tintColorLight = '#151718';
+// Brand color for dark mode
 const tintColorDark = '#96ff9a';
 
 export const Colors = {
   light: {
-    text: '#11181C',
-    background: '#96ff9a',
+    // Text colors
+    text: '#11181C', // light-text-primary
+    textSecondary: '#111827', // light-text-secondary
+    textTertiary: '#374151', // light-text-tertiary
+    textQuaternary: '#6b7280', // light-text-quaternary
+    
+    // Background colors
+    background: '#96ff9a', // light-bg-primary (brand color)
+    backgroundSecondary: '#ffffff', // light-bg-secondary
+    backgroundTertiary: '#f3f4f6', // light-bg-tertiary
+    
+    // UI colors
     tint: tintColorLight,
-    icon: '#687076',
+    icon: '#687076', // neutral-400 equivalent
     tabIconDefault: '#687076',
     tabIconSelected: tintColorLight,
+    
+    // Borders
+    border: '#e5e7eb', // border-light
+    borderAlt: '#d1d5db', // border-light-alt
+    
+    // Card/Container
+    cardBg: '#f9fafb', // card-light-bg
+    
+    // Input
+    inputBg: '#ffffff', // input-light-bg
+    
+    // Semantic colors
+    success: '#08af0e', // success-primary
+    error: '#ef4444', // error-primary
+    warning: '#f59e0b', // warning-primary
+    info: '#2563eb', // info-primary
   },
   dark: {
-    text: '#96ff9a',
-    background: '#151718',
+    // Text colors
+    text: '#96ff9a', // dark-text-primary (brand color)
+    textSecondary: '#e5e7eb', // dark-text-secondary
+    textTertiary: '#cbd5e1', // dark-text-tertiary
+    textQuaternary: '#ffffff', // dark-text-quaternary
+    
+    // Background colors
+    background: '#151718', // dark-bg-primary
+    backgroundSecondary: '#111214', // dark-bg-secondary
+    backgroundTertiary: '#0b1220', // dark-bg-tertiary
+    
+    // UI colors
     tint: tintColorDark,
-    icon: '#9BA1A6',
+    icon: '#9BA1A6', // neutral-400 equivalent
     tabIconDefault: '#9BA1A6',
     tabIconSelected: tintColorDark,
+    
+    // Borders
+    border: '#374151', // border-dark
+    borderAlt: '#2a2a2a', // border-dark-alt
+    
+    // Card/Container
+    cardBg: '#0b1220', // card-dark-bg
+    
+    // Input
+    inputBg: '#111827', // input-dark-bg
+    
+    // Semantic colors
+    success: '#08af0e', // success-primary
+    error: '#ef4444', // error-primary
+    warning: '#f59e0b', // warning-primary
+    info: '#2563eb', // info-primary
   },
 };
 
