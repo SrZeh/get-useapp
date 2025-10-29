@@ -1,4 +1,8 @@
 /* iOS 26 Liquid Glass Design System - Global Styles */
+/* 
+ * This CSS uses CSS variables that are dynamically injected from the React theme system.
+ * Variables are set in WebStyles.tsx component via JavaScript.
+ */
 
 /* Base reset and web optimizations */
 * {
@@ -15,40 +19,130 @@ body {
   padding: 0;
 }
 
-/* Glass Effects */
+/* CSS Variables - Default values (light mode) */
+/* These are overridden by WebStyles.tsx when theme changes */
+:root {
+  /* Brand Colors */
+  --brand-primary: #96ff9a;
+  --brand-secondary: #80e685;
+  --brand-dark: #08af0e;
+  --brand-light: #b3ffb5;
+  
+  /* Background Colors */
+  --bg-primary: #ffffff;
+  --bg-secondary: #f9fafb;
+  --bg-tertiary: #f3f4f6;
+  
+  /* Text Colors */
+  --text-primary: #0a0a0a;
+  --text-secondary: #1f2937;
+  --text-tertiary: #4b5563;
+  --text-quaternary: #6b7280;
+  
+  /* Border Colors */
+  --border-default: #e5e7eb;
+  --border-alt: #d1d5db;
+  
+  /* Input Colors */
+  --input-bg: #ffffff;
+  --input-border: #e5e7eb;
+  --input-border-focus: #08af0e;
+  --input-text: #0a0a0a;
+  
+  /* Badge Colors */
+  --badge-primary-bg: #96ff9a;
+  --badge-primary-text: #0a0a0a;
+  --badge-success-bg: #08af0e;
+  --badge-success-text: #ffffff;
+  --badge-warning-bg: #f59e0b;
+  --badge-warning-text: #ffffff;
+  --badge-error-bg: #ef4444;
+  --badge-error-text: #ffffff;
+  
+  /* Glass Effect Colors */
+  --glass-bg-subtle: rgba(255, 255, 255, 0.5);
+  --glass-bg-standard: rgba(255, 255, 255, 0.7);
+  --glass-bg-strong: rgba(255, 255, 255, 0.9);
+  --glass-border-subtle: rgba(255, 255, 255, 0.1);
+  --glass-border-standard: rgba(255, 255, 255, 0.2);
+  --glass-border-strong: rgba(255, 255, 255, 0.3);
+  
+  /* Shimmer Colors */
+  --shimmer-bg: #f3f4f6;
+  --shimmer-gradient: rgba(255, 255, 255, 0.4);
+  
+  /* Scrollbar Colors */
+  --scrollbar-thumb: rgba(150, 255, 154, 0.3);
+  --scrollbar-thumb-hover: rgba(150, 255, 154, 0.5);
+  
+  /* Semantic Colors */
+  --error-primary: #ef4444;
+}
+
+/* Dark mode variable overrides (applied via .dark class) */
+.dark {
+  /* Background Colors */
+  --bg-primary: #0f1419;
+  --bg-secondary: #1a1f2e;
+  --bg-tertiary: #0d1117;
+  
+  /* Text Colors */
+  --text-primary: #f9fafb;
+  --text-secondary: #e5e7eb;
+  --text-tertiary: #cbd5e1;
+  --text-quaternary: #94a3b8;
+  
+  /* Border Colors */
+  --border-default: #334155;
+  --border-alt: #1e293b;
+  
+  /* Input Colors */
+  --input-bg: #1a1f2e;
+  --input-border: #334155;
+  --input-border-focus: #96ff9a;
+  --input-text: #e5e7eb;
+  
+  /* Badge Colors - Use same brand colors but adjust text */
+  --badge-primary-text: #0a0a0a; /* Keep dark text on light green bg */
+  
+  /* Glass Effect Colors - Dark mode variants */
+  --glass-bg-subtle: rgba(15, 20, 25, 0.5);
+  --glass-bg-standard: rgba(15, 20, 25, 0.7);
+  --glass-bg-strong: rgba(15, 20, 25, 0.9);
+  --glass-border-subtle: rgba(255, 255, 255, 0.05);
+  --glass-border-standard: rgba(255, 255, 255, 0.1);
+  --glass-border-strong: rgba(255, 255, 255, 0.15);
+  
+  /* Shimmer Colors */
+  --shimmer-bg: #0d1117;
+  --shimmer-gradient: rgba(255, 255, 255, 0.1);
+  
+  /* Scrollbar Colors */
+  --scrollbar-thumb: rgba(150, 255, 154, 0.2);
+  --scrollbar-thumb-hover: rgba(150, 255, 154, 0.4);
+  
+  /* Semantic Colors */
+  --error-primary: #f87171;
+}
+
+/* Glass Effects - Using CSS variables */
 .glass {
-  background-color: rgba(255, 255, 255, 0.7);
+  background-color: var(--glass-bg-standard);
   backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: 1px solid var(--glass-border-standard);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
 }
 
 .glass-strong {
-  background-color: rgba(255, 255, 255, 0.9);
+  background-color: var(--glass-bg-strong);
   backdrop-filter: blur(24px);
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  border: 1px solid var(--glass-border-strong);
 }
 
 .glass-subtle {
-  background-color: rgba(255, 255, 255, 0.5);
+  background-color: var(--glass-bg-subtle);
   backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-/* Dark mode glass variants - Updated to match new dark palette */
-.dark .glass {
-  background-color: rgba(15, 20, 25, 0.7);
-  border-color: rgba(255, 255, 255, 0.1);
-}
-
-.dark .glass-strong {
-  background-color: rgba(15, 20, 25, 0.9);
-  border-color: rgba(255, 255, 255, 0.15);
-}
-
-.dark .glass-subtle {
-  background-color: rgba(15, 20, 25, 0.5);
-  border-color: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--glass-border-subtle);
 }
 
 /* Container utilities */
@@ -98,13 +192,14 @@ body {
   }
 }
 
-/* Input styles */
+/* Input styles - Using CSS variables */
 .input {
   width: 100%;
   padding: 0.75rem 1rem;
   border-radius: 12px;
-  border: 1px solid #e5e7eb;
-  background-color: #ffffff;
+  border: 1px solid var(--input-border);
+  background-color: var(--input-bg);
+  color: var(--input-text);
   font-size: 16px;
   line-height: 24px;
   transition: all 200ms ease-fluid;
@@ -112,33 +207,26 @@ body {
 
 .input:focus {
   outline: none;
-  border-color: #08af0e;
+  border-color: var(--input-border-focus);
   box-shadow: 0 0 0 3px rgba(8, 175, 14, 0.1);
 }
 
-.input-error {
-  border-color: #ef4444;
-}
-
-.dark .input {
-  background-color: #1a1f2e;
-  border-color: #334155;
-  color: #e5e7eb;
-}
-
 .dark .input:focus {
-  border-color: #96ff9a;
   box-shadow: 0 0 0 3px rgba(150, 255, 154, 0.15);
 }
 
-/* Badge styles */
+.input-error {
+  border-color: var(--error-primary);
+}
+
+/* Badge styles - Using CSS variables */
 .badge-primary {
   display: inline-flex;
   align-items: center;
   padding: 0.25rem 0.75rem;
   border-radius: 12px;
-  background-color: #96ff9a;
-  color: #11181C;
+  background-color: var(--badge-primary-bg);
+  color: var(--badge-primary-text);
   font-size: 12px;
   font-weight: 600;
   line-height: 16px;
@@ -149,8 +237,8 @@ body {
   align-items: center;
   padding: 0.25rem 0.75rem;
   border-radius: 12px;
-  background-color: #08af0e;
-  color: #ffffff;
+  background-color: var(--badge-success-bg);
+  color: var(--badge-success-text);
   font-size: 12px;
   font-weight: 600;
   line-height: 16px;
@@ -161,8 +249,8 @@ body {
   align-items: center;
   padding: 0.25rem 0.75rem;
   border-radius: 12px;
-  background-color: #f59e0b;
-  color: #ffffff;
+  background-color: var(--badge-warning-bg);
+  color: var(--badge-warning-text);
   font-size: 12px;
   font-weight: 600;
   line-height: 16px;
@@ -173,18 +261,18 @@ body {
   align-items: center;
   padding: 0.25rem 0.75rem;
   border-radius: 12px;
-  background-color: #ef4444;
-  color: #ffffff;
+  background-color: var(--badge-error-bg);
+  color: var(--badge-error-text);
   font-size: 12px;
   font-weight: 600;
   line-height: 16px;
 }
 
-/* Shimmer effect for loading states */
+/* Shimmer effect for loading states - Using CSS variables */
 .shimmer {
   position: relative;
   overflow: hidden;
-  background-color: #f3f4f6;
+  background-color: var(--shimmer-bg);
 }
 
 .shimmer::after {
@@ -197,23 +285,10 @@ body {
   background: linear-gradient(
     90deg,
     transparent,
-    rgba(255, 255, 255, 0.4),
+    var(--shimmer-gradient),
     transparent
   );
   animation: shimmer 2s infinite;
-}
-
-.dark .shimmer {
-  background-color: #0d1117;
-}
-
-.dark .shimmer::after {
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(255, 255, 255, 0.1),
-    transparent
-  );
 }
 
 @keyframes shimmer {
@@ -225,43 +300,40 @@ body {
   }
 }
 
-/* Enhanced Web Liquid Glass Effects */
+/* Enhanced Web Liquid Glass Effects - Using CSS variables */
 .liquid-glass-web {
   backdrop-filter: blur(16px) saturate(180%);
   -webkit-backdrop-filter: blur(16px) saturate(180%);
-  background-color: rgba(255, 255, 255, 0.8);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  background-color: var(--glass-bg-standard);
+  border: 1px solid var(--glass-border-standard);
   box-shadow: 
     0 8px 32px rgba(0, 0, 0, 0.1),
     inset 0 1px 0 rgba(255, 255, 255, 0.3);
 }
 
-.liquid-glass-web-subtle {
-  backdrop-filter: blur(12px) saturate(150%);
-  -webkit-backdrop-filter: blur(12px) saturate(150%);
-  background-color: rgba(255, 255, 255, 0.7);
-}
-
-.liquid-glass-web-strong {
-  backdrop-filter: blur(24px) saturate(200%);
-  -webkit-backdrop-filter: blur(24px) saturate(200%);
-  background-color: rgba(255, 255, 255, 0.9);
-  box-shadow: 
-    0 12px 40px rgba(0, 0, 0, 0.15),
-    inset 0 1px 0 rgba(255, 255, 255, 0.4);
-}
-
 .dark .liquid-glass-web {
-  background-color: rgba(15, 20, 25, 0.75);
-  border-color: rgba(255, 255, 255, 0.1);
   box-shadow: 
     0 8px 32px rgba(0, 0, 0, 0.4),
     inset 0 1px 0 rgba(255, 255, 255, 0.1);
 }
 
+.liquid-glass-web-subtle {
+  backdrop-filter: blur(12px) saturate(150%);
+  -webkit-backdrop-filter: blur(12px) saturate(150%);
+  background-color: var(--glass-bg-subtle);
+}
+
+.liquid-glass-web-strong {
+  backdrop-filter: blur(24px) saturate(200%);
+  -webkit-backdrop-filter: blur(24px) saturate(200%);
+  background-color: var(--glass-bg-strong);
+  border: 1px solid var(--glass-border-strong);
+  box-shadow: 
+    0 12px 40px rgba(0, 0, 0, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.4);
+}
+
 .dark .liquid-glass-web-strong {
-  background-color: rgba(15, 20, 25, 0.85);
-  border-color: rgba(255, 255, 255, 0.15);
   box-shadow: 
     0 12px 40px rgba(0, 0, 0, 0.5),
     inset 0 1px 0 rgba(255, 255, 255, 0.15);
@@ -294,7 +366,7 @@ body {
   }
 }
 
-/* Web scrollbar styling */
+/* Web scrollbar styling - Using CSS variables */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
@@ -305,20 +377,12 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(150, 255, 154, 0.3);
+  background: var(--scrollbar-thumb);
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(150, 255, 154, 0.5);
-}
-
-.dark ::-webkit-scrollbar-thumb {
-  background: rgba(150, 255, 154, 0.2);
-}
-
-.dark ::-webkit-scrollbar-thumb:hover {
-  background: rgba(150, 255, 154, 0.4);
+  background: var(--scrollbar-thumb-hover);
 }
 
 /* Responsive typography for web */
