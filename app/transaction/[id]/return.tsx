@@ -17,6 +17,7 @@ import {
 } from "react-native";
 import { confirmReturn } from "@/services/cloudFunctions";
 import { useThemeColors } from "@/utils";
+import { Spacing } from "@/constants/spacing";
 
 export default function ReturnScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -73,7 +74,7 @@ export default function ReturnScreen() {
 
   return (
     <ThemedView style={{ flex: 1 }}>
-      <ScrollView contentContainerStyle={{ padding: 16 }}>
+      <ScrollView contentContainerStyle={{ padding: Spacing.sm }}>
         <ThemedText type="title">Confirmar devolução</ThemedText>
         <ThemedText style={{ marginTop: 6, opacity: 0.8 }}>
           Tire uma foto do item devolvido. Ela será usada como nova capa na vitrine.

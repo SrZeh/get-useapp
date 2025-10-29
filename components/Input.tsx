@@ -13,6 +13,7 @@ import {
 import { z } from 'zod';
 import { ThemedText } from './themed-text';
 import { useThemeColors } from '@/utils';
+import { Spacing, BorderRadius } from '@/constants/spacing';
 
 type InputProps = TextInputProps & {
   label?: string;
@@ -195,45 +196,45 @@ export function Input({
 const styles = StyleSheet.create({
   container: {
     width: '100%',
-    marginBottom: 16,
+    marginBottom: Spacing.sm,
   },
   label: {
-    marginBottom: 8,
+    marginBottom: Spacing['2xs'],
     fontWeight: '600',
   },
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: 16,
-    paddingHorizontal: 16,
-    minHeight: 48,
+    borderRadius: BorderRadius.md,
+    paddingHorizontal: Spacing.sm,
+    minHeight: 48, // WCAG minimum touch target
   },
   input: {
     flex: 1,
-    fontSize: 17,
+    fontSize: 17, // iOS body size - using native TextInput, so direct value is acceptable
     lineHeight: 22,
-    paddingVertical: 12,
+    paddingVertical: Spacing.xs,
     fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro", system-ui, sans-serif',
   },
   inputWithLeft: {
-    marginLeft: 8,
+    marginLeft: Spacing['2xs'],
     paddingLeft: 0,
   },
   inputWithRight: {
-    marginRight: 8,
+    marginRight: Spacing['2xs'],
     paddingRight: 0,
   },
   leftElement: {
-    marginRight: 8,
+    marginRight: Spacing['2xs'],
   },
   rightElement: {
-    marginLeft: 8,
+    marginLeft: Spacing['2xs'],
   },
   helperContainer: {
-    marginTop: 8,
+    marginTop: Spacing['2xs'],
   },
   helperText: {
-    fontSize: 11,
+    fontSize: 11, // caption-2 size - using native TextInput helper, acceptable
     lineHeight: 13,
   },
   errorText: {

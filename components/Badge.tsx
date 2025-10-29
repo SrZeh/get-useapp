@@ -2,6 +2,7 @@ import React from 'react';
 import { View, ViewStyle, StyleSheet } from 'react-native';
 import { ThemedText } from './themed-text';
 import { useThemeColors } from '@/utils';
+import { Spacing, BorderRadius } from '@/constants/spacing';
 
 type BadgeVariant = 'primary' | 'success' | 'warning' | 'error';
 
@@ -10,6 +11,12 @@ type BadgeProps = {
   children: React.ReactNode;
   style?: ViewStyle;
   textStyle?: ViewStyle;
+  /** Accessibility label (if not provided, uses children text) */
+  accessibilityLabel?: string;
+  /** Accessibility role */
+  accessibilityRole?: 'text' | 'none';
+  /** Accessibility hint */
+  accessibilityHint?: string;
 };
 
 export function Badge({
@@ -17,14 +24,17 @@ export function Badge({
   children,
   style,
   textStyle,
+  accessibilityLabel,
+  accessibilityRole = 'text',
+  accessibilityHint,
 }: BadgeProps) {
   const colors = useThemeColors();
 
   const getBadgeStyles = (): ViewStyle => {
     const baseStyle: ViewStyle = {
-      paddingVertical: 4,
-      paddingHorizontal: 12,
-      borderRadius: 12,
+      paddingVertical: Spacing['3xs'],
+      paddingHorizontal: Spacing.xs,
+      borderRadius: BorderRadius.sm,
       alignItems: 'center',
       justifyContent: 'center',
     };
@@ -68,8 +78,16 @@ export function Badge({
     }
   };
 
+  const badgeLabel = accessibilityLabel || (typeof children === 'string' ? children : undefined);
+
   return (
-    <View style={[getBadgeStyles(), style]}>
+    <View
+      style={[getBadgeStyles(), style]}
+      accessibilityRole={accessibilityRole}
+      accessibilityLabel={badgeLabel}
+      accessibilityHint={accessibilityHint}
+      accessible={!!badgeLabel}
+    >
       <ThemedText
         type="caption-1"
         style={[

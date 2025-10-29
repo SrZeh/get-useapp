@@ -12,6 +12,7 @@ import type { Reservation } from '@/types';
 import { canAccept, canReject, canDeleteByOwner, canConfirmReturn } from '@/services/reservations/ReservationRules';
 import { Button } from '@/components/Button';
 import { useReservationService } from '@/providers/ServicesProvider';
+import { Spacing, BorderRadius } from '@/constants/spacing';
 
 /**
  * OwnerInbox component - displays reservations for item owners
@@ -108,15 +109,15 @@ export function OwnerInbox() {
 
 
   return (
-    <ScrollView style={{ padding: 16 }} contentContainerStyle={{ paddingBottom: 32 }}>
+    <ScrollView style={{ padding: Spacing.sm }} contentContainerStyle={{ paddingBottom: Spacing.lg }}>
       {rows.length === 0 ? (
-        <LiquidGlassView intensity="standard" cornerRadius={24} style={{ padding: 32, alignItems: 'center' }}>
+        <LiquidGlassView intensity="standard" cornerRadius={BorderRadius.xl} style={{ padding: Spacing.lg, alignItems: 'center' }}>
           <ThemedText type="title" style={{ textAlign: 'center' }}>
             Nenhuma reserva para mostrar.
           </ThemedText>
         </LiquidGlassView>
       ) : (
-        <View style={{ gap: 16 }}>
+        <View style={{ gap: Spacing.sm }}>
           {rows.map((r) => (
             <ReservationCard
               key={r.id}
@@ -161,7 +162,7 @@ export function OwnerInbox() {
                   )}
                 </View>
               ) : r.status === 'accepted' ? (
-                <View style={{ gap: 8 }}>
+                <View style={{ gap: Spacing['2xs'] }}>
                   <Button
                     variant="secondary"
                     size="sm"
@@ -171,19 +172,19 @@ export function OwnerInbox() {
                   >
                     Sincronizar conta Stripe
                   </Button>
-                  <ThemedText style={{ fontSize: 12, opacity: 0.7 }}>
+                  <ThemedText type="caption-1" style={{ opacity: 0.7 }}>
                     {getDepositMessage(r.paymentMethodType)}
                   </ThemedText>
                 </View>
               ) : r.status === 'paid' ? (
-                <View style={{ gap: 8 }}>
+                <View style={{ gap: Spacing['2xs'] }}>
                   <ThemedText>Pago 💙 — aguardando o locatário marcar "Recebido!".</ThemedText>
-                  <ThemedText style={{ fontSize: 12, opacity: 0.7 }}>
+                  <ThemedText type="caption-1" style={{ opacity: 0.7 }}>
                     {getDepositMessage(r.paymentMethodType)}
                   </ThemedText>
                 </View>
               ) : canConfirmReturn(r) ? (
-                <View style={{ gap: 8 }}>
+                <View style={{ gap: Spacing['2xs'] }}>
                   {r.status === 'paid_out' && <ThemedText>Repasse ao dono concluído ✅</ThemedText>}
                   <Button
                     variant="primary"
@@ -196,7 +197,7 @@ export function OwnerInbox() {
                   </Button>
                 </View>
               ) : r.status === 'returned' ? (
-                <View style={{ gap: 8 }}>
+                <View style={{ gap: Spacing['2xs'] }}>
                   <ThemedText>Devolvido ✅ — avaliações liberadas.</ThemedText>
                 </View>
               ) : null

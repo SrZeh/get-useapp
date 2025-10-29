@@ -12,6 +12,7 @@ import { useNavigationService } from '@/providers/ServicesProvider';
 import { useUserItems } from '@/hooks/useUserItems';
 import { useItemOperations } from '@/hooks/useItemOperations';
 import type { Item } from '@/types';
+import { Spacing, BorderRadius } from '@/constants/spacing';
 
 /**
  * ItemsScreen - displays and manages user's items
@@ -50,7 +51,7 @@ export default function ItemsScreen() {
           flexDirection: 'row',
           justifyContent: 'space-between',
           alignItems: 'center',
-          padding: 16,
+          padding: Spacing.sm,
         }}
       >
         <ThemedText type="large-title">Meus Itens</ThemedText>
@@ -60,21 +61,21 @@ export default function ItemsScreen() {
       </View>
 
       {loading ? (
-        <View style={{ padding: 16, gap: 12 }}>
-          <ShimmerLoader height={200} borderRadius={20} />
-          <ShimmerLoader height={200} borderRadius={20} />
-          <ShimmerLoader height={200} borderRadius={20} />
+        <View style={{ padding: Spacing.sm, gap: Spacing.xs }}>
+          <ShimmerLoader height={200} borderRadius={BorderRadius.lg} />
+          <ShimmerLoader height={200} borderRadius={BorderRadius.lg} />
+          <ShimmerLoader height={200} borderRadius={BorderRadius.lg} />
         </View>
       ) : items.length === 0 ? (
         <LiquidGlassView
           intensity="standard"
-          cornerRadius={24}
-          style={{ margin: 16, padding: 32, alignItems: 'center' }}
+          cornerRadius={BorderRadius.xl}
+          style={{ margin: Spacing.sm, padding: Spacing.lg, alignItems: 'center' }}
         >
-          <ThemedText type="title" style={{ marginBottom: 8, textAlign: 'center' }}>
+          <ThemedText type="title" style={{ marginBottom: Spacing['2xs'], textAlign: 'center' }}>
             Você ainda não cadastrou itens.
           </ThemedText>
-          <Button variant="primary" onPress={goNew} style={{ marginTop: 16 }}>
+          <Button variant="primary" onPress={goNew} style={{ marginTop: Spacing.sm }}>
             Criar primeiro item
           </Button>
         </LiquidGlassView>
@@ -84,8 +85,8 @@ export default function ItemsScreen() {
           refreshing={refreshing}
           onRefresh={refresh}
           keyExtractor={(it) => it.id}
-          contentContainerStyle={{ padding: 16, paddingBottom: 32 }}
-          ItemSeparatorComponent={() => <View style={{ height: 16 }} />}
+          contentContainerStyle={{ padding: Spacing.sm, paddingBottom: Spacing.lg }}
+          ItemSeparatorComponent={() => <View style={{ height: Spacing.sm }} />}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.brand.primary} />
           }

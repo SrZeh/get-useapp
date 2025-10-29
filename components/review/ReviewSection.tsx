@@ -3,6 +3,7 @@ import { ThemedText } from '@/components/themed-text';
 import { LiquidGlassView } from '@/components/liquid-glass';
 import { ReviewForm } from './ReviewForm';
 import type { Review } from '@/types';
+import { Spacing, BorderRadius } from '@/constants/spacing';
 
 type EligibleReservation = {
   id: string;
@@ -44,15 +45,15 @@ export function ReviewSection({
 }: ReviewSectionProps) {
   if (!userId) {
     return (
-      <ThemedText type="callout" style={{ marginTop: 16 }} className="text-light-text-tertiary dark:text-dark-text-tertiary">
+      <ThemedText type="callout" style={{ marginTop: Spacing.sm }} className="text-light-text-tertiary dark:text-dark-text-tertiary">
         Faça login para avaliar este item.
       </ThemedText>
     );
   }
 
   return (
-    <LiquidGlassView intensity="standard" cornerRadius={20} style={{ padding: 20 }}>
-      <ThemedText type="title-2" style={{ marginBottom: 16, fontWeight: '600' }}>
+    <LiquidGlassView intensity="standard" cornerRadius={BorderRadius.lg} style={{ padding: 20 }}>
+      <ThemedText type="title-2" style={{ marginBottom: Spacing.sm, fontWeight: '600' }}>
         Avaliar este item
       </ThemedText>
       <ReviewForm

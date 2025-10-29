@@ -9,6 +9,7 @@ import { ActivityIndicator, Alert, TouchableOpacity, View } from "react-native";
 import { markPickup, releasePayoutToOwner } from "@/services/cloudFunctions";
 import { formatBRL } from "@/utils";
 import type { Reservation } from "@/types";
+import { Spacing } from "@/constants/spacing";
 
 export default function ReservationDetail() {
   const { resId } = useLocalSearchParams<{ resId: string }>();
@@ -78,7 +79,7 @@ export default function ReservationDetail() {
   }
   if (!res) {
     return (
-      <ThemedView style={{ padding: 16 }}>
+      <ThemedView style={{ padding: Spacing.sm }}>
         <ThemedText>Reserva não encontrada.</ThemedText>
       </ThemedView>
     );
@@ -88,7 +89,7 @@ export default function ReservationDetail() {
   const totalText = isFree ? "Grátis" : formatBRL(Number(res.total ?? 0));
 
   return (
-    <ThemedView style={{ padding: 16 }}>
+    <ThemedView style={{ padding: Spacing.sm }}>
       <ThemedText type="title">{res.itemTitle}</ThemedText>
       <ThemedText>
         {res.startDate} → {res.endDate} ({res.days} dia(s))

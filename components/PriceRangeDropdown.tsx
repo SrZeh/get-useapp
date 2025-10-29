@@ -10,6 +10,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Ionicons } from '@expo/vector-icons';
 import { useThemeColors } from '@/utils/theme';
 import { PRICE_RANGES, type PriceRange } from './PriceRangeFilter';
+import { Spacing, BorderRadius } from '@/constants/spacing';
 
 type PriceRangeDropdownProps = {
   title: string;
@@ -55,11 +56,11 @@ export function PriceRangeDropdown({
       </View>
 
       {/* Dropdown */}
-      <LiquidGlassView intensity="subtle" cornerRadius={16}>
+      <LiquidGlassView intensity="subtle" cornerRadius={BorderRadius.md}>
         <View
           style={{
             borderWidth: 1,
-            borderRadius: 16,
+            borderRadius: BorderRadius.md,
             borderColor: colors.border.default,
             backgroundColor: 'transparent',
             overflow: 'hidden',

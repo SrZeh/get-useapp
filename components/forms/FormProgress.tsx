@@ -7,6 +7,7 @@ import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { ThemedText } from '@/components/themed-text';
 import { useThemeColors } from '@/utils';
+import { Spacing, BorderRadius } from '@/constants/spacing';
 
 type FormProgressProps = {
   steps: readonly string[];
@@ -74,32 +75,32 @@ export function FormProgress({ steps, currentStep, showLabels = true }: FormProg
 
 const styles = StyleSheet.create({
   container: {
-    marginBottom: 24,
+    marginBottom: Spacing.md,
   },
   progressContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: Spacing.xs,
   },
   stepContainer: {
     flex: 1,
     position: 'relative',
   },
   progressBar: {
-    height: 4,
-    borderRadius: 2,
+    height: Spacing['3xs'],
+    borderRadius: Spacing['4xs'],
   },
   labelContainer: {
-    marginTop: 8,
+    marginTop: Spacing['2xs'],
     alignItems: 'center',
   },
   label: {
     textAlign: 'center',
-    fontSize: 11,
+    fontSize: 11, // caption-2 size - acceptable for progress labels
   },
   currentStepLabel: {
     alignItems: 'center',
-    marginTop: 8,
+    marginTop: Spacing['2xs'],
   },
 });
 

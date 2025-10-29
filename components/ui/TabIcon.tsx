@@ -3,6 +3,7 @@ import React from "react";
 import { ImageSourcePropType, View, ViewStyle, StyleProp } from "react-native";
 import { Image } from "expo-image";
 import { useThemeColors } from "@/utils/theme";
+import { Spacing, BorderRadius } from "@/constants/spacing";
 
 type IconComponent = React.ComponentType<{
   width?: number | string;
@@ -69,11 +70,11 @@ export function TabIcon({ Icon, color, size = 22, showDot, style }: Props) {
         <View
           style={{
             position: "absolute",
-            top: 4,
-            right: 8,
-            width: 8,
-            height: 8,
-            borderRadius: 4,
+            top: Spacing['3xs'],
+            right: Spacing['2xs'],
+            width: Spacing['2xs'],
+            height: Spacing['2xs'],
+            borderRadius: BorderRadius['2xs'],
             backgroundColor: colors.semantic.error,
           }}
         />

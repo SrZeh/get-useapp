@@ -8,6 +8,7 @@ import Animated, {
 import { Ionicons } from '@expo/vector-icons';
 import { HapticFeedback, useChipColors } from '@/utils';
 import { ThemedText } from './themed-text';
+import { Spacing, BorderRadius } from '@/constants/spacing';
 
 type CategoryChipProps = {
   label: string;
@@ -45,16 +46,16 @@ export function CategoryChip({
   };
 
   const chipStyle: ViewStyle = {
-    paddingVertical: 8, // py-2xs equivalent
-    paddingHorizontal: 12, // px-xs equivalent
-    borderRadius: 9999, // rounded-full equivalent
+    paddingVertical: Spacing['2xs'],
+    paddingHorizontal: Spacing.xs,
+    borderRadius: BorderRadius.full,
     borderWidth: 1,
-    marginRight: 8, // mr-2xs equivalent
+    marginRight: Spacing['2xs'],
     backgroundColor: chipColors.bg,
     borderColor: chipColors.border,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: Spacing['2xs'],
     minHeight: 44, // WCAG: Minimum touch target size
     minWidth: 44, // WCAG: Minimum touch target size
   };

@@ -9,6 +9,7 @@ import { Alert, TouchableOpacity, View } from 'react-native';
 import { sendEmailVerification } from 'firebase/auth';
 import { logger, useThemeColors } from '@/utils';
 import { Button } from '@/components/Button';
+import { Spacing } from '@/constants/spacing';
 
 export default function VerifyEmailScreen() {
   const user = auth.currentUser;
@@ -58,7 +59,7 @@ export default function VerifyEmailScreen() {
   }, [user]);
 
   return (
-    <ThemedView style={{ flex:1, padding:16, gap:12, justifyContent:'center' }}>
+    <ThemedView style={{ flex:1, padding:Spacing.sm, gap:Spacing.xs, justifyContent:'center' }}>
       <ThemedText type="title">Verificar e-mail</ThemedText>
       <ThemedText>Enviamos um link de verificação para seu e-mail.</ThemedText>
 

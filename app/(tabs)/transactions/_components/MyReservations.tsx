@@ -11,6 +11,7 @@ import type { Reservation } from '@/types';
 import { logger, useThemeColors } from '@/utils';
 import { isRefundable, canDeleteByRenter, canMarkPickup, canPay, canReview } from '@/services/reservations/ReservationRules';
 import { useReservationService, useNavigationService } from '@/providers/ServicesProvider';
+import { Spacing, BorderRadius } from '@/constants/spacing';
 
 // chama a Cloud Function cancelWithRefund
 async function cancelWithRefund(reservationId: string): Promise<void> {
@@ -80,15 +81,15 @@ export function MyReservations() {
 
 
   return (
-    <ScrollView style={{ padding: 16 }} contentContainerStyle={{ paddingBottom: 32 }}>
+    <ScrollView style={{ padding: Spacing.sm }} contentContainerStyle={{ paddingBottom: Spacing.lg }}>
       {rows.length === 0 ? (
-        <LiquidGlassView intensity="standard" cornerRadius={24} style={{ padding: 32, alignItems: 'center' }}>
+        <LiquidGlassView intensity="standard" cornerRadius={BorderRadius.xl} style={{ padding: Spacing.lg, alignItems: 'center' }}>
           <ThemedText type="title" style={{ textAlign: 'center' }}>
             Você ainda não fez reservas.
           </ThemedText>
         </LiquidGlassView>
       ) : (
-        <View style={{ gap: 16 }}>
+        <View style={{ gap: Spacing.sm }}>
           {rows.map((r) => (
             <ReservationCard
               key={r.id}
@@ -103,7 +104,7 @@ export function MyReservations() {
                   Pagar
                 </Button>
               ) : r.status === 'paid' ? (
-                <View style={{ gap: 8 }}>
+                <View style={{ gap: Spacing['2xs'] }}>
                   {canMarkPickup(r) && (
                     <Button
                       variant="primary"
@@ -127,13 +128,13 @@ export function MyReservations() {
                     </Button>
                   )}
                   {!isRefundable(r) && r.status === 'paid' && (
-                    <ThemedText style={{ fontSize: 12, opacity: 0.7 }}>
+                    <ThemedText type="caption-1" style={{ opacity: 0.7 }}>
                       Estorno disponível por até 7 dias após o pagamento e antes de marcar "Recebido!".
                     </ThemedText>
                   )}
                 </View>
               ) : r.status === 'rejected' ? (
-                <View style={{ gap: 8 }}>
+                <View style={{ gap: Spacing['2xs'] }}>
                   <ThemedText style={{ color: colors.semantic.error }}>Seu pedido foi recusado</ThemedText>
                   {canDeleteByRenter(r) && (
                     <Button

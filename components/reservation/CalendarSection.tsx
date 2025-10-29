@@ -8,6 +8,7 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Colors } from '@/constants/theme';
 import { useThemeColors, HapticFeedback, todayLocalISO, enumerateInclusive, calculateReservationSummary } from '@/utils';
 import type { Item } from '@/types';
+import { Spacing, BorderRadius } from '@/constants/spacing';
 
 type CalendarSectionProps = {
   item: Item;
@@ -196,13 +197,13 @@ export function CalendarSection({
         }}
         markingStyle={{
           backgroundColor: isDark ? '#96ff9a30' : '#08af0e25',
-          borderRadius: 4,
+          borderRadius: BorderRadius['2xs'],
           textColor: isDark ? '#f9fafb' : '#0a0a0a',
         }}
         style={{ 
-          marginTop: 12, 
-          borderRadius: 20,
-          padding: 8,
+          marginTop: Spacing.xs, 
+          borderRadius: BorderRadius.lg,
+          padding: Spacing['2xs'],
         }}
       />
 

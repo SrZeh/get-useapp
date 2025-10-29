@@ -9,6 +9,7 @@ import { ThemedText } from '@/components/themed-text';
 import { LiquidGlassView } from '@/components/liquid-glass';
 import { HapticFeedback } from '@/utils';
 import { useThemeColors } from '@/utils/theme';
+import { Spacing, BorderRadius } from '@/constants/spacing';
 
 export interface PriceRange {
   id: string;
@@ -110,9 +111,9 @@ export function PriceRangeFilter({
                   style={{
                     flexDirection: 'row',
                     alignItems: 'center',
-                    paddingVertical: 8,
-                    paddingHorizontal: 12,
-                    borderRadius: 8,
+                    paddingVertical: Spacing['2xs'],
+                    paddingHorizontal: Spacing.xs,
+                    borderRadius: BorderRadius.xs,
                     backgroundColor: isSelected
                       ? colors.semantic.primary + '20'
                       : colors.input.bg,
@@ -121,7 +122,7 @@ export function PriceRangeFilter({
                       ? colors.semantic.primary
                       : colors.border.default,
                     minHeight: 44,
-                    gap: 8,
+                    gap: Spacing['2xs'],
                   }}
                   accessibilityRole="checkbox"
                   accessibilityState={{ checked: isSelected }}

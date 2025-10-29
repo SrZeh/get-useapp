@@ -13,6 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useFormKeyboardNavigation } from '@/utils/keyboardNavigation';
 import { useLogin, useResetPassword } from '@/hooks';
 import type { LoginInput, ResetPasswordInput } from '@/services/auth';
+import { Spacing, BorderRadius } from '@/constants/spacing';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
@@ -62,22 +63,22 @@ export default function LoginScreen() {
       behavior={Platform.select({ ios: 'padding', android: undefined })}
       keyboardVerticalOffset={Platform.select({ ios: 80, android: 0 })}
     >
-      <ThemedView style={{ flex: 1, padding: 16, justifyContent: 'center' }}>
-        <LiquidGlassView intensity="standard" cornerRadius={24} style={{ padding: 24 }}>
+      <ThemedView style={{ flex: 1, padding: Spacing.sm, justifyContent: 'center' }}>
+        <LiquidGlassView intensity="standard" cornerRadius={BorderRadius.xl} style={{ padding: Spacing.md }}>
           <View
             accessibilityRole="form"
             accessibilityLabel="Formulário de login"
           >
             <ThemedText 
               type="large-title" 
-              style={{ marginBottom: 32, textAlign: 'center' }}
+              style={{ marginBottom: Spacing.lg, textAlign: 'center' }}
               accessibilityRole="header"
             >
               Entrar
             </ThemedText>
 
             <View 
-              style={{ gap: 16, marginBottom: 24 }}
+              style={{ gap: Spacing.sm, marginBottom: Spacing.md }}
               accessibilityRole="group"
               accessibilityLabel="Credenciais de acesso"
             >
@@ -114,7 +115,7 @@ export default function LoginScreen() {
             disabled={loadingLogin}
             loading={loadingLogin}
             fullWidth
-            style={{ marginBottom: 12 }}
+            style={{ marginBottom: Spacing.xs }}
           >
             Entrar
           </Button>
@@ -132,13 +133,13 @@ export default function LoginScreen() {
           {!!generalError && (
             <ThemedText 
               type="callout" 
-              style={{ color: colors.semantic.error, marginTop: 16, textAlign: 'center' }}
+              style={{ color: colors.semantic.error, marginTop: Spacing.sm, textAlign: 'center' }}
             >
               {generalError}
             </ThemedText>
           )}
 
-          <View style={{ marginTop: 24, paddingTop: 24, borderTopWidth: 1, borderTopColor: colors.border.default }}>
+          <View style={{ marginTop: Spacing.md, paddingTop: Spacing.md, borderTopWidth: 1, borderTopColor: colors.border.default }}>
             <Link href="/(auth)/register" asChild>
               <TouchableOpacity>
                 <ThemedText type="body" style={{ textAlign: 'center', color: colors.icon.selected }}>

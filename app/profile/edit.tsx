@@ -17,6 +17,7 @@ import { Image as ExpoImage } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import type { UserProfile } from '@/types';
+import { Spacing, BorderRadius } from '@/constants/spacing';
 
 export default function EditProfile() {
   const uid = auth.currentUser?.uid;
@@ -165,8 +166,8 @@ export default function EditProfile() {
 
   if (!uid) {
     return (
-      <ThemedView style={{ flex: 1, padding: 16, justifyContent: "center", alignItems: "center" }}>
-        <LiquidGlassView intensity="standard" cornerRadius={24} style={{ padding: 24 }}>
+      <ThemedView style={{ flex: 1, padding: Spacing.sm, justifyContent: "center", alignItems: "center" }}>
+        <LiquidGlassView intensity="standard" cornerRadius={BorderRadius.xl} style={{ padding: Spacing.md }}>
           <ThemedText type="title-2">Faça login para editar o perfil.</ThemedText>
         </LiquidGlassView>
       </ThemedView>
@@ -175,9 +176,9 @@ export default function EditProfile() {
 
   if (loading) {
     return (
-      <ThemedView style={{ flex: 1, padding: 16, justifyContent: 'center', alignItems: 'center' }}>
+      <ThemedView style={{ flex: 1, padding: Spacing.sm, justifyContent: 'center', alignItems: 'center' }}>
         <ActivityIndicator size="large" />
-        <ThemedText type="callout" style={{ marginTop: 16 }}>Carregando…</ThemedText>
+        <ThemedText type="callout" style={{ marginTop: Spacing.sm }}>Carregando…</ThemedText>
       </ThemedView>
     );
   }
@@ -188,10 +189,10 @@ export default function EditProfile() {
       keyboardVerticalOffset={Platform.select({ ios: 80, android: 0 })}
     >
       <ThemedView style={{ flex: 1 }}>
-        <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 32 }}>
-          <ThemedText type="large-title" style={{ marginBottom: 32 }}>Editar Perfil</ThemedText>
+        <ScrollView contentContainerStyle={{ padding: Spacing.sm, paddingBottom: Spacing.lg }}>
+          <ThemedText type="large-title" style={{ marginBottom: Spacing.lg }}>Editar Perfil</ThemedText>
 
-          <LiquidGlassView intensity="standard" cornerRadius={24} style={{ padding: 24, marginBottom: 24, alignItems: 'center' }}>
+          <LiquidGlassView intensity="standard" cornerRadius={BorderRadius.xl} style={{ padding: Spacing.md, marginBottom: Spacing.md, alignItems: 'center' }}>
             {(localUri || photoURL) ? (
               <ExpoImage
                 source={{ uri: localUri ?? photoURL ?? undefined }}

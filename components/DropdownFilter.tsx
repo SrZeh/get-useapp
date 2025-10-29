@@ -11,6 +11,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useThemeColors } from '@/utils/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Colors } from '@/constants/theme';
+import { Spacing, BorderRadius } from '@/constants/spacing';
 
 type DropdownFilterProps = {
   title: string;
@@ -46,9 +47,9 @@ export function DropdownFilter({
   }
 
   return (
-    <View style={[{ marginBottom: 12 }, style]}>
+    <View style={[{ marginBottom: Spacing.xs }, style]}>
       {/* Title */}
-      <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8, gap: 6 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: Spacing['2xs'], gap: Spacing['2xs'] }}>
         {icon && (
           <Ionicons
             name={icon}
@@ -65,11 +66,11 @@ export function DropdownFilter({
       </View>
 
       {/* Dropdown */}
-      <LiquidGlassView intensity="subtle" cornerRadius={16}>
+      <LiquidGlassView intensity="subtle" cornerRadius={BorderRadius.md}>
         <View
           style={{
             borderWidth: 1,
-            borderRadius: 15,
+            borderRadius: BorderRadius.md,
             borderColor: colors.border.default,
             backgroundColor: 'transparent',
           }}
@@ -81,9 +82,9 @@ export function DropdownFilter({
             style={{
               color: colors.text.primary,
               backgroundColor: 'transparent',
-              paddingHorizontal: 16,
-              paddingVertical: 12,
-              borderRadius: 15,
+              paddingHorizontal: Spacing.sm,
+              paddingVertical: Spacing.xs,
+              borderRadius: BorderRadius.md,
             }}
             accessibilityLabel={title}
             accessibilityHint="Selecione uma opção"

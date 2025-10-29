@@ -8,6 +8,7 @@ import { markTransactionsSeen } from '@/hooks/useTransactionsDot';
 import { HapticFeedback } from '@/utils';
 import { OwnerInbox, MyReservations } from './transactions/_components';
 import { useThemeColors, useBrandColorsWithOpacity, useBorderColorsWithOpacity } from '@/utils/theme';
+import { Spacing, BorderRadius } from '@/constants/spacing';
 
 // ---------- tela ----------
 export default function TransactionsScreen() {
@@ -29,7 +30,7 @@ export default function TransactionsScreen() {
 
   return (
     <ThemedView style={{ flex: 1 }}>
-      <View style={{ flexDirection: 'row', gap: 12, padding: 16, paddingBottom: 8 }}>
+      <View style={{ flexDirection: 'row', gap: Spacing.xs, padding: Spacing.sm, paddingBottom: Spacing['2xs'] }}>
         <TouchableOpacity
           onPress={() => {
             HapticFeedback.selection();
@@ -37,9 +38,9 @@ export default function TransactionsScreen() {
           }}
           style={{
             flex: 1,
-            paddingVertical: 12,
-            paddingHorizontal: 16,
-            borderRadius: 16,
+            paddingVertical: Spacing.xs,
+            paddingHorizontal: Spacing.sm,
+            borderRadius: BorderRadius.md,
             backgroundColor: tab === 'owner' ? brandOpacityValue : 'transparent',
             borderWidth: tab === 'owner' ? 2 : 1,
             borderColor: tab === 'owner' ? brandColor : borderOpacity.default,
@@ -59,9 +60,9 @@ export default function TransactionsScreen() {
           }}
           style={{
             flex: 1,
-            paddingVertical: 12,
-            paddingHorizontal: 16,
-            borderRadius: 16,
+            paddingVertical: Spacing.xs,
+            paddingHorizontal: Spacing.sm,
+            borderRadius: BorderRadius.md,
             backgroundColor: tab === 'renter' ? brandOpacityValue : 'transparent',
             borderWidth: tab === 'renter' ? 2 : 1,
             borderColor: tab === 'renter' ? brandColor : borderOpacity.default,

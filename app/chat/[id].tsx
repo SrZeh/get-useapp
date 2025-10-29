@@ -26,6 +26,7 @@ import {
   View,
   Alert,
 } from "react-native";
+import { Spacing } from "@/constants/spacing";
 
 type Msg = { id: string; text: string; fromUid: string; createdAt?: FirestoreTimestamp };
 
@@ -118,14 +119,14 @@ export default function ThreadChatScreen() {
 
   if (!id) {
     return (
-      <ThemedView style={{ flex: 1, alignItems: "center", justifyContent: "center", padding: 16 }}>
+      <ThemedView style={{ flex: 1, alignItems: "center", justifyContent: "center", padding: Spacing.sm }}>
         <ThemedText>Conversa inválida.</ThemedText>
       </ThemedView>
     );
   }
   if (!uid) {
     return (
-      <ThemedView style={{ flex: 1, alignItems: "center", justifyContent: "center", padding: 16 }}>
+      <ThemedView style={{ flex: 1, alignItems: "center", justifyContent: "center", padding: Spacing.sm }}>
         <ThemedText>Faça login para ver e enviar mensagens.</ThemedText>
       </ThemedView>
     );
@@ -138,13 +139,13 @@ export default function ThreadChatScreen() {
       keyboardVerticalOffset={Platform.select({ ios: 80, android: 0 })}
     >
       <ThemedView style={{ flex: 1 }}>
-        <ThemedText type="title" style={{ padding: 16 }}>
+        <ThemedText type="title" style={{ padding: Spacing.sm }}>
           Conversa
         </ThemedText>
 
         <ScrollView
           ref={scrollRef}
-          contentContainerStyle={{ padding: 16, paddingBottom: 12 }}
+          contentContainerStyle={{ padding: Spacing.sm, paddingBottom: Spacing.xs }}
         >
           {msgs.length === 0 ? (
             <ThemedText style={{ opacity: 0.7 }}>Sem mensagens ainda.</ThemedText>

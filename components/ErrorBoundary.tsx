@@ -15,6 +15,7 @@ import { toAppError } from '@/types/errors';
 import { getErrorUserMessage } from '@/constants/errors';
 import { Colors } from '@/constants/theme';
 import { ExtendedColors } from '@/constants/colors';
+import { Spacing, BorderRadius } from '@/constants/spacing';
 
 // Simple button component that doesn't require ThemeProvider
 function ErrorButton({ 
@@ -33,9 +34,9 @@ function ErrorButton({
   const brandColor = isDark ? ExtendedColors.brand.primary : ExtendedColors.brand.dark;
   
   const buttonStyle = {
-    paddingVertical: 16,
-    paddingHorizontal: 24,
-    borderRadius: 20,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    borderRadius: BorderRadius.lg,
     alignItems: 'center' as const,
     justifyContent: 'center' as const,
     minHeight: 48,
@@ -48,7 +49,7 @@ function ErrorButton({
   const textStyle = {
     color: variant === 'primary' ? '#ffffff' : brandColor,
     fontWeight: '600' as const,
-    fontSize: 17,
+    fontSize: 17, // Body size
   };
   
   return (
@@ -75,19 +76,19 @@ function ErrorBoundaryContent({
   const themeColors = Colors[colorScheme];
   
   return (
-    <ThemedView style={{ flex: 1, padding: 24, justifyContent: 'center', alignItems: 'center' }}>
-      <LiquidGlassView intensity="standard" cornerRadius={24} style={{ padding: 32, maxWidth: 500, width: '100%' }}>
-        <ThemedText type="large-title" style={{ marginBottom: 16, textAlign: 'center' }}>
+    <ThemedView style={{ flex: 1, padding: Spacing.md, justifyContent: 'center', alignItems: 'center' }}>
+      <LiquidGlassView intensity="standard" cornerRadius={BorderRadius.xl} style={{ padding: Spacing.lg, maxWidth: 500, width: '100%' }}>
+        <ThemedText type="large-title" style={{ marginBottom: Spacing.sm, textAlign: 'center' }}>
           Ops! 😅
         </ThemedText>
         
-        <ThemedText type="title" style={{ marginBottom: 24, textAlign: 'center' }}>
+        <ThemedText type="title" style={{ marginBottom: Spacing.md, textAlign: 'center' }}>
           Algo deu errado
         </ThemedText>
 
         <ThemedText 
           type="body" 
-          style={{ marginBottom: 32, textAlign: 'center' }}
+          style={{ marginBottom: Spacing.lg, textAlign: 'center' }}
           className="text-light-text-secondary dark:text-dark-text-secondary"
         >
           {errorMessage}
@@ -98,9 +99,9 @@ function ErrorBoundaryContent({
             style={{ 
               maxHeight: 200, 
               backgroundColor: themeColors.backgroundTertiary, 
-              borderRadius: 12, 
-              padding: 12,
-              marginBottom: 24 
+              borderRadius: BorderRadius.sm, 
+              padding: Spacing.xs,
+              marginBottom: Spacing.md 
             }}
           >
             <ThemedText 
@@ -115,7 +116,7 @@ function ErrorBoundaryContent({
           </ScrollView>
         )}
 
-        <View style={{ gap: 12, width: '100%' }}>
+        <View style={{ gap: Spacing.xs, width: '100%' }}>
           <ErrorButton variant="primary" onPress={onReload}>
             Tentar novamente
           </ErrorButton>

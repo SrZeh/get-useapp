@@ -8,6 +8,7 @@ import { View, StyleSheet } from 'react-native';
 import { ThemedText } from '@/components/themed-text';
 import { Ionicons } from '@expo/vector-icons';
 import { useThemeColors } from '@/utils';
+import { Spacing, BorderRadius } from '@/constants/spacing';
 
 type SuccessMessageProps = {
   message: string;
@@ -89,20 +90,20 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
-    borderRadius: 12,
-    padding: 16,
-    marginTop: 16,
-    gap: 12,
+    borderRadius: BorderRadius.sm,
+    padding: Spacing.sm,
+    marginTop: Spacing.sm,
+    gap: Spacing.xs,
   },
   icon: {
-    marginRight: 4,
+    marginRight: Spacing['3xs'],
   },
   message: {
     flex: 1,
     fontWeight: '500',
   },
   closeIcon: {
-    marginLeft: 4,
+    marginLeft: Spacing['3xs'],
   },
 });
 

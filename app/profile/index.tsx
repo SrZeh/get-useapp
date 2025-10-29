@@ -17,6 +17,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { GradientTypes, HapticFeedback } from '@/utils';
 import type { UserProfile } from '@/types';
 import { useThemeColors, useBorderColorsWithOpacity, useBrandColorsWithOpacity, hexToRgba } from '@/utils/theme';
+import { Spacing, BorderRadius } from '@/constants/spacing';
 
 export default function ProfileScreen() {
   const uid = auth.currentUser?.uid;
@@ -95,12 +96,12 @@ export default function ProfileScreen() {
 
   if (!uid) {
     return (
-      <ThemedView style={{ flex: 1, padding: 16, justifyContent: "center", alignItems: "center" }}>
-        <LiquidGlassView intensity="standard" cornerRadius={24} style={{ padding: 24, width: '100%', maxWidth: 400 }}>
-          <ThemedText type="title" style={{ textAlign: 'center', marginBottom: 16 }}>
+      <ThemedView style={{ flex: 1, padding: Spacing.sm, justifyContent: "center", alignItems: "center" }}>
+        <LiquidGlassView intensity="standard" cornerRadius={BorderRadius.xl} style={{ padding: Spacing.md, width: '100%', maxWidth: 400 }}>
+          <ThemedText type="title" style={{ textAlign: 'center', marginBottom: Spacing.sm }}>
             Meu Perfil
           </ThemedText>
-          <ThemedText className="mt-2" style={{ textAlign: 'center', marginBottom: 24 }}>
+          <ThemedText className="mt-2" style={{ textAlign: 'center', marginBottom: Spacing.md }}>
             Você não está logado.
           </ThemedText>
           <Button variant="primary" onPress={() => router.push("/(auth)/login")} fullWidth>
@@ -113,9 +114,9 @@ export default function ProfileScreen() {
 
   if (loading) {
     return (
-      <ThemedView style={{ flex: 1, padding: 16, justifyContent: 'center', alignItems: 'center' }}>
+      <ThemedView style={{ flex: 1, padding: Spacing.sm, justifyContent: 'center', alignItems: 'center' }}>
         <ActivityIndicator size="large" />
-        <ThemedText style={{ marginTop: 16 }}>Carregando…</ThemedText>
+        <ThemedText style={{ marginTop: Spacing.sm }}>Carregando…</ThemedText>
       </ThemedView>
     );
   }

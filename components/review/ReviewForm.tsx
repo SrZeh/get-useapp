@@ -7,6 +7,7 @@ import { StarInput } from './StarInput';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Colors } from '@/constants/theme';
 import { useThemeColors, HapticFeedback } from '@/utils';
+import { Spacing, BorderRadius } from '@/constants/spacing';
 
 type EligibleReservation = {
   id: string;
@@ -51,9 +52,9 @@ export function ReviewForm({
 
   const inputStyle = {
     borderWidth: 1,
-    borderRadius: 16,
-    padding: 16,
-    fontSize: 17,
+    borderRadius: BorderRadius.md,
+    padding: Spacing.sm,
+    fontSize: 17, // Body size - acceptable for TextInput
     color: colors.text.primary,
     borderColor: colors.border.default,
     backgroundColor: colors.input.bg,
@@ -91,9 +92,9 @@ export function ReviewForm({
               key={r.id}
               onPress={() => onReservationSelect(active ? '' : r.id)}
               style={{
-                paddingVertical: 8,
-                paddingHorizontal: 12,
-                borderRadius: 9999,
+                paddingVertical: Spacing['2xs'],
+                paddingHorizontal: Spacing.xs,
+                borderRadius: BorderRadius.full,
                 borderWidth: 1,
                 backgroundColor: active ? colors.brand.primary : 'transparent',
                 borderColor: active ? 'transparent' : colors.border.default,

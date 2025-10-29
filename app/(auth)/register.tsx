@@ -14,6 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useFormKeyboardNavigation } from '@/utils/keyboardNavigation';
 import { useRegister } from '@/hooks';
 import type { RegistrationInput } from '@/services/auth';
+import { Spacing, BorderRadius } from '@/constants/spacing';
 
 const STRICT_CPF = true; // para testar rápido, mude para false
 
@@ -73,22 +74,22 @@ export default function RegisterScreen() {
       behavior={Platform.select({ ios: 'padding', android: undefined })}
       keyboardVerticalOffset={Platform.select({ ios: 80, android: 0 })}
     >
-      <ThemedView style={{ flex: 1, padding: 16, justifyContent: 'center' }}>
-        <LiquidGlassView intensity="standard" cornerRadius={24} style={{ padding: 24 }}>
+      <ThemedView style={{ flex: 1, padding: Spacing.sm, justifyContent: 'center' }}>
+        <LiquidGlassView intensity="standard" cornerRadius={BorderRadius.xl} style={{ padding: Spacing.md }}>
           <View
             accessibilityRole="form"
             accessibilityLabel="Formulário de registro"
           >
             <ThemedText 
               type="large-title" 
-              style={{ marginBottom: 32, textAlign: 'center' }}
+              style={{ marginBottom: Spacing.lg, textAlign: 'center' }}
               accessibilityRole="header"
             >
               Criar conta
             </ThemedText>
 
             <View 
-              style={{ gap: 16, marginBottom: 24 }}
+              style={{ gap: Spacing.sm, marginBottom: Spacing.md }}
               accessibilityRole="group"
               accessibilityLabel="Informações pessoais"
             >
@@ -134,7 +135,7 @@ export default function RegisterScreen() {
 
             {/* Address Input with ViaCEP */}
             <View 
-              style={{ marginTop: 8 }}
+              style={{ marginTop: Spacing['2xs'] }}
               accessibilityRole="group"
               accessibilityLabel="Endereço"
             >
@@ -157,7 +158,7 @@ export default function RegisterScreen() {
             </View>
 
             <View
-              style={{ gap: 16 }}
+              style={{ gap: Spacing.sm }}
               accessibilityRole="group"
               accessibilityLabel="Credenciais"
             >
@@ -196,12 +197,12 @@ export default function RegisterScreen() {
             disabled={loading}
             loading={loading}
             fullWidth
-            style={{ marginBottom: 16 }}
+            style={{ marginBottom: Spacing.sm }}
           >
             Criar conta
           </Button>
 
-          <View style={{ paddingTop: 16, borderTopWidth: 1, borderTopColor: colors.border.default }}>
+          <View style={{ paddingTop: Spacing.sm, borderTopWidth: 1, borderTopColor: colors.border.default }}>
             <Link href="/(auth)/login" asChild>
               <TouchableOpacity>
                 <ThemedText type="body" style={{ textAlign: 'center', color: colors.brand.primary }}>

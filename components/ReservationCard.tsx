@@ -14,6 +14,7 @@ import type { Reservation } from "@/types";
 import { View } from "react-native";
 import type { BaseCardProps } from "@/components/types";
 import { useNavigationService } from "@/providers/ServicesProvider";
+import { Spacing, BorderRadius } from "@/constants/spacing";
 
 type ReservationCardProps = BaseCardProps & {
   /**
@@ -64,27 +65,27 @@ export const ReservationCard = React.memo(function ReservationCard({ reservation
 
   return (
     <AnimatedCard>
-      <LiquidGlassView intensity="standard" cornerRadius={20} style={{ overflow: 'hidden' }}>
-        <View style={{ padding: 16 }}>
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
+      <LiquidGlassView intensity="standard" cornerRadius={BorderRadius.lg} style={{ overflow: 'hidden' }}>
+        <View style={{ padding: Spacing.sm }}>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: Spacing.xs }}>
             <ThemedText type="title-small" style={{ fontWeight: '600', flex: 1 }}>
               {r.itemTitle ?? "Item"}
             </ThemedText>
             <LinearGradient
               colors={statusColors}
               style={{
-                paddingVertical: 6,
-                paddingHorizontal: 12,
-                borderRadius: 16,
+                paddingVertical: Spacing['3xs'],
+                paddingHorizontal: Spacing.xs,
+                borderRadius: BorderRadius.md,
               }}
             >
-              <ThemedText style={{ color: colors.isDark ? colors.text.primary : '#ffffff', fontSize: 12, fontWeight: '600', textTransform: 'capitalize' }}>
+              <ThemedText type="caption-1" style={{ color: colors.isDark ? colors.text.primary : '#ffffff', fontWeight: '600', textTransform: 'capitalize' }}>
                 {r.status}
               </ThemedText>
             </LinearGradient>
           </View>
 
-          <View style={{ gap: 6, marginBottom: 12 }}>
+          <View style={{ gap: Spacing['2xs'], marginBottom: Spacing.xs }}>
             <ThemedText className="text-light-text-secondary dark:text-dark-text-secondary">
               📅 {r.startDate ?? "?"} → {r.endDate ?? "?"}
             </ThemedText>

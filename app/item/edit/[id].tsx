@@ -25,6 +25,7 @@ import { ITEM_CATEGORIES } from "@/constants/categories";
 import { useItemService, useNavigationService } from "@/providers/ServicesProvider";
 import { uploadUserImageFromUri } from "@/services/images";
 import { Ionicons } from "@expo/vector-icons";
+import { Spacing } from "@/constants/spacing";
 
 export default function EditItemScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -196,7 +197,7 @@ export default function EditItemScreen() {
 
   if (loading) {
     return (
-      <ThemedView style={{ flex: 1, padding: 16 }}>
+      <ThemedView style={{ flex: 1, padding: Spacing.sm }}>
         <ActivityIndicator />
         <ThemedText style={{ marginTop: 8 }}>Carregando…</ThemedText>
       </ThemedView>
@@ -210,10 +211,10 @@ export default function EditItemScreen() {
       keyboardVerticalOffset={Platform.select({ ios: 80, android: 0 })}
     >
       <ThemedView style={{ flex: 1 }}>
-        <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 32 }}>
+        <ScrollView contentContainerStyle={{ padding: Spacing.sm, paddingBottom: Spacing.lg }}>
           <ThemedText type="title">Editar Item</ThemedText>
 
-          <View style={{ marginTop: 16, gap: 16 }}>
+          <View style={{ marginTop: Spacing.sm, gap: Spacing.sm }}>
             <Input
               label="Título do item"
               placeholder="Ex: Furadeira Bosch GSR 180-LI"
@@ -338,7 +339,7 @@ export default function EditItemScreen() {
           </View>
 
           {/* Imagem: câmera e galeria */}
-          <View style={{ marginTop: 16, flexDirection: "row", gap: 16 }}>
+          <View style={{ marginTop: Spacing.sm, flexDirection: "row", gap: Spacing.sm }}>
             <TouchableOpacity onPress={() => pickFromCamera()} disabled={saving}>
               <ThemedText type="defaultSemiBold">Usar câmera</ThemedText>
             </TouchableOpacity>

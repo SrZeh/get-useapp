@@ -3,6 +3,8 @@ import { TouchableOpacity, ViewStyle, ActivityIndicator, Animated } from 'react-
 import { LinearGradient } from 'expo-linear-gradient';
 import { GradientTypes, HapticFeedback, useThemeColors, useButtonColors } from '@/utils';
 import { ThemedText } from './themed-text';
+import { AnimationConfigs, getSpringConfig } from '@/constants/animations';
+import { Spacing, BorderRadius } from '@/constants/spacing';
 
 type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'premium' | 'outline' | 'destructive';
 type ButtonSize = 'sm' | 'md' | 'lg';
@@ -24,9 +26,9 @@ type ButtonProps = {
 };
 
 const sizeMap: Record<ButtonSize, { paddingVertical: number; paddingHorizontal: number; minHeight: number; fontSize: number }> = {
-  sm: { paddingVertical: 12, paddingHorizontal: 16, minHeight: 44, fontSize: 15 }, // WCAG: Minimum 44x44px
-  md: { paddingVertical: 16, paddingHorizontal: 24, minHeight: 48, fontSize: 17 },
-  lg: { paddingVertical: 20, paddingHorizontal: 32, minHeight: 56, fontSize: 19 },
+  sm: { paddingVertical: Spacing.xs, paddingHorizontal: Spacing.sm, minHeight: 44, fontSize: 15 }, // WCAG: Minimum 44x44px
+  md: { paddingVertical: Spacing.sm, paddingHorizontal: Spacing.md, minHeight: 48, fontSize: 17 },
+  lg: { paddingVertical: 20, paddingHorizontal: Spacing.lg, minHeight: 56, fontSize: 19 }, // 20px between sm (16) and md (24)
 };
 
 export function Button({
@@ -57,21 +59,29 @@ export function Button({
   const handlePressIn = () => {
     if (disabled || loading) return;
     HapticFeedback.light();
+    const springConfig = getSpringConfig(
+      AnimationConfigs.buttonPress.damping,
+      AnimationConfigs.buttonPress.stiffness,
+      0.5
+    );
     Animated.spring(scaleAnim, {
       toValue: 0.98,
       useNativeDriver: true,
-      tension: 300,
-      friction: 10,
+      ...springConfig,
     }).start();
   };
 
   const handlePressOut = () => {
     if (disabled || loading) return;
+    const springConfig = getSpringConfig(
+      AnimationConfigs.buttonPress.damping,
+      AnimationConfigs.buttonPress.stiffness,
+      0.5
+    );
     Animated.spring(scaleAnim, {
       toValue: 1,
       useNativeDriver: true,
-      tension: 300,
-      friction: 10,
+      ...springConfig,
     }).start();
   };
 
@@ -110,12 +120,12 @@ export function Button({
     const baseStyle: ViewStyle = {
       paddingVertical: sizeStyles.paddingVertical,
       paddingHorizontal: sizeStyles.paddingHorizontal,
-      borderRadius: 20,
+      borderRadius: BorderRadius.lg,
       alignItems: 'center',
       justifyContent: 'center',
       minHeight: sizeStyles.minHeight,
       flexDirection: 'row',
-      gap: 8,
+      gap: Spacing['2xs'],
     };
 
     if (variant === 'premium') {

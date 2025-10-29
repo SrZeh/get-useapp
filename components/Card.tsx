@@ -3,6 +3,7 @@ import { View, TouchableOpacity, ViewStyle, StyleSheet } from 'react-native';
 import { LiquidGlassView } from './liquid-glass';
 import { useGlassColors, useGlassBorders } from '@/utils';
 import type { BaseCardWithChildrenProps } from './types';
+import { Spacing, BorderRadius } from '@/constants/spacing';
 
 type CardVariant = 'standard' | 'hover' | 'flat';
 type CardPadding = 'xs' | 'sm' | 'md' | 'lg';
@@ -30,10 +31,10 @@ type CardProps = BaseCardWithChildrenProps & {
 };
 
 const paddingMap: Record<CardPadding, number> = {
-  xs: 12,
-  sm: 16,
-  md: 24,
-  lg: 32,
+  xs: Spacing.xs,
+  sm: Spacing.sm,
+  md: Spacing.md,
+  lg: Spacing.lg,
 };
 
 export function Card({
@@ -52,7 +53,7 @@ export function Card({
 
   const baseCardStyle: ViewStyle = {
     padding: paddingValue,
-    borderRadius: 24,
+    borderRadius: BorderRadius.xl,
   };
 
   // Glass effect for standard variant
@@ -72,13 +73,16 @@ export function Card({
           activeOpacity={0.8}
           style={[baseCardStyle, style]}
           accessibilityRole="button"
-          accessibilityHint={rest.accessibilityHint || "Double tap to interact"}
-          accessibilityLabel={rest.accessibilityLabel}
+          accessibilityHint={rest.accessibilityHint || "Toque para interagir"}
+          accessibilityLabel={rest.accessibilityLabel || "Cartão interativo"}
+          accessibilityState={{
+            disabled: rest.disabled === true,
+          }}
           {...rest}
         >
           <LiquidGlassView
             intensity="standard"
-            cornerRadius={24}
+            cornerRadius={BorderRadius.xl}
             style={StyleSheet.absoluteFill}
           >
             {content}
@@ -88,7 +92,13 @@ export function Card({
     }
 
     return (
-      <View style={[baseCardStyle, style]} {...rest}>
+      <View
+        style={[baseCardStyle, style]}
+        accessibilityRole={rest.accessibilityRole}
+        accessibilityLabel={rest.accessibilityLabel}
+        accessibilityHint={rest.accessibilityHint}
+        {...rest}
+      >
         <LiquidGlassView
           intensity="standard"
           cornerRadius={24}
@@ -116,8 +126,11 @@ export function Card({
           style,
         ]}
         accessibilityRole="button"
-        accessibilityHint={rest.accessibilityHint || "Double tap to interact"}
-        accessibilityLabel={rest.accessibilityLabel}
+        accessibilityHint={rest.accessibilityHint || "Toque para interagir"}
+        accessibilityLabel={rest.accessibilityLabel || "Cartão interativo"}
+        accessibilityState={{
+          disabled: rest.disabled === true,
+        }}
         {...rest}
       >
         {header && <View style={styles.header}>{header}</View>}
@@ -148,13 +161,13 @@ export function Card({
 
 const styles = StyleSheet.create({
   header: {
-    marginBottom: 16,
+    marginBottom: Spacing.sm,
   },
   content: {
     flex: 1,
   },
   footer: {
-    marginTop: 16,
+    marginTop: Spacing.sm,
   },
 });
 

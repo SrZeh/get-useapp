@@ -8,6 +8,7 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import type { Item } from '@/types';
 import { useNavigationService } from '@/providers/ServicesProvider';
 import type { BaseCardProps } from '@/components/types';
+import { Spacing, BorderRadius } from '@/constants/spacing';
 
 type ItemCardProps = BaseCardProps & {
   /**
@@ -47,7 +48,7 @@ export function ItemCard({
   width,
   onPress,
   isMine = false,
-  cardSpacing = 12,
+  cardSpacing = Spacing.xs,
   renderBadges,
 }: ItemCardProps) {
   const colorScheme = useColorScheme() ?? 'light';
@@ -129,7 +130,7 @@ export function ItemCard({
         </ThemedText>
 
         {/* Badges */}
-        <View style={{ flexDirection: 'row', gap: 8, marginBottom: 12, flexWrap: 'wrap' }}>
+        <View style={{ flexDirection: 'row', gap: Spacing['2xs'], marginBottom: Spacing.xs, flexWrap: 'wrap' }}>
           {renderBadges ? (
             renderBadges(item)
           ) : (
@@ -137,9 +138,9 @@ export function ItemCard({
               {!!item.category && (
                 <View
                   style={{
-                    paddingVertical: 4,
-                    paddingHorizontal: 8,
-                    borderRadius: 9999,
+                    paddingVertical: Spacing['3xs'],
+                    paddingHorizontal: Spacing['2xs'],
+                    borderRadius: BorderRadius.full,
                     backgroundColor: colors.bg.tertiary,
                   }}
                 >
@@ -154,9 +155,9 @@ export function ItemCard({
               {!!item.condition && (
                 <View
                   style={{
-                    paddingVertical: 4,
-                    paddingHorizontal: 8,
-                    borderRadius: 9999,
+                    paddingVertical: Spacing['3xs'],
+                    paddingHorizontal: Spacing['2xs'],
+                    borderRadius: BorderRadius.full,
                     backgroundColor: colors.bg.tertiary,
                   }}
                 >
@@ -171,9 +172,9 @@ export function ItemCard({
               {!!item.minRentalDays && (
                 <View
                   style={{
-                    paddingVertical: 4,
-                    paddingHorizontal: 8,
-                    borderRadius: 9999,
+                    paddingVertical: Spacing['3xs'],
+                    paddingHorizontal: Spacing['2xs'],
+                    borderRadius: BorderRadius.full,
                     backgroundColor: colors.bg.tertiary,
                   }}
                 >
@@ -188,9 +189,9 @@ export function ItemCard({
               {!!item.city && (
                 <View
                   style={{
-                    paddingVertical: 4,
-                    paddingHorizontal: 8,
-                    borderRadius: 9999,
+                    paddingVertical: Spacing['3xs'],
+                    paddingHorizontal: Spacing['2xs'],
+                    borderRadius: BorderRadius.full,
                     backgroundColor: colors.bg.tertiary,
                   }}
                 >
@@ -205,9 +206,9 @@ export function ItemCard({
               {!!item.neighborhood && (
                 <View
                   style={{
-                    paddingVertical: 4,
-                    paddingHorizontal: 8,
-                    borderRadius: 9999,
+                    paddingVertical: Spacing['3xs'],
+                    paddingHorizontal: Spacing['2xs'],
+                    borderRadius: BorderRadius.full,
                     backgroundColor: colors.bg.tertiary,
                   }}
                 >

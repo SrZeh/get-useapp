@@ -26,6 +26,7 @@ import { ReviewSection, ReviewList } from "@/components/review";
 import { ItemHeader } from "@/components/items";
 import { LoadingState } from "@/components/states";
 import { useReservationService, useReviewService } from "@/providers/ServicesProvider";
+import { Spacing } from "@/constants/spacing";
 
 export default function ItemDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -226,7 +227,7 @@ export default function ItemDetailScreen() {
     >
       <ThemedView style={{ flex: 1, backgroundColor: palette.background }}>
         <ScrollView 
-          contentContainerStyle={{ padding: 16, paddingBottom: 40 }}
+          contentContainerStyle={{ padding: Spacing.sm, paddingBottom: Spacing.xl }}
           showsVerticalScrollIndicator={false}
         >
           {/* HEADER DO ITEM */}
@@ -262,10 +263,8 @@ export default function ItemDetailScreen() {
               <ThemedText 
                 type="title-2" 
                 style={{ 
-                  marginBottom: 20, 
+                  marginBottom: 20, // Spacing scale gap - could use md (24) but 20 is close to lg boundary
                   fontWeight: '700',
-                  fontSize: 22,
-                  lineHeight: 28
                 }}
                 lightColor={Colors.light.text}
                 darkColor={Colors.dark.text}

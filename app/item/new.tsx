@@ -27,6 +27,7 @@ import { useItemService, useNavigationService } from "@/providers/ServicesProvid
 import { uploadUserImageFromUri } from "@/services/images";
 import { Ionicons } from "@expo/vector-icons";
 import { useItemForm } from "@/hooks/useItemForm";
+import { Spacing } from "@/constants/spacing";
 
 export default function NewItemScreen() {
   const colorScheme = useColorScheme();
@@ -108,12 +109,12 @@ export default function NewItemScreen() {
     >
       <ThemedView style={{ flex: 1 }}>
         <ScrollView
-          contentContainerStyle={{ padding: 16, paddingBottom: 32 }}
+          contentContainerStyle={{ padding: Spacing.sm, paddingBottom: Spacing.lg }}
           keyboardShouldPersistTaps="handled"
         >
           <ThemedText type="title">Novo Item</ThemedText>
 
-          <View style={{ marginTop: 16, gap: 16 }}>
+          <View style={{ marginTop: Spacing.sm, gap: Spacing.sm }}>
             <Input
               label="Título do item"
               placeholder="Ex: Furadeira Bosch GSR 180-LI"
@@ -249,7 +250,7 @@ export default function NewItemScreen() {
           </View>
 
           {/* Imagem: câmera e galeria */}
-          <View style={{ marginTop: 16, flexDirection: "row", gap: 16 }}>
+          <View style={{ marginTop: Spacing.sm, flexDirection: "row", gap: Spacing.sm }}>
             <TouchableOpacity onPress={pickFromCamera} disabled={saving}>
               <ThemedText type="defaultSemiBold">Usar câmera</ThemedText>
             </TouchableOpacity>

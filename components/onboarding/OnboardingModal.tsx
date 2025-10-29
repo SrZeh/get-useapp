@@ -14,6 +14,7 @@ import {
 } from "react-native";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useThemeColors } from "@/utils";
+import { Spacing, BorderRadius } from "@/constants/spacing";
 
 type Props = {
   visible: boolean;
@@ -175,29 +176,29 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    padding: 16,
+    padding: Spacing.sm,
   },
   card: {
     width: "100%",
-    borderRadius: 16,
-    padding: 20,
-    gap: 12,
+    borderRadius: BorderRadius.md,
+    padding: 20, // Between sm (16) and md (24) - acceptable
+    gap: Spacing.xs,
   },
   progressTrack: {
-    height: 6,
-    borderRadius: 6,
+    height: 6, // Small progress bar - acceptable
+    borderRadius: BorderRadius['2xs'] + 2, // 6px - close to 2xs (4px)
     overflow: "hidden",
   },
   progressBar: {
-    height: 6,
+    height: 6, // Small progress bar - acceptable
   },
-  title: { fontSize: 20, fontWeight: "700" },
-  text: { fontSize: 16 },
-  row: { flexDirection: "row", gap: 12, justifyContent: "flex-end", marginTop: 4 },
+  title: { fontSize: 20, fontWeight: "700" }, // title-3 size
+  text: { fontSize: 16 }, // callout size
+  row: { flexDirection: "row", gap: Spacing.xs, justifyContent: "flex-end", marginTop: Spacing['3xs'] },
   btn: {
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 12,
+    paddingVertical: Spacing.xs,
+    paddingHorizontal: Spacing.sm,
+    borderRadius: BorderRadius.sm,
     alignItems: "center",
     justifyContent: "center",
     minWidth: 120,
@@ -205,17 +206,17 @@ const styles = StyleSheet.create({
   btnDisabled: { opacity: 0.5 },
   btnText: { fontWeight: "700" },
 
-  dots: { flexDirection: "row", gap: 6, marginTop: 4 },
-  dot: { width: 8, height: 8, borderRadius: 8 },
-  checkboxRow: { flexDirection: "row", alignItems: "center", gap: 10, marginTop: 6, flexWrap: "wrap" },
+  dots: { flexDirection: "row", gap: Spacing['2xs'], marginTop: Spacing['3xs'] },
+  dot: { width: Spacing['2xs'], height: Spacing['2xs'], borderRadius: BorderRadius['2xs'] },
+  checkboxRow: { flexDirection: "row", alignItems: "center", gap: Spacing.xs, marginTop: Spacing['2xs'], flexWrap: "wrap" },
   checkbox: {
     width: 20,
     height: 20,
-    borderRadius: 4,
+    borderRadius: BorderRadius['2xs'],
     borderWidth: 2,
     alignItems: "center",
     justifyContent: "center",
   },
-  checkboxInner: { width: 12, height: 12, borderRadius: 2 },
+  checkboxInner: { width: Spacing.xs, height: Spacing.xs, borderRadius: Spacing['4xs'] },
   link: { textDecorationLine: "underline", fontWeight: "600" },
 });

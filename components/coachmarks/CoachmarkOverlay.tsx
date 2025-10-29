@@ -6,6 +6,7 @@ import { useCoachmarksContext } from "@/providers/CoachmarksProvider";
 import React, { useMemo } from "react";
 import { Dimensions, Modal, Pressable, StyleSheet, View, ViewStyle } from "react-native";
 import { useThemeColors } from "@/utils/theme";
+import { Spacing, BorderRadius } from "@/constants/spacing";
 
 export function CoachmarkOverlay() {
 const { visible, rect, step, next } = useCoachmarksContext();
@@ -75,7 +76,7 @@ return (
 <View style={[bubbleStyle, styles.bubble, base]}
 pointerEvents="box-none"
 >
-<ThemedText style={{ fontSize: 15, marginBottom: 10 }}>{text}</ThemedText>
+<ThemedText type="subhead" style={{ marginBottom: Spacing.xs }}>{text}</ThemedText>
 <Pressable onPress={onNext} style={[btnStyle, styles.btn]}>
 <ThemedText style={{ fontWeight: "700" }}>Próximo</ThemedText>
 </Pressable>
@@ -86,18 +87,18 @@ pointerEvents="box-none"
 const styles = StyleSheet.create({
 full: { flex: 1 },
 overlay: { position: "absolute" },
-border: { position: "absolute", borderWidth: 2, borderRadius: 12 },
+border: { position: "absolute", borderWidth: 2, borderRadius: BorderRadius.sm },
 bubble: {
 position: "absolute",
 maxWidth: 260,
-padding: 12,
-borderRadius: 12,
+padding: Spacing.xs,
+borderRadius: BorderRadius.sm,
 borderWidth: 1,
 },
 btn: {
 alignSelf: "flex-end",
-paddingVertical: 10,
-paddingHorizontal: 14,
-borderRadius: 10,
+paddingVertical: Spacing.xs,
+paddingHorizontal: Spacing.xs + 2, // 14px - close to xs
+borderRadius: BorderRadius.xs + 2, // 10px - close to xs
 },
 });

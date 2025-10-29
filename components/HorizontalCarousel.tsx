@@ -11,6 +11,7 @@ import { useResponsive } from '@/hooks/useResponsive';
 import { LiquidGlassView } from './liquid-glass';
 import { ThemedText } from '@/components/themed-text';
 import { useThemeColors } from '@/utils/theme';
+import { Spacing, BorderRadius } from '@/constants/spacing';
 
 type CarouselItem = {
   id: string;
@@ -31,7 +32,7 @@ export function HorizontalCarousel({
   items,
   title,
   itemWidth = 'auto',
-  spacing = 12,
+  spacing = Spacing.xs, // 12px
   showIndicators = true,
   useLiquidGlass = true,
   snapToInterval = true,
@@ -67,7 +68,7 @@ export function HorizontalCarousel({
       {title && (
         <ThemedText
           type="title"
-          style={{ marginBottom: 16, paddingHorizontal: 16 }}
+          style={{ marginBottom: Spacing.sm, paddingHorizontal: Spacing.sm }}
           className="text-light-text-primary dark:text-dark-text-primary"
         >
           {title}
@@ -82,8 +83,8 @@ export function HorizontalCarousel({
         snapToInterval={snapToInterval ? calculatedWidth + spacing : undefined}
         snapToAlignment="start"
         contentContainerStyle={{
-          paddingHorizontal: 16,
-          paddingRight: 32,
+          paddingHorizontal: Spacing.sm,
+          paddingRight: Spacing.lg,
           gap: spacing,
         }}
         onScroll={handleScroll}
@@ -107,9 +108,9 @@ export function HorizontalCarousel({
           style={{
             flexDirection: 'row',
             justifyContent: 'center',
-            gap: 8,
-            marginTop: 12,
-            paddingHorizontal: 16,
+            gap: Spacing['2xs'],
+            marginTop: Spacing.xs,
+            paddingHorizontal: Spacing.sm,
           }}
         >
           {items.map((_, index) => (
@@ -120,9 +121,9 @@ export function HorizontalCarousel({
             >
               <View
                 style={{
-                  width: index === activeIndex ? 24 : 8,
-                  height: 8,
-                  borderRadius: 4,
+                  width: index === activeIndex ? Spacing.md : Spacing['2xs'],
+                  height: Spacing['2xs'],
+                  borderRadius: BorderRadius['2xs'],
                   backgroundColor:
                     index === activeIndex ? colors.brand.primary : colors.border.default,
                   opacity: index === activeIndex ? 1 : 0.5,

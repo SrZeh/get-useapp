@@ -11,6 +11,7 @@ import { HapticFeedback } from '@/utils';
 import { useThemeColors } from '@/utils/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Colors } from '@/constants/theme';
+import { Spacing, BorderRadius } from '@/constants/spacing';
 
 type LocationCheckboxFilterProps = {
   title: string;
@@ -52,9 +53,9 @@ export function LocationCheckboxFilter({
   }
 
   return (
-    <View style={[{ marginBottom: 12 }, style]}>
+    <View style={[{ marginBottom: Spacing.xs }, style]}>
       {/* Title */}
-      <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8, gap: 6 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: Spacing['2xs'], gap: Spacing['2xs'] }}>
         {icon && (
           <Ionicons
             name={icon}
@@ -79,7 +80,7 @@ export function LocationCheckboxFilter({
       </View>
 
       {/* Checkbox Options */}
-      <LiquidGlassView intensity="subtle" cornerRadius={16} style={{ maxHeight: 200 }}>
+      <LiquidGlassView intensity="subtle" cornerRadius={BorderRadius.md} style={{ maxHeight: 200 }}>
         <ScrollView
           nestedScrollEnabled
           showsVerticalScrollIndicator={false}
@@ -89,8 +90,8 @@ export function LocationCheckboxFilter({
             style={{
               flexDirection: 'row',
               flexWrap: 'wrap',
-              padding: 12,
-              gap: 8,
+              padding: Spacing.xs,
+              gap: Spacing['2xs'],
             }}
           >
             {options.map((option) => {
@@ -104,9 +105,9 @@ export function LocationCheckboxFilter({
                   style={{
                     flexDirection: 'row',
                     alignItems: 'center',
-                    paddingVertical: 8,
-                    paddingHorizontal: 12,
-                    borderRadius: 8,
+                    paddingVertical: Spacing['2xs'],
+                    paddingHorizontal: Spacing.xs,
+                    borderRadius: BorderRadius.xs,
                     backgroundColor: isSelected
                       ? colors.semantic.primary + '20'
                       : colors.input.bg,
@@ -115,7 +116,7 @@ export function LocationCheckboxFilter({
                       ? colors.semantic.primary
                       : colors.border.default,
                     minHeight: 44,
-                    gap: 8,
+                    gap: Spacing['2xs'],
                   }}
                   accessibilityRole="checkbox"
                   accessibilityState={{ checked: isSelected }}

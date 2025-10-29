@@ -81,7 +81,7 @@ import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
 import React, { useMemo } from "react";
 import { Platform, Pressable, View } from "react-native";
-import { Image } from "expo-image";
+import { Image, ImageBackground } from "expo-image";
 import { AuthProvider } from '../src/providers/AuthProvider';
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { useThemeColors } from "@/utils";
@@ -152,18 +152,36 @@ function AppContent() {
           style={{
             flex: 1,
             width: '100%',
-            backgroundColor: colors.bg.tertiary,
             flexDirection: 'column',
+            backgroundColor: colors.bg.tertiary,
+            position: 'relative',
           }}
         >
-          <OnboardingProvider>
-            <CoachmarksProvider>
-              <View style={{ flex: 1 }}>
-                {content}
-              </View>
-              <GlobalTabBar />
-            </CoachmarksProvider>
-          </OnboardingProvider>
+          {/* Background with icons */}
+          <ImageBackground
+            source={require('@/assets/images/bg-icons.png')}
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              opacity: 0.3,
+            }}
+            imageStyle={{ opacity: 1 }}
+          />
+          
+          {/* Content */}
+          <View style={{ flex: 1, position: 'relative' }}>
+            <OnboardingProvider>
+              <CoachmarksProvider>
+                <View style={{ flex: 1 }}>
+                  {content}
+                </View>
+                <GlobalTabBar />
+              </CoachmarksProvider>
+            </OnboardingProvider>
+          </View>
         </View>
         <StatusBar style={scheme === 'dark' ? 'light' : 'dark'} />
       </ThemeProvider>
@@ -173,15 +191,39 @@ function AppContent() {
   // Native mobile
   return (
     <ThemeProvider value={navigationTheme}>
-      <View style={{ flex: 1, flexDirection: 'column' }}>
-        <OnboardingProvider>
-          <CoachmarksProvider>
-            <View style={{ flex: 1 }}>
-              {content}
-            </View>
-            <GlobalTabBar />
-          </CoachmarksProvider>
-        </OnboardingProvider>
+      <View
+        style={{
+          flex: 1,
+          flexDirection: 'column',
+          backgroundColor: colors.bg.primary,
+          position: 'relative',
+        }}
+      >
+        {/* Background with icons */}
+        <ImageBackground
+          source={require('@/assets/images/bg-icons.png')}
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            opacity: 0.3,
+          }}
+          imageStyle={{ opacity: 1 }}
+        />
+        
+        {/* Content */}
+        <View style={{ flex: 1, position: 'relative' }}>
+          <OnboardingProvider>
+            <CoachmarksProvider>
+              <View style={{ flex: 1 }}>
+                {content}
+              </View>
+              <GlobalTabBar />
+            </CoachmarksProvider>
+          </OnboardingProvider>
+        </View>
       </View>
       <StatusBar style={scheme === 'dark' ? 'light' : 'dark'} />
     </ThemeProvider>

@@ -7,6 +7,7 @@ import { StarRating } from '@/components/review';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Colors } from '@/constants/theme';
 import type { Item } from '@/types';
+import { Spacing, BorderRadius } from '@/constants/spacing';
 
 type ItemHeaderProps = {
   item: Item;
@@ -149,13 +150,13 @@ const styles = StyleSheet.create({
     lineHeight: 21,
   },
   categoryContainer: {
-    marginBottom: 8,
-    marginTop: 4,
+    marginBottom: Spacing['2xs'],
+    marginTop: Spacing['3xs'],
   },
   categoryText: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
+    paddingHorizontal: Spacing.xs,
+    paddingVertical: Spacing['2xs'],
+    borderRadius: BorderRadius.sm,
     overflow: 'hidden',
     alignSelf: 'flex-start',
     fontSize: 13,

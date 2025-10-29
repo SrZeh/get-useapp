@@ -3,6 +3,7 @@ import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import * as Linking from "expo-linking";
 import { Platform, TouchableOpacity } from "react-native";
+import { Spacing } from "@/constants/spacing";
 
 /**
  * Dica: defina sua URL pública do site no app.config ou .env:
@@ -17,7 +18,7 @@ export default function TermsScreen() {
   // Web: usar HTML nativo pra poder usar 'vh' e <a>
   if (Platform.OS === "web") {
     return (
-      <div style={{ padding: 16 }}>
+      <div style={{ padding: Spacing.sm }}>
         <h1 style={{ margin: 0 }}>Termos de Uso</h1>
 
         <div style={{ marginTop: 12, height: "80vh" }}>
@@ -41,7 +42,7 @@ export default function TermsScreen() {
   const openPdf = () => Linking.openURL(pdfUrlAbsolute);
 
   return (
-    <ThemedView style={{ flex: 1, padding: 16 }}>
+    <ThemedView style={{ flex: 1, padding: Spacing.sm }}>
       <ThemedText type="title">Termos de Uso</ThemedText>
       <ThemedText style={{ marginTop: 8 }}>
         Você pode abrir o PDF dos Termos de Uso abaixo.

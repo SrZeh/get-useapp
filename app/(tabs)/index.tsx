@@ -28,6 +28,7 @@ import {
   RefreshControl,
   View,
 } from "react-native";
+import { Spacing, BorderRadius } from "@/constants/spacing";
 import type { Item } from "@/types";
 import { filterItems, type ItemFilters } from "@/utils";
 import { useThemeColors } from "@/utils/theme";
@@ -201,7 +202,7 @@ export default function VitrineScreen() {
           updateCellsBatchingPeriod={50}
           ListEmptyComponent={
             !loading ? (
-              <View style={{ paddingHorizontal: screenPadding, paddingBottom: 48 }}>
+              <View style={{ paddingHorizontal: screenPadding, paddingBottom: Spacing.xl }}>
                 <EmptyState message="Nenhum item encontrado." />
               </View>
             ) : null
@@ -213,7 +214,7 @@ export default function VitrineScreen() {
             gap: cardSpacing,
           } : undefined}
           contentContainerStyle={{ 
-            paddingBottom: 24,
+            paddingBottom: Spacing.md,
             paddingHorizontal: numColumns > 1 ? 0 : screenPadding,
             flexGrow: 1,
           }}
@@ -230,11 +231,11 @@ export default function VitrineScreen() {
           onEndReached={loadMore}
           ListFooterComponent={
             loadingMore ? (
-              <View style={{ padding: 16, paddingHorizontal: screenPadding }}>
-                <ShimmerLoader height={120} borderRadius={12} />
+              <View style={{ padding: Spacing.sm, paddingHorizontal: screenPadding }}>
+                <ShimmerLoader height={120} borderRadius={BorderRadius.sm} />
               </View>
             ) : !hasMore && filteredItems.length > 0 ? (
-              <View style={{ padding: 12, alignItems: "center" }}>
+              <View style={{ padding: Spacing.xs, alignItems: "center" }}>
                 <ThemedText 
                   type="footnote"
                   className="text-light-text-tertiary dark:text-dark-text-tertiary"

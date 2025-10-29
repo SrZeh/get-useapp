@@ -24,6 +24,7 @@ import {
 } from "react-native";
 
 import type { FirestoreTimestamp } from "@/types";
+import { Spacing } from "@/constants/spacing";
 
 type Msg = { id: string; text: string; senderUid: string; createdAt?: FirestoreTimestamp };
 
@@ -93,14 +94,14 @@ export default function ReservationChatScreen() {
   // UX: se não logado ou id inválido
   if (!id) {
     return (
-      <ThemedView style={{ flex: 1, alignItems: "center", justifyContent: "center", padding: 16 }}>
+      <ThemedView style={{ flex: 1, alignItems: "center", justifyContent: "center", padding: Spacing.sm }}>
         <ThemedText>Reserva inválida.</ThemedText>
       </ThemedView>
     );
   }
   if (!uid) {
     return (
-      <ThemedView style={{ flex: 1, alignItems: "center", justifyContent: "center", padding: 16 }}>
+      <ThemedView style={{ flex: 1, alignItems: "center", justifyContent: "center", padding: Spacing.sm }}>
         <ThemedText>Faça login para ver e enviar mensagens.</ThemedText>
       </ThemedView>
     );
@@ -113,13 +114,13 @@ export default function ReservationChatScreen() {
       keyboardVerticalOffset={Platform.select({ ios: 80, android: 0 })}
     >
       <ThemedView style={{ flex: 1 }}>
-        <ThemedText type="title" style={{ padding: 16 }}>
+        <ThemedText type="title" style={{ padding: Spacing.sm }}>
           Mensagens
         </ThemedText>
 
         <ScrollView
           ref={scrollRef}
-          contentContainerStyle={{ padding: 16, paddingBottom: 12 }}
+          contentContainerStyle={{ padding: Spacing.sm, paddingBottom: Spacing.xs }}
         >
           {msgs.length === 0 ? (
             <ThemedText style={{ opacity: 0.7 }}>Sem mensagens ainda.</ThemedText>

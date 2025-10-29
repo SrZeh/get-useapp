@@ -10,6 +10,7 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Colors } from '@/constants/theme';
 import { useThemeColors } from '@/utils';
 import type { UserProfile } from '@/types';
+import { Spacing, BorderRadius } from '@/constants/spacing';
 
 function Stars({ value = 0 }: { value?: number }) {
   const filled = Math.round(value);
@@ -42,10 +43,10 @@ export default function ReviewsScreen() {
 
   return (
     <ThemedView style={{ flex: 1 }}>
-      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 32 }}>
-        <ThemedText type="large-title" style={{ marginBottom: 32 }}>Minha reputação</ThemedText>
+      <ScrollView contentContainerStyle={{ padding: Spacing.sm, paddingBottom: Spacing.lg }}>
+        <ThemedText type="large-title" style={{ marginBottom: Spacing.lg }}>Minha reputação</ThemedText>
 
-        <LiquidGlassView intensity="standard" cornerRadius={24} style={{ padding: 24, marginBottom: 24 }}>
+        <LiquidGlassView intensity="standard" cornerRadius={BorderRadius.xl} style={{ padding: Spacing.md, marginBottom: Spacing.md }}>
           {avg == null || count === 0 ? (
             <View style={{ alignItems: 'center' }}>
               <ThemedText type="title-2" style={{ marginBottom: 8, textAlign: 'center' }}>
@@ -70,7 +71,7 @@ export default function ReviewsScreen() {
           )}
         </LiquidGlassView>
 
-        <LiquidGlassView intensity="subtle" cornerRadius={16} style={{ padding: 16 }}>
+        <LiquidGlassView intensity="subtle" cornerRadius={BorderRadius.md} style={{ padding: Spacing.sm }}>
           <ThemedText type="footnote" className="text-light-text-tertiary dark:text-dark-text-tertiary" style={{ textAlign: 'center' }}>
             As mensagens dos avaliadores ficam somente nos reviews dos itens.
           </ThemedText>

@@ -11,6 +11,7 @@ import {
   createCheckoutSession,
   confirmCheckoutSession,
 } from "@/services/cloudFunctions";
+import { Spacing } from "@/constants/spacing";
 
 export default function PayScreen() {
   const params = useLocalSearchParams();
@@ -74,7 +75,7 @@ export default function PayScreen() {
 
   return (
     <ThemedView style={{ flex: 1 }}>
-      <ScrollView contentContainerStyle={{ padding: 16 }}>
+      <ScrollView contentContainerStyle={{ padding: Spacing.sm }}>
         <ThemedText type="title">Pagamento</ThemedText>
         <ThemedText style={{ marginTop: 8, opacity: 0.8 }}>
           Você será redirecionado ao Checkout seguro da Stripe. Pagamento por cartão.

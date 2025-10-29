@@ -99,9 +99,9 @@ export default function ReviewScreen() {
 
   const inputStyle = useMemo(() => ({
     borderWidth: 1,
-    borderRadius: 16,
-    padding: 16,
-    fontSize: 17,
+    borderRadius: BorderRadius.md,
+    padding: Spacing.sm,  
+    fontSize: 17, // Body size - acceptable for TextInput
     color: colors.text.primary,
     borderColor: colors.border.default,
     backgroundColor: colors.input.bg,
@@ -115,29 +115,29 @@ export default function ReviewScreen() {
       keyboardVerticalOffset={Platform.select({ ios: 80, android: 0 })}
     >
       <ThemedView style={{ flex: 1 }}>
-        <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 32 }}>
-          <ThemedText type="large-title" style={{ marginBottom: 32 }}>
+        <ScrollView contentContainerStyle={{ padding: Spacing.sm, paddingBottom: Spacing.lg }}>
+          <ThemedText type="large-title" style={{ marginBottom: Spacing.lg }}>
             {title}
           </ThemedText>
 
           {!res ? (
-            <LiquidGlassView intensity="subtle" cornerRadius={16} style={{ padding: 24, alignItems: 'center' }}>
+            <LiquidGlassView intensity="subtle" cornerRadius={BorderRadius.md} style={{ padding: Spacing.md, alignItems: 'center' }}>
               <ThemedText type="callout">Carregando…</ThemedText>
             </LiquidGlassView>
           ) : !canReview ? (
-            <LiquidGlassView intensity="standard" cornerRadius={16} style={{ padding: 24 }}>
+            <LiquidGlassView intensity="standard" cornerRadius={BorderRadius.md} style={{ padding: Spacing.md }}>
               <ThemedText type="body" style={{ color: palette.error, textAlign: 'center' }}>
                 Você só pode avaliar reservas devolvidas em que você é o locatário.
               </ThemedText>
             </LiquidGlassView>
           ) : (
-            <LiquidGlassView intensity="standard" cornerRadius={24} style={{ padding: 24 }}>
+            <LiquidGlassView intensity="standard" cornerRadius={BorderRadius.xl} style={{ padding: Spacing.md }}>
               <View style={{ gap: 20 }}>
                 <View>
-                  <ThemedText type="title-3" style={{ marginBottom: 12, fontWeight: '600' }}>
+                  <ThemedText type="title-3" style={{ marginBottom: Spacing.xs, fontWeight: '600' }}>
                     Nota (1–5)
                   </ThemedText>
-                  <View style={{ flexDirection: 'row', gap: 12, marginBottom: 16 }}>
+                  <View style={{ flexDirection: 'row', gap: Spacing.xs, marginBottom: Spacing.sm }}>
                     {[1, 2, 3, 4, 5].map((n) => (
                       <TouchableOpacity
                         key={n}
@@ -146,8 +146,8 @@ export default function ReviewScreen() {
                           setStars(n);
                         }}
                         style={{
-                          padding: 12,
-                          borderRadius: 16,
+                          padding: Spacing.xs,
+                          borderRadius: BorderRadius.md,
                           backgroundColor: stars >= n ? colors.brand.primary : colors.card.bg,
                           borderWidth: 1,
                           borderColor: stars >= n ? colors.brand.primary : colors.border.default,

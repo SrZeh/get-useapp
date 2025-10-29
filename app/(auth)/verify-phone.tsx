@@ -10,6 +10,7 @@ import { PhoneAuthProvider, linkWithCredential } from 'firebase/auth';
 import Constants from 'expo-constants';
 import { useThemeColors } from '@/utils';
 import { Button } from '@/components/Button';
+import { Spacing } from '@/constants/spacing';
 
 export default function VerifyPhoneScreen() {
   const user = auth.currentUser;
@@ -61,7 +62,7 @@ export default function VerifyPhoneScreen() {
   };
 
   return (
-    <ThemedView style={{ flex:1, padding:16, gap:12 }}>
+    <ThemedView style={{ flex:1, padding:Spacing.sm, gap:Spacing.xs }}>
       <FirebaseRecaptchaVerifierModal
         ref={recaptchaRef}
         // Passe sua config do Firebase (veja Passo 4)

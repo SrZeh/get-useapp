@@ -18,6 +18,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { ThemedText } from '@/components/themed-text';
 import { LiquidGlassView } from '@/components/liquid-glass';
 import { AnimatedCard } from '@/components/AnimatedCard';
+import { Spacing, BorderRadius } from '@/constants/spacing';
 import { Button } from '@/components/Button';
 import { GradientTypes, HapticFeedback, useThemeColors, calcAvg, renderStars } from '@/utils';
 import type { Item } from '@/types';
@@ -111,15 +112,15 @@ export function ItemManagementCard({
             <LinearGradient
               colors={item.available ? GradientTypes.success.colors : [colors.text.quaternary, colors.text.tertiary]}
               style={{
-                paddingVertical: 6,
-                paddingHorizontal: 12,
-                borderRadius: 16,
+                paddingVertical: Spacing['2xs'],
+                paddingHorizontal: Spacing.xs,
+                borderRadius: BorderRadius.md,
               }}
             >
               <ThemedText
+                type="caption-1"
                 style={{
                   color: colors.isDark ? colors.text.primary : '#ffffff',
-                  fontSize: 12,
                   fontWeight: '600',
                 }}
               >
@@ -198,7 +199,7 @@ export function ItemManagementCard({
                 minHeight: 48,
                 justifyContent: 'center',
                 alignItems: 'center',
-                borderRadius: 12,
+                borderRadius: BorderRadius.sm,
                 backgroundColor: colors.semantic.error,
                 opacity: isUpdating ? 0.6 : 1,
               }}
