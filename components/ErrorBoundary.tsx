@@ -6,15 +6,57 @@
  */
 
 import React, { Component, type ReactNode } from 'react';
-import { View, Text, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, useColorScheme } from 'react-native';
 import { ThemedText } from './themed-text';
 import { ThemedView } from './themed-view';
 import { LiquidGlassView } from './liquid-glass';
-import { Button } from './Button';
 import { logger } from '@/utils';
 import { toAppError } from '@/types/errors';
 import { getErrorUserMessage } from '@/constants/errors';
-import { useThemeColors } from '@/utils/theme';
+import { Colors } from '@/constants/theme';
+import { ExtendedColors } from '@/constants/colors';
+
+// Simple button component that doesn't require ThemeProvider
+function ErrorButton({ 
+  onPress, 
+  children, 
+  variant = 'primary' 
+}: { 
+  onPress: () => void;
+  children: React.ReactNode;
+  variant?: 'primary' | 'secondary';
+}) {
+  const colorScheme = useColorScheme() ?? 'light';
+  const themeColors = Colors[colorScheme];
+  const isDark = colorScheme === 'dark';
+  
+  const brandColor = isDark ? ExtendedColors.brand.primary : ExtendedColors.brand.dark;
+  
+  const buttonStyle = {
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    borderRadius: 20,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+    minHeight: 48,
+    width: '100%' as const,
+    backgroundColor: variant === 'primary' ? brandColor : 'transparent',
+    borderWidth: variant === 'secondary' ? 2 : 0,
+    borderColor: variant === 'secondary' ? brandColor : 'transparent',
+  };
+  
+  const textStyle = {
+    color: variant === 'primary' ? '#ffffff' : brandColor,
+    fontWeight: '600' as const,
+    fontSize: 17,
+  };
+  
+  return (
+    <TouchableOpacity onPress={onPress} style={buttonStyle} activeOpacity={0.8}>
+      <Text style={textStyle}>{children}</Text>
+    </TouchableOpacity>
+  );
+}
 
 // Helper component to access theme hooks inside class component
 function ErrorBoundaryContent({ 
@@ -28,7 +70,9 @@ function ErrorBoundaryContent({
   onReset: () => void;
   onReload: () => void;
 }) {
-  const colors = useThemeColors();
+  // Use React Native's built-in useColorScheme which doesn't require ThemeProvider
+  const colorScheme = useColorScheme() ?? 'light';
+  const themeColors = Colors[colorScheme];
   
   return (
     <ThemedView style={{ flex: 1, padding: 24, justifyContent: 'center', alignItems: 'center' }}>
@@ -53,7 +97,7 @@ function ErrorBoundaryContent({
           <ScrollView 
             style={{ 
               maxHeight: 200, 
-              backgroundColor: colors.bg.tertiary, 
+              backgroundColor: themeColors.backgroundTertiary, 
               borderRadius: 12, 
               padding: 12,
               marginBottom: 24 
@@ -72,14 +116,14 @@ function ErrorBoundaryContent({
         )}
 
         <View style={{ gap: 12, width: '100%' }}>
-          <Button variant="primary" onPress={onReload} fullWidth>
+          <ErrorButton variant="primary" onPress={onReload}>
             Tentar novamente
-          </Button>
+          </ErrorButton>
           
           {__DEV__ && (
-            <Button variant="secondary" onPress={onReset} fullWidth>
+            <ErrorButton variant="secondary" onPress={onReset}>
               Continuar (dev)
-            </Button>
+            </ErrorButton>
           )}
         </View>
       </LiquidGlassView>

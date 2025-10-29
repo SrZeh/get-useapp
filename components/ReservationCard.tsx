@@ -91,7 +91,14 @@ export const ReservationCard = React.memo(function ReservationCard({ reservation
             <ThemedText className="text-light-text-secondary dark:text-dark-text-secondary">
               ⏱️ {daysLabel}
             </ThemedText>
-            <ThemedText type="body" style={{ fontWeight: '600', color: colors.brand.primary, marginTop: 4 }}>
+            <ThemedText 
+              type="body" 
+              style={{ 
+                fontWeight: '600', 
+                color: colors.isDark ? colors.brand.primary : colors.brand.dark, 
+                marginTop: 4 
+              }}
+            >
               💰 Total: R$ {typeof r.total === 'number' ? r.total.toFixed(2) : r.total ?? "-"}
             </ThemedText>
           </View>

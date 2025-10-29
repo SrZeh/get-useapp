@@ -116,11 +116,12 @@ export function OwnerInbox() {
           </ThemedText>
         </LiquidGlassView>
       ) : (
-        rows.map((r) => (
-          <ReservationCard
-            key={r.id}
-            reservation={r}
-            actions={
+        <View style={{ gap: 16 }}>
+          {rows.map((r) => (
+            <ReservationCard
+              key={r.id}
+              reservation={r}
+              actions={
               canAccept(r) ? (
                 <View style={{ gap: 12 }}>
                   <View style={{ flexDirection: 'row', gap: 12, flexWrap: 'wrap' }}>
@@ -201,7 +202,8 @@ export function OwnerInbox() {
               ) : null
             }
           />
-        ))
+          ))}
+        </View>
       )}
     </ScrollView>
   );

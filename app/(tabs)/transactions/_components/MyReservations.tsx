@@ -88,11 +88,12 @@ export function MyReservations() {
           </ThemedText>
         </LiquidGlassView>
       ) : (
-        rows.map((r) => (
-          <ReservationCard
-            key={r.id}
-            reservation={r}
-            actions={
+        <View style={{ gap: 16 }}>
+          {rows.map((r) => (
+            <ReservationCard
+              key={r.id}
+              reservation={r}
+              actions={
               canPay(r) ? (
                 <Button
                   variant="primary"
@@ -165,7 +166,8 @@ export function MyReservations() {
               ) : null
             }
           />
-        ))
+          ))}
+        </View>
       )}
     </ScrollView>
   );

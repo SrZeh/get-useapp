@@ -195,7 +195,7 @@ export default function EditProfile() {
             {(localUri || photoURL) ? (
               <ExpoImage
                 source={{ uri: localUri ?? photoURL ?? undefined }}
-                style={{ width: 120, height: 120, borderRadius: 60, marginBottom: 16, borderWidth: 3, borderColor: colors.brand.primary }}
+                style={{ width: 120, height: 120, borderRadius: 60, marginBottom: 16, borderWidth: 3, borderColor: colors.isDark ? colors.brand.primary : colors.brand.dark }}
                 contentFit="cover"
                 transition={200}
                 cachePolicy="memory-disk"

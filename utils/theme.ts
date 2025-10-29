@@ -235,6 +235,9 @@ export function useChipColors(selected: boolean) {
 export function useButtonColors(variant: 'primary' | 'secondary' | 'ghost' | 'outline' | 'destructive') {
   const colors = useThemeColors();
   
+  // Theme-aware brand color: use dark green in light mode for contrast, light green in dark mode
+  const brandColor = colors.isDark ? colors.brand.primary : colors.brand.dark;
+  
   const variants = {
     primary: {
       bg: colors.brand.primary,
@@ -243,12 +246,12 @@ export function useButtonColors(variant: 'primary' | 'secondary' | 'ghost' | 'ou
     },
     secondary: {
       bg: 'transparent',
-      text: colors.brand.primary,
-      border: colors.brand.primary,
+      text: brandColor,
+      border: brandColor,
     },
     ghost: {
       bg: 'transparent',
-      text: colors.isDark ? colors.brand.primary : colors.text.primary,
+      text: brandColor,
       border: 'transparent',
     },
     outline: {

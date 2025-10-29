@@ -133,7 +133,7 @@ export default function ProfileScreen() {
             {u?.photoURL ? (
               <Image 
                 source={{ uri: u.photoURL }} 
-                style={{ width: 120, height: 120, borderRadius: 60, borderWidth: 3, borderColor: colors.brand.primary }}
+                style={{ width: 120, height: 120, borderRadius: 60, borderWidth: 3, borderColor: colors.isDark ? colors.brand.primary : colors.brand.dark }}
                 contentFit="cover"
                 transition={200}
                 cachePolicy="memory-disk"
@@ -158,7 +158,7 @@ export default function ProfileScreen() {
           {/* Stats */}
           <View style={{ flexDirection: 'row', justifyContent: 'space-around', marginBottom: 24, paddingTop: 24, borderTopWidth: 1, borderTopColor: borderOpacity.default }}>
             <View style={{ alignItems: 'center' }}>
-              <ThemedText type="title-2" style={{ fontWeight: '700', color: colors.brand.primary }}>
+              <ThemedText type="title-2" style={{ fontWeight: '700', color: colors.isDark ? colors.brand.primary : colors.brand.dark }}>
                 {(u?.ratingAvg ?? 5).toFixed(1)}
               </ThemedText>
               <ThemedText type="caption" className="text-light-text-tertiary dark:text-dark-text-tertiary">
@@ -166,7 +166,7 @@ export default function ProfileScreen() {
               </ThemedText>
             </View>
             <View style={{ alignItems: 'center' }}>
-              <ThemedText type="title-2" style={{ fontWeight: '700', color: colors.brand.primary }}>
+              <ThemedText type="title-2" style={{ fontWeight: '700', color: colors.isDark ? colors.brand.primary : colors.brand.dark }}>
                 {u?.ratingCount ?? 0}
               </ThemedText>
               <ThemedText type="caption" className="text-light-text-tertiary dark:text-dark-text-tertiary">
@@ -174,7 +174,7 @@ export default function ProfileScreen() {
               </ThemedText>
             </View>
             <View style={{ alignItems: 'center' }}>
-              <ThemedText type="title-2" style={{ fontWeight: '700', color: colors.brand.primary }}>
+              <ThemedText type="title-2" style={{ fontWeight: '700', color: colors.isDark ? colors.brand.primary : colors.brand.dark }}>
                 {u?.transactionsTotal ?? 0}
               </ThemedText>
               <ThemedText type="caption" className="text-light-text-tertiary dark:text-dark-text-tertiary">
@@ -223,20 +223,32 @@ export default function ProfileScreen() {
                 padding: 16,
                 borderRadius: 16,
                 backgroundColor: themeMode === 'light' 
-                  ? (colors.isDark ? brandOpacity.primary.medium : brandOpacity.primary.light)
+                  ? (colors.isDark ? brandOpacity.primary.medium : brandOpacity.dark.medium)
                   : 'transparent',
                 borderWidth: themeMode === 'light' ? 2 : 1,
-                borderColor: themeMode === 'light' ? colors.brand.primary : borderOpacity.default,
+                borderColor: themeMode === 'light' 
+                  ? (colors.isDark ? colors.brand.primary : colors.brand.dark)
+                  : borderOpacity.default,
               }}
             >
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-                <Ionicons name="sunny" size={24} color={themeMode === 'light' ? colors.brand.primary : colors.text.tertiary} />
+                <Ionicons 
+                  name="sunny" 
+                  size={24} 
+                  color={themeMode === 'light' 
+                    ? (colors.isDark ? colors.brand.primary : colors.brand.dark)
+                    : colors.text.tertiary} 
+                />
                 <ThemedText type="body" style={{ fontWeight: themeMode === 'light' ? '600' : '400' }}>
                   Claro
                 </ThemedText>
               </View>
               {themeMode === 'light' && (
-                <Ionicons name="checkmark-circle" size={24} color={colors.brand.primary} />
+                <Ionicons 
+                  name="checkmark-circle" 
+                  size={24} 
+                  color={colors.isDark ? colors.brand.primary : colors.brand.dark} 
+                />
               )}
             </TouchableOpacity>
 
@@ -249,20 +261,32 @@ export default function ProfileScreen() {
                 padding: 16,
                 borderRadius: 16,
                 backgroundColor: themeMode === 'dark' 
-                  ? (colors.isDark ? brandOpacity.primary.medium : brandOpacity.primary.light)
+                  ? (colors.isDark ? brandOpacity.primary.medium : brandOpacity.dark.medium)
                   : 'transparent',
                 borderWidth: themeMode === 'dark' ? 2 : 1,
-                borderColor: themeMode === 'dark' ? colors.brand.primary : borderOpacity.default,
+                borderColor: themeMode === 'dark' 
+                  ? (colors.isDark ? colors.brand.primary : colors.brand.dark)
+                  : borderOpacity.default,
               }}
             >
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-                <Ionicons name="moon" size={24} color={themeMode === 'dark' ? colors.brand.primary : colors.text.tertiary} />
+                <Ionicons 
+                  name="moon" 
+                  size={24} 
+                  color={themeMode === 'dark' 
+                    ? (colors.isDark ? colors.brand.primary : colors.brand.dark)
+                    : colors.text.tertiary} 
+                />
                 <ThemedText type="body" style={{ fontWeight: themeMode === 'dark' ? '600' : '400' }}>
                   Escuro
                 </ThemedText>
               </View>
               {themeMode === 'dark' && (
-                <Ionicons name="checkmark-circle" size={24} color={colors.brand.primary} />
+                <Ionicons 
+                  name="checkmark-circle" 
+                  size={24} 
+                  color={colors.isDark ? colors.brand.primary : colors.brand.dark} 
+                />
               )}
             </TouchableOpacity>
 
@@ -275,20 +299,32 @@ export default function ProfileScreen() {
                 padding: 16,
                 borderRadius: 16,
                 backgroundColor: themeMode === 'system' 
-                  ? (colors.isDark ? brandOpacity.primary.medium : brandOpacity.primary.light)
+                  ? (colors.isDark ? brandOpacity.primary.medium : brandOpacity.dark.medium)
                   : 'transparent',
                 borderWidth: themeMode === 'system' ? 2 : 1,
-                borderColor: themeMode === 'system' ? colors.brand.primary : borderOpacity.default,
+                borderColor: themeMode === 'system' 
+                  ? (colors.isDark ? colors.brand.primary : colors.brand.dark)
+                  : borderOpacity.default,
               }}
             >
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-                <Ionicons name="phone-portrait" size={24} color={themeMode === 'system' ? colors.brand.primary : colors.text.tertiary} />
+                <Ionicons 
+                  name="phone-portrait" 
+                  size={24} 
+                  color={themeMode === 'system' 
+                    ? (colors.isDark ? colors.brand.primary : colors.brand.dark)
+                    : colors.text.tertiary} 
+                />
                 <ThemedText type="body" style={{ fontWeight: themeMode === 'system' ? '600' : '400' }}>
                   Automático
                 </ThemedText>
               </View>
               {themeMode === 'system' && (
-                <Ionicons name="checkmark-circle" size={24} color={colors.brand.primary} />
+                <Ionicons 
+                  name="checkmark-circle" 
+                  size={24} 
+                  color={colors.isDark ? colors.brand.primary : colors.brand.dark} 
+                />
               )}
             </TouchableOpacity>
           </View>

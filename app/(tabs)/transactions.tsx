@@ -22,6 +22,10 @@ export default function TransactionsScreen() {
   const colors = useThemeColors();
   const brandOpacity = useBrandColorsWithOpacity();
   const borderOpacity = useBorderColorsWithOpacity();
+  
+  // Theme-aware brand color: use dark green in light mode for contrast, light green in dark mode
+  const brandColor = colors.isDark ? colors.brand.primary : colors.brand.dark;
+  const brandOpacityValue = colors.isDark ? brandOpacity.primary.medium : brandOpacity.dark.medium;
 
   return (
     <ThemedView style={{ flex: 1 }}>
@@ -36,14 +40,14 @@ export default function TransactionsScreen() {
             paddingVertical: 12,
             paddingHorizontal: 16,
             borderRadius: 16,
-            backgroundColor: tab === 'owner' ? (colors.isDark ? brandOpacity.primary.medium : brandOpacity.primary.light) : 'transparent',
+            backgroundColor: tab === 'owner' ? brandOpacityValue : 'transparent',
             borderWidth: tab === 'owner' ? 2 : 1,
-            borderColor: tab === 'owner' ? colors.brand.primary : borderOpacity.default,
+            borderColor: tab === 'owner' ? brandColor : borderOpacity.default,
           }}
         >
           <ThemedText
             type={tab === 'owner' ? 'defaultSemiBold' : 'default'}
-            style={{ textAlign: 'center', color: tab === 'owner' ? colors.brand.primary : undefined }}
+            style={{ textAlign: 'center', color: tab === 'owner' ? brandColor : undefined }}
           >
             Recebidas
           </ThemedText>
@@ -58,14 +62,14 @@ export default function TransactionsScreen() {
             paddingVertical: 12,
             paddingHorizontal: 16,
             borderRadius: 16,
-            backgroundColor: tab === 'renter' ? (colors.isDark ? brandOpacity.primary.medium : brandOpacity.primary.light) : 'transparent',
+            backgroundColor: tab === 'renter' ? brandOpacityValue : 'transparent',
             borderWidth: tab === 'renter' ? 2 : 1,
-            borderColor: tab === 'renter' ? colors.brand.primary : borderOpacity.default,
+            borderColor: tab === 'renter' ? brandColor : borderOpacity.default,
           }}
         >
           <ThemedText
             type={tab === 'renter' ? 'defaultSemiBold' : 'default'}
-            style={{ textAlign: 'center', color: tab === 'renter' ? colors.brand.primary : undefined }}
+            style={{ textAlign: 'center', color: tab === 'renter' ? brandColor : undefined }}
           >
             Minhas reservas
           </ThemedText>

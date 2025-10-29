@@ -60,7 +60,7 @@ export default function ReviewsScreen() {
               <View style={{ alignItems: 'center', marginBottom: 16 }}>
                 <Stars value={avg} />
               </View>
-              <ThemedText type="title-1" style={{ fontWeight: '700', color: colors.brand.primary, marginBottom: 8 }}>
+              <ThemedText type="title-1" style={{ fontWeight: '700', color: colors.isDark ? colors.brand.primary : colors.brand.dark, marginBottom: 8 }}>
                 {avg.toFixed(1)}
               </ThemedText>
               <ThemedText type="body" className="text-light-text-secondary dark:text-dark-text-secondary">
