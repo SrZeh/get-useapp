@@ -14,11 +14,13 @@ import {
 } from "firebase/firestore";
 import type { NewItemInput, Item } from "@/types";
 
+import { API_CONFIG, FIRESTORE_COLLECTIONS } from "@/constants/api";
+
 // ====== CONFIG (ajuste se necessário) ======
-const PROJECT_ID = "upperreggae";
-const DB_NAME = "getanduseapp"; // ← deve bater com initializeFirestore(..., 'getanduseapp')
+const PROJECT_ID = API_CONFIG.FIREBASE_PROJECT_ID;
+const DB_NAME = API_CONFIG.FIRESTORE_DB_NAME;
 const BASE = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/${DB_NAME}/documents`;
-const ITEMS_PATH = "items";
+const ITEMS_PATH = FIRESTORE_COLLECTIONS.ITEMS;
 
 function isUnavailable(e: unknown): boolean {
   if (typeof e === 'object' && e !== null) {

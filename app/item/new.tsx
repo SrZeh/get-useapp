@@ -3,11 +3,11 @@ import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { auth, db, storage } from "@/lib/firebase";
 import { Picker } from "@react-native-picker/picker";
-import * as ImagePicker from "expo-image-picker";
 import { router } from "expo-router";
 import { addDoc, collection, serverTimestamp } from "firebase/firestore";
 import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
 import React, { useMemo, useState } from "react";
+import { useImagePicker } from "@/hooks/useImagePicker";
 import {
   ActivityIndicator,
   Alert,
@@ -26,37 +26,7 @@ import { Colors } from "@/constants/theme";
 import { HapticFeedback } from "@/utils/haptics";
 import { Image as ExpoImage } from "expo-image";
 import { logger } from "@/utils/logger";
-
-const CATEGORIES = [
-  // Ferramentas & construção
-  "Ferramentas elétricas",
-  "Ferramentas manuais",
-  "Construção & Reforma",
-  "Marcenaria & Carpintaria",
-  "Jardinagem",
-  // Aventura & lazer
-  "Camping & Trilha",
-  "Esportes & Lazer",
-  "Mobilidade (bike/patinete)",
-  // Audiovisual & tech
-  "Fotografia & Vídeo",
-  "Música & Áudio",
-  "Informática & Acessórios",
-  // Casa & outros úteis
-  "Eletroportáteis",
-  "Cozinha & Utensílios",
-  "Eventos & Festas",
-  "Móveis & Decoração",
-  // Veículos
-  "Automotivo & Moto",
-  // Infantil / pet / saúde
-  "Bebê & Infantil",
-  "Brinquedos & Jogos",
-  "Pet",
-  "Saúde & Beleza",
-  // fallback (evitar, mas disponível)
-  "Outros",
-] as const;
+import { ITEM_CATEGORIES } from "@/constants/categories";
 
 export default function NewItemScreen() {
   const colorScheme = useColorScheme();
@@ -277,7 +247,7 @@ export default function NewItemScreen() {
                   value=""
                   color={placeholderColor}
                 />
-                {CATEGORIES.map((c) => (
+                {ITEM_CATEGORIES.map((c) => (
                   <Picker.Item key={c} label={c} value={c} />
                 ))}
               </Picker>

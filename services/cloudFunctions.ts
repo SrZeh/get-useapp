@@ -1,12 +1,10 @@
 // services/cloudFunctions.ts
 import { getAuth } from "firebase/auth";
 import { getFunctions, httpsCallable } from "firebase/functions";
+import { API_CONFIG } from "@/constants/api";
 
-const BASE =
-  process.env.EXPO_PUBLIC_FUNCTIONS_BASE_URL ??
-  "https://southamerica-east1-upperreggae.cloudfunctions.net";
-
-const FUNCTIONS_REGION = "southamerica-east1";
+const BASE = API_CONFIG.FUNCTIONS_BASE_URL;
+const FUNCTIONS_REGION = API_CONFIG.FUNCTIONS_REGION;
 
 async function idTokenOrThrow() {
   const auth = getAuth();

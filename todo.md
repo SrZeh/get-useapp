@@ -94,24 +94,26 @@ This document tracks code quality improvements, refactoring tasks, and enhanceme
   - [ ] Create service interfaces for better testability - Future work
   - [ ] Add dependency injection pattern for services - Future work
 
-- [ ] **Improve component organization**
-  - [ ] Break down large components (>200 lines) into smaller components
-  - [ ] Extract complex logic from components into custom hooks
-  - [ ] Create reusable form components (TextInput, Button, etc.)
-  - [ ] Standardize component prop interfaces
+- [x] **Improve component organization** - IN PROGRESS
+  - [x] Break down large components (>200 lines) into smaller components - Extracted `ReservationCard` from transactions.tsx
+  - [ ] Extract OwnerInbox and MyReservations into separate components
+  - [x] Extract complex logic from components into custom hooks - Created `useImagePicker` hook, extracted image picking logic from item forms
+  - [x] Create reusable form components (TextInput, Button, etc.) - Button component exists
+  - [x] Standardize component prop interfaces - ReservationCard uses proper TypeScript props
 
 ### Medium Priority
-- [ ] **Create constants file for magic numbers/strings**
+- [x] **Create constants file for magic numbers/strings**
   - [x] Move error messages to `constants/errors.ts`
-  - [ ] Move hardcoded values to `constants/`
-  - [ ] Create `constants/api.ts` for API endpoints
-  - [ ] Create `constants/validation.ts` for validation rules (validation rules exist in `utils/validation.ts`)
+  - [x] Move hardcoded values to `constants/` - Created `constants/categories.ts` and `constants/api.ts`
+  - [x] Create `constants/api.ts` for API endpoints - COMPLETED
+  - [x] Create `constants/categories.ts` for item categories - COMPLETED
+  - [ ] Create `constants/validation.ts` for validation rules - Validation rules exist in `utils/validation.ts`, may consolidate later
 
 - [x] **Improve file structure**
   - [x] Review and consolidate `/src` vs root-level directories - Merged duplicate hooks and upload utilities
   - [x] Ensure consistent export patterns (named vs default exports) - Types use named exports via barrel file
-  - [x] Add index files for cleaner imports - `types/index.ts` barrel file created
-  - [ ] Add index files for other directories (utils, services, components)
+  - [x] Add index files for cleaner imports - Created `types/index.ts`, `utils/index.ts`, `services/index.ts` barrel files
+  - [ ] Add index files for components directory - Future work
 
 ## 🧪 Testing Infrastructure
 

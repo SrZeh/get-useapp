@@ -2,8 +2,8 @@ import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { auth, db, storage } from "@/lib/firebase";
 import { Picker } from "@react-native-picker/picker";
-import * as ImagePicker from "expo-image-picker";
 import { router, useLocalSearchParams } from "expo-router";
+import { useImagePicker } from "@/hooks/useImagePicker";
 import {
   doc,
   getDoc,
@@ -27,29 +27,7 @@ import {
   useColorScheme,
 } from "react-native";
 
-const CATEGORIES = [
-  "Ferramentas elétricas",
-  "Ferramentas manuais",
-  "Construção & Reforma",
-  "Marcenaria & Carpintaria",
-  "Jardinagem",
-  "Camping & Trilha",
-  "Esportes & Lazer",
-  "Mobilidade (bike/patinete)",
-  "Fotografia & Vídeo",
-  "Música & Áudio",
-  "Informática & Acessórios",
-  "Eletroportáteis",
-  "Cozinha & Utensílios",
-  "Eventos & Festas",
-  "Móveis & Decoração",
-  "Automotivo & Moto",
-  "Bebê & Infantil",
-  "Brinquedos & Jogos",
-  "Pet",
-  "Saúde & Beleza",
-  "Outros",
-] as const;
+import { ITEM_CATEGORIES } from "@/constants/categories";
 
 export default function EditItemScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -73,7 +51,7 @@ export default function EditItemScreen() {
   const [published, setPublished] = useState<boolean>(true);
 
   // nova imagem local (para trocar)
-  const [imageUri, setImageUri] = useState<string | null>(null);
+  const { imageUri, pickFromGallery, pickFromCamera, setImageUri } = useImagePicker();
 
   const textInputBase = useMemo(
     () => ({
@@ -121,38 +99,6 @@ export default function EditItemScreen() {
     })();
   }, [id, router]);
 
-  const pickImage = async () => {
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== "granted") {
-      Alert.alert("Permissão necessária", "Conceda acesso às fotos.");
-      return;
-    }
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      quality: 0.85,
-      allowsMultipleSelection: false,
-      allowsEditing: true,
-    });
-    if (!result.canceled) {
-      setImageUri(result.assets[0].uri);
-    }
-  };
-
-  const pickCamera = async () => {
-    const { status } = await ImagePicker.requestCameraPermissionsAsync();
-    if (status !== "granted") {
-      Alert.alert("Permissão necessária", "Conceda acesso à câmera.");
-      return;
-    }
-    const result = await ImagePicker.launchCameraAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      quality: 0.85,
-      allowsEditing: true,
-    });
-    if (!result.canceled) {
-      setImageUri(result.assets[0].uri);
-    }
-  };
 
   const handleSave = async () => {
     const uid = auth.currentUser?.uid;
@@ -266,7 +212,7 @@ export default function EditItemScreen() {
                 style={{ color: isDark ? "#fff" : "#111827", backgroundColor: "transparent" }}
               >
                 <Picker.Item label="Selecione uma categoria…" value="" color={placeholderColor} />
-                {CATEGORIES.map((c) => (
+                {ITEM_CATEGORIES.map((c) => (
                   <Picker.Item key={c} label={c} value={c} />
                 ))}
               </Picker>
@@ -325,10 +271,10 @@ export default function EditItemScreen() {
 
           {/* Imagem: câmera e galeria */}
           <View style={{ marginTop: 16, flexDirection: "row", gap: 16 }}>
-            <TouchableOpacity onPress={pickCamera} disabled={saving}>
+            <TouchableOpacity onPress={() => pickFromCamera()} disabled={saving}>
               <ThemedText type="defaultSemiBold">Usar câmera</ThemedText>
             </TouchableOpacity>
-            <TouchableOpacity onPress={pickImage} disabled={saving}>
+            <TouchableOpacity onPress={() => pickFromGallery()} disabled={saving}>
               <ThemedText type="defaultSemiBold">
                 {imageUri ? "Alterar foto (nova)" : "Alterar foto"}
               </ThemedText>
