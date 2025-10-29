@@ -69,10 +69,9 @@ export function DropdownFilter({
         <View
           style={{
             borderWidth: 1,
-            borderRadius: 16,
+            borderRadius: 15,
             borderColor: colors.border.default,
             backgroundColor: 'transparent',
-            overflow: 'hidden',
           }}
         >
           <Picker
@@ -84,6 +83,7 @@ export function DropdownFilter({
               backgroundColor: 'transparent',
               paddingHorizontal: 16,
               paddingVertical: 12,
+              borderRadius: 15,
             }}
             accessibilityLabel={title}
             accessibilityHint="Selecione uma opção"

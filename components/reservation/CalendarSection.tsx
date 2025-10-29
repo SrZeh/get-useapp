@@ -77,6 +77,9 @@ export function CalendarSection({
 
   // Build marked dates for calendar
   const markedDates = useMemo(() => {
+    const brandBg = isDark ? '#96ff9a' : '#08af0e';
+    const brandText = '#ffffff';
+    
     const md: Record<
       string,
       {
@@ -85,6 +88,8 @@ export function CalendarSection({
         selected?: boolean;
         startingDay?: boolean;
         endingDay?: boolean;
+        color?: string;
+        textColor?: string;
       }
     > = {};
 
@@ -97,11 +102,17 @@ export function CalendarSection({
     if (startISO && endISOInc) {
       const days = enumerateInclusive(startISO, endISOInc);
       days.forEach((d, idx) => {
+        const isStartOrEnd = idx === 0 || idx === days.length - 1;
         md[d] = {
           ...(md[d] || {}),
           selected: true,
           startingDay: idx === 0,
           endingDay: idx === days.length - 1,
+          // Explicit colors for start/end days to ensure contrast
+          ...(isStartOrEnd && {
+            color: brandBg,
+            textColor: brandText,
+          }),
         };
       });
     } else if (startISO) {
@@ -110,11 +121,14 @@ export function CalendarSection({
         selected: true,
         startingDay: true,
         endingDay: true,
+        // Explicit colors for single selected day
+        color: brandBg,
+        textColor: brandText,
       };
     }
 
     return md;
-  }, [booked, startISO, endISOInc]);
+  }, [booked, startISO, endISOInc, isDark]);
 
   const handleRequestPress = () => {
     HapticFeedback.medium();
@@ -128,11 +142,20 @@ export function CalendarSection({
     summary.daysCount < summary.minDays;
 
   return (
-    <LiquidGlassView intensity="standard" cornerRadius={20} style={{ padding: 20, marginBottom: 24 }}>
-      <ThemedText type="title-2" style={{ marginBottom: 8, fontWeight: '600' }}>
+    <LiquidGlassView intensity="standard" cornerRadius={24} style={{ padding: 24, marginBottom: 24 }}>
+      <ThemedText 
+        type="title-2" 
+        style={{ marginBottom: 6, fontWeight: '700', fontSize: 22, lineHeight: 28 }}
+        lightColor={Colors.light.text}
+        darkColor={Colors.dark.text}
+      >
         Escolha as datas
       </ThemedText>
-      <ThemedText type="callout" style={{ marginBottom: 16 }} className="text-light-text-tertiary dark:text-dark-text-tertiary">
+      <ThemedText 
+        type="callout" 
+        style={{ marginBottom: 20, lineHeight: 21 }} 
+        className="text-light-text-tertiary dark:text-dark-text-tertiary"
+      >
         Check-in (seleção do primeiro dia) e Check-out (dia seguinte ao último pernoite).
       </ThemedText>
 
@@ -148,58 +171,150 @@ export function CalendarSection({
         disableArrowLeft
         theme={{
           calendarBackground: palette.background,
-          textSectionTitleColor: palette.textTertiary,
+          textSectionTitleColor: isDark ? '#94a3b8' : '#6b7280',
           dayTextColor: palette.text,
           monthTextColor: palette.text,
-          todayTextColor: palette.tint,
-          selectedDayTextColor: '#fff',
-          selectedDayBackgroundColor: palette.tint,
-          arrowColor: palette.tint,
-          disabledDayTextColor: palette.textTertiary,
+          todayTextColor: isDark ? '#96ff9a' : '#08af0e',
+          todayBackgroundColor: isDark ? '#96ff9a20' : '#08af0e15',
+          selectedDayTextColor: '#ffffff',
+          selectedDayBackgroundColor: isDark ? '#96ff9a' : '#08af0e',
+          selectedDayBorderColor: isDark ? '#80e685' : '#06a00a',
+          selectedDayBorderRadius: 12,
+          arrowColor: isDark ? '#96ff9a' : '#08af0e',
+          disabledDayTextColor: isDark ? '#475569' : '#9ca3af',
+          textDisabledColor: isDark ? '#475569' : '#9ca3af',
+          dotColor: isDark ? '#96ff9a' : '#08af0e',
+          markedDayBackgroundColor: isDark ? '#96ff9a20' : '#08af0e15',
+          'stylesheet.calendar.header': {
+            week: {
+              marginTop: 8,
+              flexDirection: 'row',
+              justifyContent: 'space-between',
+              paddingHorizontal: 8,
+            },
+          },
         }}
-        style={{ marginTop: 10, borderRadius: 16 }}
+        markingStyle={{
+          backgroundColor: isDark ? '#96ff9a30' : '#08af0e25',
+          borderRadius: 4,
+          textColor: isDark ? '#f9fafb' : '#0a0a0a',
+        }}
+        style={{ 
+          marginTop: 12, 
+          borderRadius: 20,
+          padding: 8,
+        }}
       />
 
       {/* Reservation Summary */}
       <View
         style={{
-          marginTop: 16,
-          gap: 8,
-          paddingTop: 16,
+          marginTop: 20,
+          gap: 12,
+          paddingTop: 20,
           borderTopWidth: 1,
-          borderTopColor: palette.border,
+          borderTopColor: isDark ? '#334155' : '#e5e7eb',
         }}
       >
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-          <ThemedText type="callout" className="text-light-text-secondary dark:text-dark-text-secondary">
-            Check-in: {startISO ?? '—'}
-          </ThemedText>
-          <ThemedText type="callout" className="text-light-text-secondary dark:text-dark-text-secondary">
-            Check-out: {summary.endExclusive ?? '—'}
-          </ThemedText>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+          <View style={{ flex: 1 }}>
+            <ThemedText 
+              type="caption-1" 
+              style={{ marginBottom: 4 }}
+              className="text-light-text-tertiary dark:text-dark-text-tertiary"
+            >
+              Check-in
+            </ThemedText>
+            <ThemedText 
+              type="callout" 
+              style={{ fontWeight: '600' }}
+              className="text-light-text-secondary dark:text-dark-text-secondary"
+            >
+              {startISO ? new Date(startISO + 'T00:00:00').toLocaleDateString('pt-BR', { 
+                day: '2-digit', 
+                month: 'short' 
+              }) : '—'}
+            </ThemedText>
+          </View>
+          <View style={{ flex: 1, alignItems: 'flex-end' }}>
+            <ThemedText 
+              type="caption-1" 
+              style={{ marginBottom: 4 }}
+              className="text-light-text-tertiary dark:text-dark-text-tertiary"
+            >
+              Check-out
+            </ThemedText>
+            <ThemedText 
+              type="callout" 
+              style={{ fontWeight: '600' }}
+              className="text-light-text-secondary dark:text-dark-text-secondary"
+            >
+              {summary.endExclusive 
+                ? new Date(summary.endExclusive + 'T00:00:00').toLocaleDateString('pt-BR', { 
+                    day: '2-digit', 
+                    month: 'short' 
+                  })
+                : '—'}
+            </ThemedText>
+          </View>
         </View>
-        <ThemedText type="body" className="text-light-text-secondary dark:text-dark-text-secondary">
+        
+        <ThemedText 
+          type="body" 
+          style={{ fontSize: 15, lineHeight: 20 }}
+          className="text-light-text-secondary dark:text-dark-text-secondary"
+        >
           ⏱️ {summary.daysCount} {summary.daysCount === 1 ? 'dia' : 'dias'}{' '}
-          {item.minRentalDays ? `(mín: ${summary.minDays})` : ''}
+          {item.minRentalDays ? `(mín: ${summary.minDays} ${summary.minDays === 1 ? 'dia' : 'dias'})` : ''}
         </ThemedText>
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', marginTop: 8 }}>
+        
+        <View style={{ 
+          flexDirection: 'row', 
+          justifyContent: 'space-between', 
+          alignItems: 'baseline', 
+          marginTop: 4,
+          paddingTop: 16,
+          borderTopWidth: 1,
+          borderTopColor: isDark ? '#334155' : '#e5e7eb',
+        }}>
           <View>
-            <ThemedText type="caption-1" className="text-light-text-tertiary dark:text-dark-text-tertiary">
+            <ThemedText 
+              type="caption-1" 
+              style={{ marginBottom: 6 }}
+              className="text-light-text-tertiary dark:text-dark-text-tertiary"
+            >
               Diária
             </ThemedText>
-            <ThemedText type="title-3" style={{ fontWeight: '600', color: palette.tint }}>
+            <ThemedText 
+              type="title-3" 
+              style={{ 
+                fontWeight: '700',
+                fontSize: 20,
+                lineHeight: 25
+              }}
+              lightColor={Colors.light.tint}
+              darkColor={Colors.dark.tint}
+            >
               {item.isFree
                 ? 'Grátis'
                 : `${item.dailyRate != null ? `R$ ${item.dailyRate.toFixed(2)}` : '—'}`}
             </ThemedText>
           </View>
           <View style={{ alignItems: 'flex-end' }}>
-            <ThemedText type="caption-1" className="text-light-text-tertiary dark:text-dark-text-tertiary">
+            <ThemedText 
+              type="caption-1" 
+              style={{ marginBottom: 6 }}
+              className="text-light-text-tertiary dark:text-dark-text-tertiary"
+            >
               Total
             </ThemedText>
             <ThemedText 
               type="title-2" 
-              style={{ fontWeight: '700' }}
+              style={{ 
+                fontWeight: '700',
+                fontSize: 22,
+                lineHeight: 28
+              }}
               lightColor={Colors.light.tint}
               darkColor={Colors.dark.tint}
             >

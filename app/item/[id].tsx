@@ -225,7 +225,10 @@ export default function ItemDetailScreen() {
       keyboardVerticalOffset={Platform.select({ ios: 80, android: 0 })}
     >
       <ThemedView style={{ flex: 1, backgroundColor: palette.background }}>
-        <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 32 }}>
+        <ScrollView 
+          contentContainerStyle={{ padding: 16, paddingBottom: 40 }}
+          showsVerticalScrollIndicator={false}
+        >
           {/* HEADER DO ITEM */}
           <ItemHeader item={item} />
 
@@ -254,12 +257,24 @@ export default function ItemDetailScreen() {
           />
 
           {/* LISTA DE REVIEWS */}
-          <View style={{ marginTop: 24 }}>
-            <ThemedText type="title-2" style={{ marginBottom: 16, fontWeight: '600' }}>
-              Comentários recentes
-            </ThemedText>
-            <ReviewList reviews={reviews} />
-          </View>
+          {reviews.length > 0 && (
+            <View style={{ marginTop: 8 }}>
+              <ThemedText 
+                type="title-2" 
+                style={{ 
+                  marginBottom: 20, 
+                  fontWeight: '700',
+                  fontSize: 22,
+                  lineHeight: 28
+                }}
+                lightColor={Colors.light.text}
+                darkColor={Colors.dark.text}
+              >
+                Comentários recentes
+              </ThemedText>
+              <ReviewList reviews={reviews} />
+            </View>
+          )}
         </ScrollView>
       </ThemedView>
     </KeyboardAvoidingView>

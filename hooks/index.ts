@@ -5,6 +5,8 @@
 // Re-export other hooks that might be imported from here
 export { useColorScheme } from './use-color-scheme';
 export { useThemeColor } from './use-theme-color';
+export { useUserItems } from './useUserItems';
+export { useItemOperations } from './useItemOperations';
 export { useFormValidation } from './useFormValidation';
 export { useRegister, useLogin, useResetPassword } from './useAuth';
 export { useUpdateProfile, useLoadProfile } from './useProfile';
