@@ -35,19 +35,19 @@ body {
   border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-/* Dark mode glass variants */
+/* Dark mode glass variants - Updated to match new dark palette */
 .dark .glass {
-  background-color: rgba(21, 23, 24, 0.7);
+  background-color: rgba(15, 20, 25, 0.7);
   border-color: rgba(255, 255, 255, 0.1);
 }
 
 .dark .glass-strong {
-  background-color: rgba(21, 23, 24, 0.9);
+  background-color: rgba(15, 20, 25, 0.9);
   border-color: rgba(255, 255, 255, 0.15);
 }
 
 .dark .glass-subtle {
-  background-color: rgba(21, 23, 24, 0.5);
+  background-color: rgba(15, 20, 25, 0.5);
   border-color: rgba(255, 255, 255, 0.05);
 }
 
@@ -112,8 +112,8 @@ body {
 
 .input:focus {
   outline: none;
-  border-color: #96ff9a;
-  box-shadow: 0 0 0 3px rgba(150, 255, 154, 0.1);
+  border-color: #08af0e;
+  box-shadow: 0 0 0 3px rgba(8, 175, 14, 0.1);
 }
 
 .input-error {
@@ -121,13 +121,14 @@ body {
 }
 
 .dark .input {
-  background-color: #111827;
-  border-color: #374151;
+  background-color: #1a1f2e;
+  border-color: #334155;
   color: #e5e7eb;
 }
 
 .dark .input:focus {
   border-color: #96ff9a;
+  box-shadow: 0 0 0 3px rgba(150, 255, 154, 0.15);
 }
 
 /* Badge styles */
@@ -203,7 +204,7 @@ body {
 }
 
 .dark .shimmer {
-  background-color: #0b1220;
+  background-color: #0d1117;
 }
 
 .dark .shimmer::after {
@@ -251,7 +252,7 @@ body {
 }
 
 .dark .liquid-glass-web {
-  background-color: rgba(21, 23, 24, 0.75);
+  background-color: rgba(15, 20, 25, 0.75);
   border-color: rgba(255, 255, 255, 0.1);
   box-shadow: 
     0 8px 32px rgba(0, 0, 0, 0.4),
@@ -259,7 +260,7 @@ body {
 }
 
 .dark .liquid-glass-web-strong {
-  background-color: rgba(21, 23, 24, 0.85);
+  background-color: rgba(15, 20, 25, 0.85);
   border-color: rgba(255, 255, 255, 0.15);
   box-shadow: 
     0 12px 40px rgba(0, 0, 0, 0.5),

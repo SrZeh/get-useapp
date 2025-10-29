@@ -21,6 +21,7 @@ export function HeaderMenu() {
       android_ripple={{ borderless: true }}
       accessibilityRole="button"
       accessibilityLabel="Menu"
+      accessibilityHint="Toque para abrir o menu"
     >
       <MaterialIcons
         name="menu"

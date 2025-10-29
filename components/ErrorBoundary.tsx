@@ -11,9 +11,81 @@ import { ThemedText } from './themed-text';
 import { ThemedView } from './themed-view';
 import { LiquidGlassView } from './liquid-glass';
 import { Button } from './Button';
-import { logger } from '@/utils/logger';
+import { logger } from '@/utils';
 import { toAppError } from '@/types/errors';
 import { getErrorUserMessage } from '@/constants/errors';
+import { useThemeColors } from '@/utils/theme';
+
+// Helper component to access theme hooks inside class component
+function ErrorBoundaryContent({ 
+  error, 
+  errorMessage, 
+  onReset, 
+  onReload 
+}: { 
+  error: Error | null;
+  errorMessage: string;
+  onReset: () => void;
+  onReload: () => void;
+}) {
+  const colors = useThemeColors();
+  
+  return (
+    <ThemedView style={{ flex: 1, padding: 24, justifyContent: 'center', alignItems: 'center' }}>
+      <LiquidGlassView intensity="standard" cornerRadius={24} style={{ padding: 32, maxWidth: 500, width: '100%' }}>
+        <ThemedText type="large-title" style={{ marginBottom: 16, textAlign: 'center' }}>
+          Ops! 😅
+        </ThemedText>
+        
+        <ThemedText type="title" style={{ marginBottom: 24, textAlign: 'center' }}>
+          Algo deu errado
+        </ThemedText>
+
+        <ThemedText 
+          type="body" 
+          style={{ marginBottom: 32, textAlign: 'center' }}
+          className="text-light-text-secondary dark:text-dark-text-secondary"
+        >
+          {errorMessage}
+        </ThemedText>
+
+        {__DEV__ && error && (
+          <ScrollView 
+            style={{ 
+              maxHeight: 200, 
+              backgroundColor: colors.bg.tertiary, 
+              borderRadius: 12, 
+              padding: 12,
+              marginBottom: 24 
+            }}
+          >
+            <ThemedText 
+              type="caption" 
+              style={{ fontFamily: 'monospace' }}
+              className="text-light-text-tertiary dark:text-dark-text-tertiary"
+            >
+              {error.toString()}
+              {'\n\n'}
+              {error.stack}
+            </ThemedText>
+          </ScrollView>
+        )}
+
+        <View style={{ gap: 12, width: '100%' }}>
+          <Button variant="primary" onPress={onReload} fullWidth>
+            Tentar novamente
+          </Button>
+          
+          {__DEV__ && (
+            <Button variant="secondary" onPress={onReset} fullWidth>
+              Continuar (dev)
+            </Button>
+          )}
+        </View>
+      </LiquidGlassView>
+    </ThemedView>
+  );
+}
 
 interface Props {
   children: ReactNode;
@@ -83,59 +155,12 @@ export class ErrorBoundary extends Component<Props, State> {
         : 'Ocorreu um erro inesperado.';
 
       return (
-        <ThemedView style={{ flex: 1, padding: 24, justifyContent: 'center', alignItems: 'center' }}>
-          <LiquidGlassView intensity="standard" cornerRadius={24} style={{ padding: 32, maxWidth: 500, width: '100%' }}>
-            <ThemedText type="large-title" style={{ marginBottom: 16, textAlign: 'center' }}>
-              Ops! 😅
-            </ThemedText>
-            
-            <ThemedText type="title" style={{ marginBottom: 24, textAlign: 'center' }}>
-              Algo deu errado
-            </ThemedText>
-
-            <ThemedText 
-              type="body" 
-              style={{ marginBottom: 32, textAlign: 'center' }}
-              className="text-light-text-secondary dark:text-dark-text-secondary"
-            >
-              {errorMessage}
-            </ThemedText>
-
-            {__DEV__ && this.state.error && (
-              <ScrollView 
-                style={{ 
-                  maxHeight: 200, 
-                  backgroundColor: 'rgba(0,0,0,0.1)', 
-                  borderRadius: 12, 
-                  padding: 12,
-                  marginBottom: 24 
-                }}
-              >
-                <ThemedText 
-                  type="caption" 
-                  style={{ fontFamily: 'monospace' }}
-                  className="text-light-text-tertiary dark:text-dark-text-tertiary"
-                >
-                  {this.state.error.toString()}
-                  {'\n\n'}
-                  {this.state.error.stack}
-                </ThemedText>
-              </ScrollView>
-            )}
-
-            <View style={{ gap: 12, width: '100%' }}>
-              <Button variant="primary" onPress={this.handleReload} fullWidth>
-                Tentar novamente
-              </Button>
-              
-              {__DEV__ && (
-                <Button variant="secondary" onPress={this.handleReset} fullWidth>
-                  Continuar (dev)
-                </Button>
-              )}
-            </View>
-          </LiquidGlassView>
-        </ThemedView>
+        <ErrorBoundaryContent
+          error={this.state.error}
+          errorMessage={errorMessage}
+          onReset={this.handleReset}
+          onReload={this.handleReload}
+        />
       );
     }
 

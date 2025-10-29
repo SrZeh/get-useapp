@@ -79,11 +79,13 @@ import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native
 import { Link, Stack } from "expo-router";
 import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
-import React from "react";
+import React, { useMemo } from "react";
 import { Platform, Pressable, View } from "react-native";
 import { Image } from "expo-image";
 import { AuthProvider } from '../src/providers/AuthProvider';
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { useThemeColors } from "@/utils";
+import { ServicesProvider } from "@/providers/ServicesProvider";
 
 export const unstable_settings = {
   anchor: '(tabs)',
@@ -111,21 +113,22 @@ function LogoIcon() {
 
 function AppContent() {
   const scheme = useColorScheme();
-  const palette = Colors[scheme];
+  const colors = useThemeColors();
   const isWeb = Platform.OS === 'web';
+
+  // Memoize screen options to ensure they update when theme changes
+  const screenOptions = useMemo(() => ({
+    headerTitleAlign: "center" as const,
+    headerTitle: () => <LogoIcon />,
+    headerStyle: { backgroundColor: colors.bg.primary },
+    headerTintColor: colors.text.primary,
+    headerTitleStyle: { color: colors.text.primary },
+  }), [colors]);
 
   const content = (
     <>
       {isWeb && <WebStyles />}
-      <Stack
-        screenOptions={{
-          headerTitleAlign: "center",
-          headerTitle: () => <LogoIcon />,
-          headerStyle: { backgroundColor: palette.background },
-          headerTintColor: palette.text,
-          headerTitleStyle: { color: palette.text },
-        }}
-      >
+      <Stack screenOptions={screenOptions}>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="transaction/[id]/pay" options={{ headerShown: true, title: 'Pagamento' }} />
         <Stack.Screen name="transaction/[id]/chat" options={{ headerShown: true, title: 'Chat' }} />
@@ -134,17 +137,21 @@ function AppContent() {
     </>
   );
 
+  // Determine navigation theme based on current color scheme
+  const navigationTheme = useMemo(() => 
+    scheme === 'dark' ? DarkTheme : DefaultTheme,
+    [scheme]
+  );
+
   // Web-specific responsive container
   if (isWeb) {
     return (
-      <ThemeProvider value={scheme === 'dark' ? DarkTheme : DefaultTheme}>
+      <ThemeProvider value={navigationTheme}>
         <View
           style={{
             flex: 1,
             width: '100%',
-            backgroundColor: scheme === 'dark' 
-              ? Colors.dark.backgroundTertiary 
-              : Colors.light.backgroundTertiary,
+            backgroundColor: colors.bg.tertiary,
           }}
         >
           <OnboardingProvider>
@@ -160,7 +167,7 @@ function AppContent() {
 
   // Native mobile
   return (
-    <ThemeProvider value={scheme === 'dark' ? DarkTheme : DefaultTheme}>
+    <ThemeProvider value={navigationTheme}>
       <OnboardingProvider>
         <CoachmarksProvider>
           {content}
@@ -175,9 +182,11 @@ export default function RootLayout() {
   return (
     <ErrorBoundary>
       <AuthProvider>
-        <CustomThemeProvider>
-          <AppContent />
-        </CustomThemeProvider>
+        <ServicesProvider>
+          <CustomThemeProvider>
+            <AppContent />
+          </CustomThemeProvider>
+        </ServicesProvider>
       </AuthProvider>
     </ErrorBoundary>
   );

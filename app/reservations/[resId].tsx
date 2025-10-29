@@ -7,7 +7,7 @@ import { doc, getDoc } from "firebase/firestore";
 import { useEffect, useState } from "react";
 import { ActivityIndicator, Alert, TouchableOpacity, View } from "react-native";
 import { markPickup, releasePayoutToOwner } from "@/services/cloudFunctions";
-import { formatBRL } from "@/utils/formatters";
+import { formatBRL } from "@/utils";
 import type { Reservation } from "@/types";
 
 export default function ReservationDetail() {

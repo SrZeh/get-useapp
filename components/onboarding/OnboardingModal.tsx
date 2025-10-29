@@ -10,9 +10,10 @@ import {
   Modal,
   Pressable,
   StyleSheet,
-  useColorScheme,
   View,
 } from "react-native";
+import { useColorScheme } from "@/hooks/use-color-scheme";
+import { useThemeColors } from "@/utils";
 
 type Props = {
   visible: boolean;
@@ -20,18 +21,20 @@ type Props = {
 };
 
 export function OnboardingModal({ visible, onClose }: Props) {
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === "dark";
+  const colors = useThemeColors();
+  const isDark = colors.isDark;
 
   const C = {
-    bg: isDark ? "#111214" : "#ffffff",
-    text: isDark ? "#e5e7eb" : "#111827",
-    subtext: isDark ? "#cbd5e1" : "#374151",
-    border: isDark ? "#2a2a2a" : "#e5e7eb",
-    track: isDark ? "#1b1b1d" : "#f3f4f6",
-    accent: "#96ff9a",
-    overlay: "rgba(0,0,0,0.6)",
-    primaryTextOnAccent: "#000000",
+    bg: colors.bg.primary,
+    text: colors.text.primary,
+    subtext: colors.text.secondary,
+    border: colors.border.default,
+    track: colors.bg.tertiary,
+    accent: colors.brand.primary,
+    overlay: "rgba(0,0,0,0.6)", // Standard modal overlay
+    primaryTextOnAccent: colors.isDark ? colors.text.primary : "#000000",
+    dotActive: colors.brand.primary,
+    dotInactive: colors.isDark ? colors.bg.tertiary : colors.border.alt,
   };
 
   const [index, setIndex] = useState(0);
@@ -110,7 +113,7 @@ export function OnboardingModal({ visible, onClose }: Props) {
                 key={i}
                 style={[
                   styles.dot,
-                  { backgroundColor: i === index ? C.accent : (isDark ? "#3a3a3a" : "#d1d5db") },
+                  { backgroundColor: i === index ? C.dotActive : C.dotInactive },
                 ]}
               />
             ))}

@@ -8,6 +8,7 @@ import { View, ScrollView } from 'react-native';
 import { LiquidGlassView } from '@/components/liquid-glass';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Colors } from '@/constants/theme';
+import { useThemeColors } from '@/utils';
 import type { UserProfile } from '@/types';
 
 function Stars({ value = 0 }: { value?: number }) {
@@ -27,6 +28,7 @@ export default function ReviewsScreen() {
   const [count, setCount] = useState<number>(0);
   const colorScheme = useColorScheme();
   const palette = Colors[colorScheme];
+  const colors = useThemeColors();
 
   useEffect(() => {
     if (!uid) return;
@@ -39,7 +41,7 @@ export default function ReviewsScreen() {
   }, [uid]);
 
   return (
-    <ThemedView style={{ flex: 1, backgroundColor: palette.background }}>
+    <ThemedView style={{ flex: 1 }}>
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 32 }}>
         <ThemedText type="large-title" style={{ marginBottom: 32 }}>Minha reputação</ThemedText>
 
@@ -58,7 +60,7 @@ export default function ReviewsScreen() {
               <View style={{ alignItems: 'center', marginBottom: 16 }}>
                 <Stars value={avg} />
               </View>
-              <ThemedText type="title-1" style={{ fontWeight: '700', color: '#96ff9a', marginBottom: 8 }}>
+              <ThemedText type="title-1" style={{ fontWeight: '700', color: colors.brand.primary, marginBottom: 8 }}>
                 {avg.toFixed(1)}
               </ThemedText>
               <ThemedText type="body" className="text-light-text-secondary dark:text-dark-text-secondary">

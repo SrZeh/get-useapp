@@ -1,16 +1,9 @@
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
-import { auth, db, storage } from "@/lib/firebase";
+import { auth } from "@/lib/firebase";
 import { Picker } from "@react-native-picker/picker";
-import { router, useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams } from "expo-router";
 import { useImagePicker } from "@/hooks/useImagePicker";
-import {
-  doc,
-  getDoc,
-  serverTimestamp,
-  updateDoc,
-} from "firebase/firestore";
-import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
 import React, { useEffect, useMemo, useState } from "react";
 import type { Item } from "@/types";
 import {
@@ -24,15 +17,20 @@ import {
   TextInput,
   TouchableOpacity,
   View,
-  useColorScheme,
 } from "react-native";
-
+import { useColorScheme } from "@/hooks/use-color-scheme";
+import { Colors } from "@/constants/theme";
+import { useThemeColors, validateItemInput, parseDailyRate, parseMinRentalDays } from "@/utils";
 import { ITEM_CATEGORIES } from "@/constants/categories";
+import { useItemService, useNavigationService } from "@/providers/ServicesProvider";
+import { uploadUserImageFromUri } from "@/services/images";
 
 export default function EditItemScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const scheme = useColorScheme();
-  const isDark = scheme === "dark";
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === "dark";
+  const palette = Colors[colorScheme];
+  const colors = useThemeColors();
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -51,7 +49,9 @@ export default function EditItemScreen() {
   const [published, setPublished] = useState<boolean>(true);
 
   // nova imagem local (para trocar)
-  const { imageUri, pickFromGallery, pickFromCamera, setImageUri } = useImagePicker();
+  const { imageUri, pickFromGallery, pickFromCamera } = useImagePicker();
+  const itemService = useItemService();
+  const navigation = useNavigationService();
 
   const textInputBase = useMemo(
     () => ({
@@ -59,37 +59,37 @@ export default function EditItemScreen() {
       borderRadius: 10,
       padding: 12,
       fontSize: 16,
-      color: isDark ? "#ffffff" : "#111827",
-      borderColor: isDark ? "#374151" : "#d1d5db",
-      backgroundColor: isDark ? "#111827" : "#ffffff",
+      color: colors.text.primary,
+      borderColor: colors.border.default,
+      backgroundColor: colors.input.bg,
     }),
-    [isDark]
+    [colors]
   );
-  const placeholderColor = isDark ? "#9aa0a6" : "#6b7280";
+  const placeholderColor = colors.input.placeholder;
 
   useEffect(() => {
     (async () => {
       try {
-        const snap = await getDoc(doc(db, "items", id));
-        if (!snap.exists()) {
+        const item = await itemService.getItem(id);
+        if (!item) {
           Alert.alert("Ops", "Item não encontrado.");
-          router.back();
+          navigation.goBack();
           return;
         }
-        const d = snap.data() as Partial<Item> | undefined;
-        setTitle(d?.title ?? "");
-        setDescription(d?.description ?? "");
-        setCategory(d?.category ?? "");
-        setCondition(d.condition ?? "Usado");
-        setMinRentalDays(String(d.minRentalDays ?? 1));
-        setDailyRate(
-          d.dailyRate != null && isFinite(d.dailyRate) ? String(d.dailyRate) : ""
-        );
-        setPhotoUrl(d.photos?.[0] ?? null);
 
-        setCity(d.city ?? "");
-        setNeighborhood(d.neighborhood ?? "");
-        setPublished(d.published !== false); // default true
+        setTitle(item.title ?? "");
+        setDescription(item.description ?? "");
+        setCategory(item.category ?? "");
+        setCondition(item.condition ?? "Usado");
+        setMinRentalDays(String(item.minRentalDays ?? 1));
+        setDailyRate(
+          item.dailyRate != null && isFinite(item.dailyRate) ? String(item.dailyRate) : ""
+        );
+        setPhotoUrl(item.photos?.[0] ?? null);
+
+        setCity(item.city ?? "");
+        setNeighborhood(item.neighborhood ?? "");
+        setPublished(item.published !== false); // default true
       } catch (e: unknown) {
         const error = e as { message?: string };
         Alert.alert("Erro ao carregar", error?.message ?? String(e));
@@ -97,7 +97,7 @@ export default function EditItemScreen() {
         setLoading(false);
       }
     })();
-  }, [id, router]);
+  }, [id, navigation, itemService]);
 
 
   const handleSave = async () => {
@@ -106,18 +106,37 @@ export default function EditItemScreen() {
       Alert.alert("Sessão expirada", "Faça login novamente.");
       return;
     }
-    if (!title.trim() || !description.trim() || !category) {
-      Alert.alert("Campos obrigatórios", "Preencha título, descrição e categoria.");
+
+    // Validate input using validation utilities
+    const itemValidation = validateItemInput({
+      title,
+      description,
+      category,
+      minRentalDays,
+      dailyRate,
+      isFree: false, // Edit screen doesn't have isFree toggle
+    });
+
+    if (!itemValidation.valid || !category) {
+      Alert.alert("Campos inválidos", itemValidation.error ?? "Preencha título, descrição e categoria.");
       return;
     }
-    const days = Number(minRentalDays);
-    if (!Number.isFinite(days) || days <= 0) {
-      Alert.alert("Valor inválido", "Dias mínimos deve ser > 0.");
+
+    // Parse numeric values
+    let days: number;
+    let rate: number;
+
+    try {
+      days = parseMinRentalDays(minRentalDays);
+    } catch (error) {
+      Alert.alert("Valor inválido", error instanceof Error ? error.message : "Dias mínimos inválido.");
       return;
     }
-    const rate = dailyRate.trim() ? Number(dailyRate.replace(",", ".")) : NaN;
-    if (!Number.isFinite(rate) || rate <= 0) {
-      Alert.alert("Valor inválido", "Informe a diária (número > 0).");
+
+    try {
+      rate = parseDailyRate(dailyRate);
+    } catch (error) {
+      Alert.alert("Valor inválido", error instanceof Error ? error.message : "Diária inválida.");
       return;
     }
 
@@ -125,40 +144,31 @@ export default function EditItemScreen() {
     try {
       let newPhotoUrl = photoUrl;
 
+      // Upload nova imagem se houver, usando ImageUploadService
       if (imageUri) {
-        // sobe nova imagem e substitui a primeira
-        const resp = await fetch(imageUri);
-        const blob = await resp.blob();
-        const contentType = blob.type?.startsWith("image/") ? blob.type : "image/jpeg";
-        const ext = contentType.split("/")[1] || "jpg";
-        const filename = `item-${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-        const storagePath = `items/${uid}/${filename}`;
-        const storageRef = ref(storage, storagePath);
-        await uploadBytes(storageRef, blob, { contentType });
-        newPhotoUrl = await getDownloadURL(storageRef);
+        const uploadResult = await uploadUserImageFromUri(imageUri, {
+          forceFormat: 'jpeg',
+          maxBytes: 2 * 1024 * 1024, // 2MB max
+        });
+        newPhotoUrl = uploadResult.url;
       }
 
-      const normalize = (s?: string) => (s ?? "").trim();
-      const toLower = (s?: string) => normalize(s).toLowerCase();
-
-      await updateDoc(doc(db, "items", id), {
-        title: normalize(title),
-        description: normalize(description),
-        category: normalize(category),
-        condition: normalize(condition),
+      // Atualizar item usando service interface
+      await itemService.updateItem(id, {
+        title,
+        description,
+        category,
+        condition,
         minRentalDays: days,
         dailyRate: rate,
         photos: newPhotoUrl ? [newPhotoUrl] : [],
-        published, // toggle
-        city: normalize(city),
-        neighborhood: normalize(neighborhood),
-        cityLower: toLower(city),
-        neighborhoodLower: toLower(neighborhood),
-        updatedAt: serverTimestamp(),
+        published,
+        city,
+        neighborhood,
       });
 
       Alert.alert("Sucesso", "Item atualizado.");
-      router.back();
+      navigation.goBack();
     } catch (e: unknown) {
       const error = e as { message?: string };
       Alert.alert("Erro ao salvar", error?.message ?? String(e));

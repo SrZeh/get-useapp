@@ -1,6 +1,7 @@
 import React from 'react';
 import { Platform, View, ViewStyle, StyleSheet } from 'react-native';
-import { useColorScheme } from 'react-native';
+import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useThemeColors } from '@/utils';
 import { BlurView } from 'expo-blur';
 import type { ViewProps } from 'react-native';
 
@@ -51,7 +52,8 @@ export function LiquidGlassView({
   ...rest
 }: LiquidGlassProps) {
   const colorScheme = useColorScheme();
-  const isDark = colorScheme === 'dark';
+  const colors = useThemeColors();
+  const isDark = colors.isDark;
 
   // iOS: Use native liquid glass with iOS 26 materials (if available)
   if (Platform.OS === 'ios' && ExpoLiquidGlassView && LiquidGlassType && CornerStyle) {
@@ -107,9 +109,14 @@ export function LiquidGlassView({
 
     const blurTint = tint === 'system' ? (isDark ? 'dark' : 'light') : tint;
 
-    // Glass effect colors based on theme
+    // Glass effect colors based on theme - use theme utilities
+    const opacityValues = {
+      subtle: 0.65,
+      standard: 0.75,
+      strong: 0.85,
+    };
     const glassBg = isDark
-      ? `rgba(21, 23, 24, ${intensity === 'strong' ? 0.85 : intensity === 'standard' ? 0.75 : 0.65})`
+      ? `rgba(11, 18, 32, ${opacityValues[intensity]})`
       : `rgba(255, 255, 255, ${intensity === 'strong' ? 0.9 : intensity === 'standard' ? 0.8 : 0.7})`;
 
     return (
@@ -136,11 +143,16 @@ export function LiquidGlassView({
   }
 
   // Web: Use CSS backdrop-filter with enhanced styling
+  const opacityValues = {
+    subtle: 0.65,
+    standard: 0.75,
+    strong: 0.85,
+  };
   const webStyle: ViewStyle = {
     borderRadius: cornerRadius,
     overflow: 'hidden',
     backgroundColor: isDark
-      ? `rgba(21, 23, 24, ${intensity === 'strong' ? 0.85 : intensity === 'standard' ? 0.75 : 0.65})`
+      ? `rgba(11, 18, 32, ${opacityValues[intensity]})`
       : `rgba(255, 255, 255, ${intensity === 'strong' ? 0.9 : intensity === 'standard' ? 0.8 : 0.7})`,
     borderWidth: borderWidth,
     borderColor: isDark

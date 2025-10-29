@@ -8,7 +8,8 @@ import Animated, {
   withTiming,
   interpolate,
 } from 'react-native-reanimated';
-import { useColorScheme } from 'react-native';
+import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useThemeColors } from '@/utils';
 
 type ShimmerLoaderProps = {
   width?: number | string;
@@ -23,8 +24,8 @@ export function ShimmerLoader({
   borderRadius = 12,
   style,
 }: ShimmerLoaderProps) {
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === 'dark';
+  const colors = useThemeColors();
+  const isDark = colors.isDark;
 
   const shimmer = useSharedValue(0);
 
@@ -69,7 +70,7 @@ export function ShimmerLoader({
           width,
           height,
           borderRadius,
-          backgroundColor: isDark ? '#0b1220' : '#f3f4f6',
+          backgroundColor: colors.bg.tertiary,
           overflow: 'hidden',
         },
         style,

@@ -9,19 +9,14 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Alert, KeyboardAvoidingView, Platform, ScrollView, TextInput, TouchableOpacity, View } from 'react-native';
 import { LiquidGlassView } from '@/components/liquid-glass';
 import { Button } from '@/components/Button';
-import { useColorScheme } from '@/hooks/use-color-scheme';
-import { Colors } from '@/constants/theme';
-import { HapticFeedback } from '@/utils/haptics';
+import { useThemeColors, HapticFeedback, GradientTypes } from '@/utils';
 import { Image as ExpoImage } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
-import { GradientTypes } from '@/utils/gradients';
 import type { UserProfile } from '@/types';
 
 export default function EditProfile() {
   const uid = auth.currentUser?.uid;
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === "dark";
-  const palette = Colors[colorScheme];
+  const colors = useThemeColors();
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -33,11 +28,11 @@ export default function EditProfile() {
 
   const inputStyle = useMemo(() => ({
     borderWidth: 1, borderRadius: 16, padding: 16, fontSize: 17,
-    color: palette.text,
-    borderColor: palette.border,
-    backgroundColor: palette.inputBg,
-  }), [palette]);
-  const placeholderColor = palette.textTertiary;
+    color: colors.text.primary,
+    borderColor: colors.border.default,
+    backgroundColor: colors.input.bg,
+  }), [colors]);
+  const placeholderColor = colors.input.placeholder;
 
   useEffect(() => {
     (async () => {
@@ -108,7 +103,7 @@ export default function EditProfile() {
 
   if (!uid) {
     return (
-      <ThemedView style={{ flex: 1, padding: 16, justifyContent: "center", alignItems: "center", backgroundColor: palette.background }}>
+      <ThemedView style={{ flex: 1, padding: 16, justifyContent: "center", alignItems: "center" }}>
         <LiquidGlassView intensity="standard" cornerRadius={24} style={{ padding: 24 }}>
           <ThemedText type="title-2">Faça login para editar o perfil.</ThemedText>
         </LiquidGlassView>
@@ -118,7 +113,7 @@ export default function EditProfile() {
 
   if (loading) {
     return (
-      <ThemedView style={{ flex: 1, padding: 16, justifyContent: 'center', alignItems: 'center', backgroundColor: palette.background }}>
+      <ThemedView style={{ flex: 1, padding: 16, justifyContent: 'center', alignItems: 'center' }}>
         <ActivityIndicator size="large" />
         <ThemedText type="callout" style={{ marginTop: 16 }}>Carregando…</ThemedText>
       </ThemedView>
@@ -126,11 +121,11 @@ export default function EditProfile() {
   }
 
   return (
-    <KeyboardAvoidingView style={{ flex: 1, backgroundColor: palette.background }}
+    <KeyboardAvoidingView style={{ flex: 1 }}
       behavior={Platform.select({ ios: "padding", android: undefined })}
       keyboardVerticalOffset={Platform.select({ ios: 80, android: 0 })}
     >
-      <ThemedView style={{ flex: 1, backgroundColor: palette.background }}>
+      <ThemedView style={{ flex: 1 }}>
         <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 32 }}>
           <ThemedText type="large-title" style={{ marginBottom: 32 }}>Editar Perfil</ThemedText>
 
@@ -138,7 +133,7 @@ export default function EditProfile() {
             {(localUri || photoURL) ? (
               <ExpoImage
                 source={{ uri: localUri ?? photoURL ?? undefined }}
-                style={{ width: 120, height: 120, borderRadius: 60, marginBottom: 16, borderWidth: 3, borderColor: '#96ff9a' }}
+                style={{ width: 120, height: 120, borderRadius: 60, marginBottom: 16, borderWidth: 3, borderColor: colors.brand.primary }}
                 contentFit="cover"
                 transition={200}
                 cachePolicy="memory-disk"

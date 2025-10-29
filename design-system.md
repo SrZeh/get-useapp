@@ -10,99 +10,131 @@ The complete design system has been implemented with full dark mode support and 
 
 ## Design Philosophy
 
-### Core Principles
+### Core Principles (2025 P2P Best Practices)
 
-1. **Depth & Layering** - Glassmorphism and backdrop blur create visual hierarchy
-2. **Fluidity** - Smooth animations (under 400ms) for natural interactions  
-3. **Clarity** - Proper contrast and readable typography
-4. **Adaptability** - Seamless light and dark mode transitions
-5. **Minimalism** - Purposeful whitespace and clean interfaces
+1. **Neutral Base** - Clean, professional backgrounds that don't distract
+2. **Strategic Brand Colors** - Green used intentionally for trust, actions, and success
+3. **Depth & Layering** - Glassmorphism and backdrop blur create visual hierarchy
+4. **Fluidity** - Smooth animations (under 400ms) for natural interactions  
+5. **Clarity** - High contrast for accessibility (WCAG AA+) and readable typography
+6. **Adaptability** - Seamless light and dark mode transitions
+7. **Minimalism** - Purposeful whitespace and clean interfaces
 
 ## Color System
 
-**Brand Color**: `#96ff9a` (Light Green/Mint) - This is the primary brand color for Get-UseApp
+**Brand Color**: `#96ff9a` (Light Green/Mint) - **Strategic Use Only**
+
+### Color Philosophy (2025 P2P Best Practices)
+
+The brand green (`#96ff9a`) is used **strategically** for:
+- ✅ Primary buttons and CTAs
+- ✅ Success states and trust indicators
+- ✅ Selected/active states
+- ✅ Focus rings and highlights
+- ✅ Tab icons when selected
+
+**NOT** used for:
+- ❌ Primary background colors
+- ❌ Main text color (except dark mode accents)
+- ❌ General UI surfaces
+
+This creates a professional, clean aesthetic while maintaining brand identity.
 
 ### Background Colors
 
 #### Light Mode
 ```css
-bg-light-bg-primary     /* #96ff9a - Light green/mint (brand background) */
-bg-light-bg-secondary   /* #ffffff - Pure white */
-bg-light-bg-tertiary     /* #f3f4f6 - Light gray */
+bg-light-bg-primary     /* #ffffff - Pure white (clean, professional) */
+bg-light-bg-secondary   /* #f9fafb - Off-white (gray-50) */
+bg-light-bg-tertiary     /* #f3f4f6 - Light gray (gray-100) */
 ```
 
 #### Dark Mode
 ```css
-bg-dark-bg-primary      /* #151718 - Very dark gray */
-bg-dark-bg-secondary    /* #111214 - Almost black */
-bg-dark-bg-tertiary     /* #0b1220 - Dark blue-gray */
+bg-dark-bg-primary      /* #0f1419 - Warm dark (not pure black) */
+bg-dark-bg-secondary    /* #1a1f2e - Lighter with subtle blue tint */
+bg-dark-bg-tertiary     /* #0d1117 - Almost black for depth */
 ```
 
 ### Text Colors
 
 #### Light Mode
 ```css
-text-light-text-primary     /* #11181C - Dark gray/black */
-text-light-text-secondary   /* #111827 - Dark gray */
-text-light-text-tertiary    /* #374151 - Medium gray */
-text-light-text-quaternary  /* #6b7280 - Light gray */
+text-light-text-primary     /* #0a0a0a - Near black (maximum contrast) */
+text-light-text-secondary   /* #1f2937 - Dark gray (gray-800) */
+text-light-text-tertiary    /* #4b5563 - Medium gray (gray-600) */
+text-light-text-quaternary  /* #6b7280 - Light gray (gray-500) */
 ```
 
 #### Dark Mode
 ```css
-text-dark-text-primary      /* #96ff9a - Light green/mint (brand color) */
-text-dark-text-secondary    /* #e5e7eb - Light gray */
-text-dark-text-tertiary     /* #cbd5e1 - Lighter gray */
-text-dark-text-quaternary   /* #ffffff - White */
+text-dark-text-primary      /* #f9fafb - Off-white (high contrast, not green) */
+text-dark-text-secondary    /* #e5e7eb - Light gray (gray-200) */
+text-dark-text-tertiary     /* #cbd5e1 - Lighter gray (gray-300) */
+text-dark-text-quaternary   /* #94a3b8 - Medium gray (gray-400) */
 ```
 
-### Primary Brand Colors
+### Primary Brand Colors - Strategic Use Only
 
 ```css
 /* Light Green/Mint (#96ff9a) - Main brand color */
+/* ⚠️ Use strategically for CTAs, success, trust, selected states */
 brand-primary:    #96ff9a  /* Main brand color ⭐ PRIMARY */
-brand-dark:       #08af0e  /* Darker green for actions */
-brand-light:      #40ef47  /* Lighter green variant */
-brand-success:    #00ce08  /* Success green */
+brand-secondary:  #80e685  /* Lighter variant for hover states */
+brand-tertiary:   #6acc6f  /* Medium for pressed states */
+brand-dark:       #08af0e  /* Darker green for contrast on light backgrounds */
+brand-light:      #b3ffb5  /* Light variant for subtle accents */
+brand-glow:       #ccffe0  /* Ultra-light for glow effects */
 ```
+
+**Usage Guidelines:**
+- **Buttons/CTAs**: Use `brand-primary` or `brand-dark` for primary actions
+- **Success States**: Use brand green to reinforce trust
+- **Selected States**: Use brand color to indicate active selection
+- **Hover States**: Use `brand-secondary` for interactive feedback
+- **Avoid**: Using brand color as background for main surfaces
 
 ### Interactive & UI Colors
 
 ```css
-/* Borders */
-border-light:     #e5e7eb  /* Light mode border */
-border-light-alt: #d1d5db  /* Light mode alternative border */
-border-dark:      #374151  /* Dark mode border */
-border-dark-alt:  #2a2a2a  /* Dark mode alternative border */
+/* Borders - Refined and subtle */
+border-light:     #e5e7eb  /* Gray-200 for light mode */
+border-light-alt: #d1d5db  /* Gray-300 alternate */
+border-dark:      #334155  /* Slate-700 for dark mode (refined) */
+border-dark-alt:  #1e293b  /* Slate-800 alternate */
 
 /* Input Backgrounds */
-input-light-bg:   #ffffff  /* Light mode input */
-input-dark-bg:    #111827  /* Dark mode input */
+input-light-bg:   #ffffff  /* Clean white */
+input-dark-bg:    #1a1f2e  /* Slightly lighter than dark-bg-secondary */
 
-/* Card/Container Backgrounds */
-card-light-bg:    #f9fafb  /* Light mode card */
-card-dark-bg:     #0b1220  /* Dark mode card */
+/* Card/Container Backgrounds - Elevated surfaces */
+card-light-bg:    #ffffff  /* White with shadow for elevation */
+card-dark-bg:     #1e293b  /* Slate-800 for elevation in dark mode */
 ```
 
 ### Semantic Colors
 
 ```css
-/* Success */
-success-primary:  #08af0e  /* Primary success green */
-success-light:    #40ef47  /* Light success green */
-success-dark:     #00ce08  /* Dark success green */
-success-soft:     #16a34a  /* Soft success green */
+/* Success - Uses brand green for trust */
+success-primary:  #08af0e  /* Brand green for trust/success */
+success-light:    #40ef47  /* Lighter variant */
+success-dark:     #00ce08  /* Darker variant */
+success-soft:     #16a34a  /* Softer green (green-600) */
 
-/* Error */
-error-primary:    #ef4444  /* Primary error red */
-error-dark:       #dc2626  /* Dark error red */
+/* Error - Clear and distinct */
+error-primary:    #ef4444  /* Clear red (red-500) */
+error-dark:       #dc2626  /* Darker red (red-600) */
+error-light:      #f87171  /* Lighter for dark mode (red-400) */
 
-/* Warning */
-warning-primary:  #f59e0b  /* Warning orange */
+/* Warning - Amber for caution */
+warning-primary:  #f59e0b  /* Amber (amber-500) */
+warning-dark:     #d97706  /* Darker (amber-600) */
+warning-light:    #fbbf24  /* Lighter for dark mode (amber-400) */
 
-/* Info */
-info-primary:     #2563eb  /* Primary info blue */
-info-dark:        #1d4ed8  /* Dark info blue */
+/* Info - Modern blue */
+info-primary:     #3b82f6  /* Modern blue (blue-500) */
+info-dark:        #2563eb  /* Darker (blue-600) */
+info-light:       #60a5fa  /* Lighter for dark mode (blue-400) */
 
 /* Neutral/Gray */
 neutral-50:        #f9fafb  /* Very light gray */

@@ -10,7 +10,7 @@ import { LiquidGlassView } from '@/components/liquid-glass';
 import { Button } from '@/components/Button';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Colors } from '@/constants/theme';
-import { HapticFeedback } from '@/utils/haptics';
+import { useThemeColors, HapticFeedback } from '@/utils';
 import type { Reservation } from '@/types';
 
 export default function ReviewScreen() {
@@ -22,6 +22,7 @@ export default function ReviewScreen() {
   const [busy, setBusy] = useState(false);
   const colorScheme = useColorScheme();
   const palette = Colors[colorScheme];
+  const colors = useThemeColors();
 
   useEffect(() => {
     let alive = true;
@@ -96,24 +97,24 @@ export default function ReviewScreen() {
 
   const title = res?.itemTitle ? `Avaliar ${res.itemTitle}` : `Avaliar`;
 
-  const inputStyle = {
+  const inputStyle = useMemo(() => ({
     borderWidth: 1,
     borderRadius: 16,
     padding: 16,
     fontSize: 17,
-    color: palette.text,
-    borderColor: palette.border,
-    backgroundColor: palette.inputBg,
-  };
-  const placeholderColor = palette.textTertiary;
+    color: colors.text.primary,
+    borderColor: colors.border.default,
+    backgroundColor: colors.input.bg,
+  }), [colors]);
+  const placeholderColor = colors.input.placeholder;
 
   return (
     <KeyboardAvoidingView
-      style={{ flex: 1, backgroundColor: palette.background }}
+      style={{ flex: 1 }}
       behavior={Platform.select({ ios: 'padding', android: undefined })}
       keyboardVerticalOffset={Platform.select({ ios: 80, android: 0 })}
     >
-      <ThemedView style={{ flex: 1, backgroundColor: palette.background }}>
+      <ThemedView style={{ flex: 1 }}>
         <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 32 }}>
           <ThemedText type="large-title" style={{ marginBottom: 32 }}>
             {title}
@@ -147,15 +148,15 @@ export default function ReviewScreen() {
                         style={{
                           padding: 12,
                           borderRadius: 16,
-                          backgroundColor: stars >= n ? '#96ff9a' : palette.cardBg,
+                          backgroundColor: stars >= n ? colors.brand.primary : colors.card.bg,
                           borderWidth: 1,
-                          borderColor: stars >= n ? '#96ff9a' : palette.border,
+                          borderColor: stars >= n ? colors.brand.primary : colors.border.default,
                         }}
                       >
                         <ThemedText 
                           type="title-2" 
                           style={{ 
-                            color: stars >= n ? '#000' : palette.text,
+                            color: stars >= n ? (colors.isDark ? colors.text.primary : '#000') : colors.text.primary,
                             fontWeight: '700',
                           }}
                         >

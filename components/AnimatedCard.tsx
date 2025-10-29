@@ -1,19 +1,15 @@
 import React from 'react';
-import { TouchableOpacity, ViewStyle } from 'react-native';
+import { TouchableOpacity } from 'react-native';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
   withSpring,
   withTiming,
 } from 'react-native-reanimated';
-import { HapticFeedback } from '@/utils/haptics';
-import type { ViewProps } from 'react-native';
+import { HapticFeedback } from '@/utils';
+import type { BaseCardWithChildrenProps } from '@/components/types';
 
-type AnimatedCardProps = ViewProps & {
-  children: React.ReactNode;
-  onPress?: () => void;
-  disabled?: boolean;
-};
+type AnimatedCardProps = BaseCardWithChildrenProps;
 
 export function AnimatedCard({
   children,
@@ -58,6 +54,10 @@ export function AnimatedCard({
       onPressOut={handlePressOut}
       disabled={disabled}
       activeOpacity={1}
+      accessibilityRole="button"
+      accessibilityLabel={rest.accessibilityLabel}
+      accessibilityHint={rest.accessibilityHint || "Toque duas vezes para interagir"}
+      accessibilityState={{ disabled }}
     >
       <Animated.View style={[animatedStyle, style]} {...rest}>
         {children}

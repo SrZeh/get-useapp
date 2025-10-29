@@ -16,10 +16,12 @@ import {
   View,
 } from "react-native";
 import { confirmReturn } from "@/services/cloudFunctions";
+import { useThemeColors } from "@/utils";
 
 export default function ReturnScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const uid = auth.currentUser?.uid ?? null;
+  const colors = useThemeColors();
   const [imgUri, setImgUri] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -88,6 +90,7 @@ export default function ReturnScreen() {
                 borderRadius: 12,
                 borderWidth: 1,
                 borderStyle: "dashed",
+                borderColor: colors.border.default,
                 alignItems: "center",
                 justifyContent: "center",
               }}
@@ -96,7 +99,16 @@ export default function ReturnScreen() {
             </View>
           )}
 
-          <TouchableOpacity onPress={pick} disabled={busy} style={{ padding: 12, borderWidth: 1, borderRadius: 10 }}>
+          <TouchableOpacity 
+            onPress={pick} 
+            disabled={busy} 
+            style={{ 
+              padding: 12, 
+              borderWidth: 1, 
+              borderRadius: 10,
+              borderColor: colors.border.default,
+            }}
+          >
             {busy ? <ActivityIndicator /> : <ThemedText>Usar Câmera</ThemedText>}
           </TouchableOpacity>
 
@@ -108,6 +120,7 @@ export default function ReturnScreen() {
               paddingHorizontal: 18,
               borderRadius: 10,
               borderWidth: 1,
+              borderColor: colors.border.default,
               opacity: imgUri ? 1 : 0.5,
             }}
           >

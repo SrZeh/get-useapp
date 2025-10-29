@@ -94,6 +94,7 @@ export interface NewItemInput {
   city?: string;
   neighborhood?: string;
   published?: boolean;
+  isFree?: boolean;
 }
 
 /**

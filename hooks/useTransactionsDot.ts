@@ -13,7 +13,7 @@ import {
   type QuerySnapshot,
   type Timestamp,
 } from "firebase/firestore";
-import { logger } from "@/utils/logger";
+import { logger } from "@/utils";
 
 /**
  * Check if there are new reservations since the last seen timestamp

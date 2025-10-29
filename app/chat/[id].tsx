@@ -15,7 +15,8 @@ import {
 import { getFunctions, httpsCallable } from "firebase/functions";
 import React, { useEffect, useRef, useState } from "react";
 import type { FirestoreTimestamp } from "@/types";
-import { logger } from "@/utils/logger";
+import { logger, useThemeColors } from "@/utils";
+import { useColorScheme } from "@/hooks/use-color-scheme";
 import {
   KeyboardAvoidingView,
   Platform,
@@ -33,6 +34,7 @@ export default function ThreadChatScreen() {
   const rawId = params.id as string | string[] | undefined;
   const id = Array.isArray(rawId) ? rawId[0] : rawId;
   const uid = auth.currentUser?.uid ?? null;
+  const colors = useThemeColors();
 
   const [msgs, setMsgs] = useState<Msg[]>([]);
   const [text, setText] = useState("");
@@ -160,10 +162,10 @@ export default function ThreadChatScreen() {
                     borderRadius: 12,
                     marginBottom: 8,
                     borderWidth: 2,
-                    backgroundColor: mine ? "#00ce08" : "#96ff9a",
+                    backgroundColor: mine ? colors.brand.dark : colors.brand.primary,
                   }}
                 >
-                  <ThemedText style={{ color: "#111827" }}>
+                  <ThemedText style={{ color: colors.isDark ? colors.text.primary : "#111827" }}>
                     {m.text}
                   </ThemedText>
                 </View>
@@ -178,12 +180,12 @@ export default function ThreadChatScreen() {
             gap: 8,
             padding: 12,
             borderTopWidth: 1,
-            borderColor: "#e5e7eb",
+            borderTopColor: colors.border.default,
           }}
         >
           <TextInput
             placeholder="Escreva uma mensagem…"
-            placeholderTextColor="#9aa0a6"
+            placeholderTextColor={colors.input.placeholder}
             value={text}
             onChangeText={setText}
             editable={!sending}
@@ -192,9 +194,9 @@ export default function ThreadChatScreen() {
               borderWidth: 1,
               borderRadius: 10,
               padding: 12,
-              backgroundColor: "#f9fafb",
-              borderColor: "#d1d5db",
-              color: "#111827",
+              backgroundColor: colors.input.bg,
+              borderColor: colors.border.default,
+              color: colors.text.primary,
             }}
           />
           <TouchableOpacity
@@ -204,7 +206,7 @@ export default function ThreadChatScreen() {
               paddingVertical: 10,
               paddingHorizontal: 14,
               borderRadius: 10,
-              backgroundColor: sending || !text.trim() ? "#9ca3af" : "#08af0e",
+              backgroundColor: sending || !text.trim() ? colors.text.tertiary : colors.brand.dark,
             }}
           >
             <ThemedText type="defaultSemiBold" style={{ color: "#fff" }}>

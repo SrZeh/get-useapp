@@ -31,10 +31,20 @@ export default function ImagePickerButton({ onPick }: Props) {
 
   return (
     <View style={{ flexDirection: "row", gap: 16, marginTop: 8 }}>
-      <TouchableOpacity onPress={pickFromCamera}>
+      <TouchableOpacity
+        onPress={pickFromCamera}
+        accessibilityRole="button"
+        accessibilityLabel="Usar câmera"
+        accessibilityHint="Toque para tirar uma foto com a câmera"
+      >
         <ThemedText type="defaultSemiBold">Usar câmera</ThemedText>
       </TouchableOpacity>
-      <TouchableOpacity onPress={pickFromLibrary}>
+      <TouchableOpacity
+        onPress={pickFromLibrary}
+        accessibilityRole="button"
+        accessibilityLabel="Escolher da galeria"
+        accessibilityHint="Toque para escolher uma imagem da galeria"
+      >
         <ThemedText>Escolher da galeria</ThemedText>
       </TouchableOpacity>
     </View>

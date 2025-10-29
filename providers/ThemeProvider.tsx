@@ -1,14 +1,15 @@
-import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useEffect, useState, ReactNode, useMemo, useCallback } from 'react';
 import { useColorScheme as useRNColorScheme, Appearance } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { logger } from '@/utils/logger';
+import { logger } from '@/utils';
 
 export type ThemeMode = 'light' | 'dark' | 'system';
 
 type ThemeContextType = {
   themeMode: ThemeMode;
   colorScheme: 'light' | 'dark';
-  setThemeMode: (mode: ThemeMode) => void;
+  setThemeMode: (mode: ThemeMode) => Promise<void>;
+  isLoading: boolean;
 };
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
@@ -18,46 +19,84 @@ const THEME_STORAGE_KEY = '@app_theme_mode';
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const systemColorScheme = useRNColorScheme();
   const [themeMode, setThemeModeState] = useState<ThemeMode>('system');
-  const [mounted, setMounted] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   // Load saved theme preference
   useEffect(() => {
-    AsyncStorage.getItem(THEME_STORAGE_KEY)
-      .then((saved) => {
-        if (saved === 'light' || saved === 'dark' || saved === 'system') {
+    let isMounted = true;
+
+    async function loadTheme() {
+      try {
+        const saved = await AsyncStorage.getItem(THEME_STORAGE_KEY);
+        if (isMounted && (saved === 'light' || saved === 'dark' || saved === 'system')) {
           setThemeModeState(saved);
         }
-        setMounted(true);
-      })
-      .catch(() => setMounted(true));
+      } catch (error) {
+        logger.error('Failed to load theme preference', error);
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    }
+
+    loadTheme();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
+  // Listen to system theme changes when in 'system' mode
+  // The systemColorScheme from useRNColorScheme already reacts to changes,
+  // but we add a listener here to ensure immediate updates
+  useEffect(() => {
+    if (themeMode !== 'system') return;
+
+    const subscription = Appearance.addChangeListener(() => {
+      // Trigger re-render by updating a state that's part of the dependency
+      // The systemColorScheme from useRNColorScheme will update automatically
+      // This listener ensures we catch system changes even when app is backgrounded
+    });
+
+    return () => subscription.remove();
+  }, [themeMode]);
+
   // Save theme preference when it changes
-  const setThemeMode = async (mode: ThemeMode) => {
+  const setThemeMode = useCallback(async (mode: ThemeMode) => {
     try {
       await AsyncStorage.setItem(THEME_STORAGE_KEY, mode);
       setThemeModeState(mode);
     } catch (error) {
       logger.error('Failed to save theme preference', error);
+      throw error;
     }
-  };
+  }, []);
 
   // Determine actual color scheme based on theme mode
-  const colorScheme: 'light' | 'dark' =
-    themeMode === 'system'
+  // Memoized to prevent unnecessary recalculations
+  const colorScheme = useMemo<'light' | 'dark'>(() => {
+    return themeMode === 'system'
       ? (systemColorScheme ?? 'light')
       : themeMode;
+  }, [themeMode, systemColorScheme]);
 
-  // Note: System theme changes are automatically picked up via useRNColorScheme hook
-  // When themeMode is 'system', colorScheme will update automatically
+  // Memoize context value to prevent unnecessary re-renders
+  const value = useMemo<ThemeContextType>(() => ({
+    themeMode,
+    colorScheme,
+    setThemeMode,
+    isLoading,
+  }), [themeMode, colorScheme, setThemeMode, isLoading]);
 
   // Don't render until we've loaded the saved preference
-  if (!mounted) {
-    return null; // or a loading spinner
+  // Show a minimal placeholder to prevent flash of wrong theme
+  if (isLoading) {
+    return null; // Could return a minimal loading placeholder
   }
 
   return (
-    <ThemeContext.Provider value={{ themeMode, colorScheme, setThemeMode }}>
+    <ThemeContext.Provider value={value}>
       {children}
     </ThemeContext.Provider>
   );

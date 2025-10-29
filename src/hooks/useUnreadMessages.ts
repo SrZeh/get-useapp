@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { collection, onSnapshot, query, where, limit } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/src/providers/AuthProvider";
-import { logger } from "@/utils/logger";
+import { logger } from "@/utils";
 
 export function useUnreadMessagesDot() {
   const { user } = useAuth();

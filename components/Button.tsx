@@ -1,15 +1,15 @@
 import React from 'react';
 import { TouchableOpacity, ViewStyle, ActivityIndicator } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { GradientTypes } from '@/utils/gradients';
-import { HapticFeedback } from '@/utils/haptics';
+import { GradientTypes, HapticFeedback, useThemeColors, useButtonColors } from '@/utils';
 import { ThemedText } from './themed-text';
-import { useColorScheme } from 'react-native';
 
-type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'premium';
+type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'premium' | 'outline' | 'destructive';
+type ButtonSize = 'sm' | 'md' | 'lg';
 
 type ButtonProps = {
   variant?: ButtonVariant;
+  size?: ButtonSize;
   children: React.ReactNode;
   onPress?: () => void;
   disabled?: boolean;
@@ -17,10 +17,21 @@ type ButtonProps = {
   style?: ViewStyle;
   textStyle?: ViewStyle;
   fullWidth?: boolean;
+  iconLeft?: React.ReactNode;
+  iconRight?: React.ReactNode;
+  accessibilityLabel?: string;
+  accessibilityHint?: string;
+};
+
+const sizeMap: Record<ButtonSize, { paddingVertical: number; paddingHorizontal: number; minHeight: number; fontSize: number }> = {
+  sm: { paddingVertical: 12, paddingHorizontal: 16, minHeight: 40, fontSize: 15 },
+  md: { paddingVertical: 16, paddingHorizontal: 24, minHeight: 48, fontSize: 17 },
+  lg: { paddingVertical: 20, paddingHorizontal: 32, minHeight: 56, fontSize: 19 },
 };
 
 export function Button({
   variant = 'primary',
+  size = 'md',
   children,
   onPress,
   disabled = false,
@@ -28,9 +39,18 @@ export function Button({
   style,
   textStyle,
   fullWidth = false,
+  iconLeft,
+  iconRight,
+  accessibilityLabel,
+  accessibilityHint,
 }: ButtonProps) {
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === 'dark';
+  const colors = useThemeColors();
+  // Get all button variant colors upfront (hooks must be called unconditionally)
+  const primaryColors = useButtonColors('primary');
+  const secondaryColors = useButtonColors('secondary');
+  const ghostColors = useButtonColors('ghost');
+  const outlineColors = useButtonColors('outline');
+  const destructiveColors = useButtonColors('destructive');
 
   const handlePress = () => {
     if (disabled || loading) return;
@@ -38,7 +58,43 @@ export function Button({
     onPress?.();
   };
 
+  const sizeStyles = sizeMap[size];
+
+  const renderButtonContent = (textColor: string) => {
+    if (loading) {
+      return <ActivityIndicator color={textColor} />;
+    }
+
+    return (
+      <>
+        {iconLeft && <>{iconLeft}</>}
+        <ThemedText
+          style={{
+            color: textColor,
+            fontWeight: '600',
+            fontSize: sizeStyles.fontSize,
+            ...textStyle,
+          }}
+        >
+          {children}
+        </ThemedText>
+        {iconRight && <>{iconRight}</>}
+      </>
+    );
+  };
+
   const getButtonContent = () => {
+    const baseStyle: ViewStyle = {
+      paddingVertical: sizeStyles.paddingVertical,
+      paddingHorizontal: sizeStyles.paddingHorizontal,
+      borderRadius: 20,
+      alignItems: 'center',
+      justifyContent: 'center',
+      minHeight: sizeStyles.minHeight,
+      flexDirection: 'row',
+      gap: 8,
+    };
+
     if (variant === 'premium') {
       return (
         <LinearGradient
@@ -46,26 +102,13 @@ export function Button({
           start={GradientTypes.premium.start}
           end={GradientTypes.premium.end}
           style={[
-            {
-              paddingVertical: 16,
-              paddingHorizontal: 24,
-              borderRadius: 20,
-              alignItems: 'center',
-              justifyContent: 'center',
-              minHeight: 48,
-            },
+            baseStyle,
             fullWidth && { width: '100%' },
             (disabled || loading) && { opacity: 0.6 },
             style,
           ]}
         >
-          {loading ? (
-            <ActivityIndicator color="white" />
-          ) : (
-            <ThemedText style={{ color: 'white', fontWeight: '600', ...textStyle }}>
-              {children}
-            </ThemedText>
-          )}
+          {renderButtonContent('white')}
         </LinearGradient>
       );
     }
@@ -77,26 +120,13 @@ export function Button({
           start={GradientTypes.brand.start}
           end={GradientTypes.brand.end}
           style={[
-            {
-              paddingVertical: 16,
-              paddingHorizontal: 24,
-              borderRadius: 20,
-              alignItems: 'center',
-              justifyContent: 'center',
-              minHeight: 48,
-            },
+            baseStyle,
             fullWidth && { width: '100%' },
             (disabled || loading) && { opacity: 0.6 },
             style,
           ]}
         >
-          {loading ? (
-            <ActivityIndicator color="white" />
-          ) : (
-            <ThemedText style={{ color: 'white', fontWeight: '600', ...textStyle }}>
-              {children}
-            </ThemedText>
-          )}
+          {renderButtonContent('white')}
         </LinearGradient>
       );
     }
@@ -108,35 +138,71 @@ export function Button({
           disabled={disabled || loading}
           activeOpacity={0.8}
           style={[
+            baseStyle,
             {
-              paddingVertical: 16,
-              paddingHorizontal: 24,
-              borderRadius: 20,
-              alignItems: 'center',
-              justifyContent: 'center',
-              minHeight: 48,
               borderWidth: 2,
-              borderColor: '#96ff9a',
-              backgroundColor: 'transparent',
+              borderColor: secondaryColors.border,
+              backgroundColor: secondaryColors.bg,
             },
             fullWidth && { width: '100%' },
             (disabled || loading) && { opacity: 0.6 },
             style,
           ]}
+          accessibilityLabel={accessibilityLabel}
+          accessibilityHint={accessibilityHint}
+          accessibilityRole="button"
         >
-          {loading ? (
-            <ActivityIndicator color="#96ff9a" />
-          ) : (
-            <ThemedText
-              style={{
-                color: '#96ff9a',
-                fontWeight: '600',
-                ...textStyle,
-              }}
-            >
-              {children}
-            </ThemedText>
-          )}
+          {renderButtonContent(secondaryColors.text)}
+        </TouchableOpacity>
+      );
+    }
+
+    if (variant === 'outline') {
+      return (
+        <TouchableOpacity
+          onPress={handlePress}
+          disabled={disabled || loading}
+          activeOpacity={0.8}
+          style={[
+            baseStyle,
+            {
+              borderWidth: 1,
+              borderColor: outlineColors.border,
+              backgroundColor: outlineColors.bg,
+            },
+            fullWidth && { width: '100%' },
+            (disabled || loading) && { opacity: 0.6 },
+            style,
+          ]}
+          accessibilityLabel={accessibilityLabel}
+          accessibilityHint={accessibilityHint}
+          accessibilityRole="button"
+        >
+          {renderButtonContent(outlineColors.text)}
+        </TouchableOpacity>
+      );
+    }
+
+    if (variant === 'destructive') {
+      return (
+        <TouchableOpacity
+          onPress={handlePress}
+          disabled={disabled || loading}
+          activeOpacity={0.8}
+          style={[
+            baseStyle,
+            {
+              backgroundColor: destructiveColors.bg,
+            },
+            fullWidth && { width: '100%' },
+            (disabled || loading) && { opacity: 0.6 },
+            style,
+          ]}
+          accessibilityLabel={accessibilityLabel}
+          accessibilityHint={accessibilityHint}
+          accessibilityRole="button"
+        >
+          {renderButtonContent(destructiveColors.text)}
         </TouchableOpacity>
       );
     }
@@ -148,35 +214,19 @@ export function Button({
         disabled={disabled || loading}
         activeOpacity={0.8}
         style={[
+          baseStyle,
           {
-            paddingVertical: 16,
-            paddingHorizontal: 24,
-            borderRadius: 20,
-            alignItems: 'center',
-            justifyContent: 'center',
-            minHeight: 48,
-            backgroundColor: 'transparent',
+            backgroundColor: ghostColors.bg,
           },
           fullWidth && { width: '100%' },
           (disabled || loading) && { opacity: 0.6 },
           style,
         ]}
+        accessibilityLabel={accessibilityLabel}
+        accessibilityHint={accessibilityHint}
+        accessibilityRole="button"
       >
-        {loading ? (
-          <ActivityIndicator
-            color={isDark ? '#96ff9a' : '#11181C'}
-          />
-        ) : (
-          <ThemedText
-            type="title-small"
-            style={{
-              fontWeight: '600',
-              ...textStyle,
-            }}
-          >
-            {children}
-          </ThemedText>
-        )}
+        {renderButtonContent(ghostColors.text)}
       </TouchableOpacity>
     );
   };
@@ -187,6 +237,9 @@ export function Button({
         onPress={handlePress}
         disabled={disabled || loading}
         activeOpacity={0.8}
+        accessibilityLabel={accessibilityLabel}
+        accessibilityHint={accessibilityHint}
+        accessibilityRole="button"
       >
         {getButtonContent()}
       </TouchableOpacity>

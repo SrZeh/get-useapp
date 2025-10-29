@@ -9,8 +9,7 @@ import {
   LayoutChangeEvent,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useColorScheme } from 'react-native';
-import { HapticFeedback } from '@/utils/haptics';
+import { HapticFeedback, useThemeColors, useGlassColors } from '@/utils';
 
 type ScrollableCategoriesProps = {
   children: React.ReactNode;
@@ -21,8 +20,8 @@ export function ScrollableCategories({
   children,
   style,
 }: ScrollableCategoriesProps) {
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === 'dark';
+  const colors = useThemeColors();
+  const glassColors = useGlassColors();
   const scrollViewRef = useRef<ScrollView>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
@@ -90,6 +89,9 @@ export function ScrollableCategories({
         <TouchableOpacity
           onPress={() => scrollIncrementally('left')}
           activeOpacity={0.7}
+          accessibilityRole="button"
+          accessibilityLabel="Rolar para a esquerda"
+          accessibilityHint="Toque para rolar as categorias para a esquerda"
           style={{
             position: 'absolute',
             left: 0,
@@ -100,9 +102,7 @@ export function ScrollableCategories({
             justifyContent: 'center',
             alignItems: 'flex-start',
             paddingLeft: 8,
-            backgroundColor: isDark
-              ? 'rgba(21, 23, 24, 0.95)'
-              : 'rgba(255, 255, 255, 0.98)',
+            backgroundColor: glassColors.strong,
             shadowColor: '#000',
             shadowOffset: { width: 2, height: 0 },
             shadowOpacity: 0.15,
@@ -113,7 +113,7 @@ export function ScrollableCategories({
           <Ionicons
             name="chevron-back"
             size={24}
-            color={isDark ? '#96ff9a' : '#08af0e'}
+            color={colors.brand.primary}
           />
         </TouchableOpacity>
       )}
@@ -143,6 +143,9 @@ export function ScrollableCategories({
         <TouchableOpacity
           onPress={() => scrollIncrementally('right')}
           activeOpacity={0.7}
+          accessibilityRole="button"
+          accessibilityLabel="Rolar para a direita"
+          accessibilityHint="Toque para rolar as categorias para a direita"
           style={{
             position: 'absolute',
             right: 0,
@@ -153,9 +156,7 @@ export function ScrollableCategories({
             justifyContent: 'center',
             alignItems: 'flex-end',
             paddingRight: 8,
-            backgroundColor: isDark
-              ? 'rgba(21, 23, 24, 0.95)'
-              : 'rgba(255, 255, 255, 0.98)',
+            backgroundColor: glassColors.strong,
             shadowColor: '#000',
             shadowOffset: { width: -2, height: 0 },
             shadowOpacity: 0.15,
@@ -166,7 +167,7 @@ export function ScrollableCategories({
           <Ionicons
             name="chevron-forward"
             size={24}
-            color={isDark ? '#96ff9a' : '#08af0e'}
+            color={colors.brand.primary}
           />
         </TouchableOpacity>
       )}

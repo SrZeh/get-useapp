@@ -8,10 +8,13 @@ import { doc, updateDoc } from 'firebase/firestore';
 import { FirebaseRecaptchaVerifierModal } from 'expo-firebase-recaptcha';
 import { PhoneAuthProvider, linkWithCredential } from 'firebase/auth';
 import Constants from 'expo-constants';
+import { useThemeColors } from '@/utils';
+import { Button } from '@/components/Button';
 
 export default function VerifyPhoneScreen() {
   const user = auth.currentUser;
   const recaptchaRef = useRef<FirebaseRecaptchaVerifierModal>(null);
+  const colors = useThemeColors();
 
   const [phone, setPhone] = useState('');   // ex: +55DDDNNNNNNNN
   const [code, setCode] = useState('');
@@ -70,36 +73,56 @@ export default function VerifyPhoneScreen() {
       <View style={{ gap:10 }}>
         <TextInput
           placeholder="+55DDDNNNNNNNN"
+          placeholderTextColor={colors.input.placeholder}
           keyboardType="phone-pad"
           value={phone}
           onChangeText={setPhone}
-          style={{ borderWidth:1, borderRadius:10, padding:12 }}
+          style={{ 
+            borderWidth: 1, 
+            borderRadius: 10, 
+            padding: 12,
+            backgroundColor: colors.input.bg,
+            borderColor: colors.border.default,
+            color: colors.text.primary,
+          }}
         />
 
-        <TouchableOpacity
+        <Button
+          variant="primary"
           onPress={send}
           disabled={busy || !phone}
-          style={{ backgroundColor:'#00ce08', padding:12, borderRadius:10, alignItems:'center', opacity:(busy||!phone)?0.6:1 }}
+          loading={busy}
+          fullWidth
         >
-          <ThemedText style={{ color:'#fff' }}>{busy ? 'Enviando…' : 'Enviar SMS'}</ThemedText>
-        </TouchableOpacity>
+          Enviar SMS
+        </Button>
 
         {verificationId && (
           <>
             <TextInput
               placeholder="Código do SMS"
+              placeholderTextColor={colors.input.placeholder}
               keyboardType="number-pad"
               value={code}
               onChangeText={setCode}
-              style={{ borderWidth:1, borderRadius:10, padding:12 }}
+              style={{ 
+                borderWidth: 1, 
+                borderRadius: 10, 
+                padding: 12,
+                backgroundColor: colors.input.bg,
+                borderColor: colors.border.default,
+                color: colors.text.primary,
+              }}
             />
-            <TouchableOpacity
+            <Button
+              variant="primary"
               onPress={confirm}
               disabled={busy || code.length < 4}
-              style={{ backgroundColor:'#2563eb', padding:12, borderRadius:10, alignItems:'center', opacity:(busy||code.length<4)?0.6:1 }}
+              loading={busy}
+              fullWidth
             >
-              <ThemedText style={{ color:'#fff' }}>{busy ? 'Confirmando…' : 'Confirmar código'}</ThemedText>
-            </TouchableOpacity>
+              Confirmar código
+            </Button>
           </>
         )}
       </View>

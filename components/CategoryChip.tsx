@@ -6,9 +6,8 @@ import Animated, {
   withSpring,
 } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
-import { HapticFeedback } from '@/utils/haptics';
+import { HapticFeedback, useChipColors } from '@/utils';
 import { ThemedText } from './themed-text';
-import { useColorScheme } from 'react-native';
 
 type CategoryChipProps = {
   label: string;
@@ -25,9 +24,7 @@ export function CategoryChip({
   style,
   icon,
 }: CategoryChipProps) {
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === 'dark';
-
+  const chipColors = useChipColors(selected);
   const scale = useSharedValue(1);
 
   const animatedStyle = useAnimatedStyle(() => ({
@@ -48,42 +45,36 @@ export function CategoryChip({
   };
 
   const chipStyle: ViewStyle = {
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 9999,
+    paddingVertical: 8, // py-2xs equivalent
+    paddingHorizontal: 12, // px-xs equivalent
+    borderRadius: 9999, // rounded-full equivalent
     borderWidth: 1,
-    marginRight: 8,
-    backgroundColor: selected 
-      ? (isDark ? '#96ff9a' : '#08af0e') // Darker green in light mode for better contrast
-      : 'transparent',
-    borderColor: selected
-      ? 'transparent'
-      : isDark
-        ? '#374151'
-        : '#e5e7eb',
+    marginRight: 8, // mr-2xs equivalent
+    backgroundColor: chipColors.bg,
+    borderColor: chipColors.border,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
   };
 
-  const iconColor = selected 
-    ? (isDark ? '#11181C' : '#ffffff')
-    : (isDark ? '#e5e7eb' : '#374151');
-
   return (
-    <Animated.View style={[animatedStyle, { marginRight: 8 }]}>
+    <Animated.View style={[animatedStyle]}>
       <TouchableOpacity
         onPress={handlePress}
         onPressIn={handlePressIn}
         onPressOut={handlePressOut}
         activeOpacity={1}
         style={[chipStyle, style]}
+        accessibilityRole="button"
+        accessibilityLabel={selected ? `${label}, selecionado` : label}
+        accessibilityState={{ selected }}
+        accessibilityHint="Toque duas vezes para selecionar ou desmarcar esta categoria"
       >
         {icon && (
           <Ionicons
             name={icon}
             size={16}
-            color={iconColor}
+            color={chipColors.icon}
           />
         )}
         <ThemedText

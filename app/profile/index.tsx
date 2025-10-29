@@ -14,9 +14,9 @@ import { Button } from '@/components/Button';
 import { useTheme } from '@/providers/ThemeProvider';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { GradientTypes } from '@/utils/gradients';
-import { HapticFeedback } from '@/utils/haptics';
+import { GradientTypes, HapticFeedback } from '@/utils';
 import type { UserProfile } from '@/types';
+import { useThemeColors, useBorderColorsWithOpacity, useBrandColorsWithOpacity } from '@/utils/theme';
 
 export default function ProfileScreen() {
   const uid = auth.currentUser?.uid;
@@ -24,6 +24,9 @@ export default function ProfileScreen() {
   const [loading, setLoading] = useState(true);
   const { themeMode, setThemeMode, colorScheme } = useTheme();
   const isDark = colorScheme === 'dark';
+  const colors = useThemeColors();
+  const borderOpacity = useBorderColorsWithOpacity();
+  const brandOpacity = useBrandColorsWithOpacity();
 
   useEffect(() => {
     (async () => {
@@ -130,7 +133,7 @@ export default function ProfileScreen() {
             {u?.photoURL ? (
               <Image 
                 source={{ uri: u.photoURL }} 
-                style={{ width: 120, height: 120, borderRadius: 60, borderWidth: 3, borderColor: '#96ff9a' }}
+                style={{ width: 120, height: 120, borderRadius: 60, borderWidth: 3, borderColor: colors.brand.primary }}
                 contentFit="cover"
                 transition={200}
                 cachePolicy="memory-disk"
@@ -153,9 +156,9 @@ export default function ProfileScreen() {
           </View>
 
           {/* Stats */}
-          <View style={{ flexDirection: 'row', justifyContent: 'space-around', marginBottom: 24, paddingTop: 24, borderTopWidth: 1, borderTopColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' }}>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-around', marginBottom: 24, paddingTop: 24, borderTopWidth: 1, borderTopColor: borderOpacity.default }}>
             <View style={{ alignItems: 'center' }}>
-              <ThemedText type="title-2" style={{ fontWeight: '700', color: '#96ff9a' }}>
+              <ThemedText type="title-2" style={{ fontWeight: '700', color: colors.brand.primary }}>
                 {(u?.ratingAvg ?? 5).toFixed(1)}
               </ThemedText>
               <ThemedText type="caption" className="text-light-text-tertiary dark:text-dark-text-tertiary">
@@ -163,7 +166,7 @@ export default function ProfileScreen() {
               </ThemedText>
             </View>
             <View style={{ alignItems: 'center' }}>
-              <ThemedText type="title-2" style={{ fontWeight: '700', color: '#96ff9a' }}>
+              <ThemedText type="title-2" style={{ fontWeight: '700', color: colors.brand.primary }}>
                 {u?.ratingCount ?? 0}
               </ThemedText>
               <ThemedText type="caption" className="text-light-text-tertiary dark:text-dark-text-tertiary">
@@ -171,7 +174,7 @@ export default function ProfileScreen() {
               </ThemedText>
             </View>
             <View style={{ alignItems: 'center' }}>
-              <ThemedText type="title-2" style={{ fontWeight: '700', color: '#96ff9a' }}>
+              <ThemedText type="title-2" style={{ fontWeight: '700', color: colors.brand.primary }}>
                 {u?.transactionsTotal ?? 0}
               </ThemedText>
               <ThemedText type="caption" className="text-light-text-tertiary dark:text-dark-text-tertiary">
@@ -220,20 +223,20 @@ export default function ProfileScreen() {
                 padding: 16,
                 borderRadius: 16,
                 backgroundColor: themeMode === 'light' 
-                  ? (isDark ? 'rgba(150, 255, 154, 0.2)' : 'rgba(150, 255, 154, 0.15)')
+                  ? (colors.isDark ? brandOpacity.primary.medium : brandOpacity.primary.light)
                   : 'transparent',
                 borderWidth: themeMode === 'light' ? 2 : 1,
-                borderColor: themeMode === 'light' ? '#96ff9a' : (isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'),
+                borderColor: themeMode === 'light' ? colors.brand.primary : borderOpacity.default,
               }}
             >
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-                <Ionicons name="sunny" size={24} color={themeMode === 'light' ? '#96ff9a' : (isDark ? '#9ca3af' : '#6b7280')} />
+                <Ionicons name="sunny" size={24} color={themeMode === 'light' ? colors.brand.primary : colors.text.tertiary} />
                 <ThemedText type="body" style={{ fontWeight: themeMode === 'light' ? '600' : '400' }}>
                   Claro
                 </ThemedText>
               </View>
               {themeMode === 'light' && (
-                <Ionicons name="checkmark-circle" size={24} color="#96ff9a" />
+                <Ionicons name="checkmark-circle" size={24} color={colors.brand.primary} />
               )}
             </TouchableOpacity>
 
@@ -246,20 +249,20 @@ export default function ProfileScreen() {
                 padding: 16,
                 borderRadius: 16,
                 backgroundColor: themeMode === 'dark' 
-                  ? (isDark ? 'rgba(150, 255, 154, 0.2)' : 'rgba(150, 255, 154, 0.15)')
+                  ? (colors.isDark ? brandOpacity.primary.medium : brandOpacity.primary.light)
                   : 'transparent',
                 borderWidth: themeMode === 'dark' ? 2 : 1,
-                borderColor: themeMode === 'dark' ? '#96ff9a' : (isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'),
+                borderColor: themeMode === 'dark' ? colors.brand.primary : borderOpacity.default,
               }}
             >
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-                <Ionicons name="moon" size={24} color={themeMode === 'dark' ? '#96ff9a' : (isDark ? '#9ca3af' : '#6b7280')} />
+                <Ionicons name="moon" size={24} color={themeMode === 'dark' ? colors.brand.primary : colors.text.tertiary} />
                 <ThemedText type="body" style={{ fontWeight: themeMode === 'dark' ? '600' : '400' }}>
                   Escuro
                 </ThemedText>
               </View>
               {themeMode === 'dark' && (
-                <Ionicons name="checkmark-circle" size={24} color="#96ff9a" />
+                <Ionicons name="checkmark-circle" size={24} color={colors.brand.primary} />
               )}
             </TouchableOpacity>
 
@@ -272,20 +275,20 @@ export default function ProfileScreen() {
                 padding: 16,
                 borderRadius: 16,
                 backgroundColor: themeMode === 'system' 
-                  ? (isDark ? 'rgba(150, 255, 154, 0.2)' : 'rgba(150, 255, 154, 0.15)')
+                  ? (colors.isDark ? brandOpacity.primary.medium : brandOpacity.primary.light)
                   : 'transparent',
                 borderWidth: themeMode === 'system' ? 2 : 1,
-                borderColor: themeMode === 'system' ? '#96ff9a' : (isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'),
+                borderColor: themeMode === 'system' ? colors.brand.primary : borderOpacity.default,
               }}
             >
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-                <Ionicons name="phone-portrait" size={24} color={themeMode === 'system' ? '#96ff9a' : (isDark ? '#9ca3af' : '#6b7280')} />
+                <Ionicons name="phone-portrait" size={24} color={themeMode === 'system' ? colors.brand.primary : colors.text.tertiary} />
                 <ThemedText type="body" style={{ fontWeight: themeMode === 'system' ? '600' : '400' }}>
                   Automático
                 </ThemedText>
               </View>
               {themeMode === 'system' && (
-                <Ionicons name="checkmark-circle" size={24} color="#96ff9a" />
+                <Ionicons name="checkmark-circle" size={24} color={colors.brand.primary} />
               )}
             </TouchableOpacity>
           </View>
@@ -319,15 +322,15 @@ export default function ProfileScreen() {
               justifyContent: 'center',
               minHeight: 48,
               marginTop: 8,
-              backgroundColor: isDark ? 'rgba(239, 68, 68, 0.2)' : 'rgba(239, 68, 68, 0.15)',
+              backgroundColor: colors.isDark ? 'rgba(239, 68, 68, 0.2)' : 'rgba(239, 68, 68, 0.15)',
               borderWidth: 1,
-              borderColor: '#ef4444',
+              borderColor: colors.semantic.error,
               flexDirection: 'row',
               gap: 8,
             }}
           >
-            <Ionicons name="log-out-outline" size={20} color="#ef4444" />
-            <ThemedText style={{ color: '#ef4444', fontWeight: '600' }}>
+            <Ionicons name="log-out-outline" size={20} color={colors.semantic.error} />
+            <ThemedText style={{ color: colors.semantic.error, fontWeight: '600' }}>
               Sair
             </ThemedText>
           </TouchableOpacity>

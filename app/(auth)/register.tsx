@@ -9,10 +9,8 @@ import React, { useMemo, useState } from 'react';
 import { Alert, KeyboardAvoidingView, Platform, TextInput, TouchableOpacity, View } from 'react-native';
 import { LiquidGlassView } from '@/components/liquid-glass';
 import { Button } from '@/components/Button';
-import { useColorScheme } from '@/hooks/use-color-scheme';
-import { Colors } from '@/constants/theme';
-import { HapticFeedback } from '@/utils/haptics';
-import { logger } from '@/utils/logger';
+import { useThemeColors } from '@/utils/theme';
+import { HapticFeedback, logger } from '@/utils';
 
 const STRICT_CPF = true; // para testar rápido, mude para false
 
@@ -45,17 +43,15 @@ export default function RegisterScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === 'dark';
-  const palette = Colors[colorScheme];
+  const colors = useThemeColors();
 
   const inputStyle = useMemo(() => ({
     borderWidth: 1, borderRadius: 16, padding: 16, fontSize: 17,
-    color: palette.text,
-    borderColor: palette.border,
-    backgroundColor: palette.inputBg,
-  }), [palette]);
-  const placeholderColor = palette.textTertiary;
+    color: colors.text.primary,
+    borderColor: colors.border.default,
+    backgroundColor: colors.input.bg,
+  }), [colors]);
+  const placeholderColor = colors.input.placeholder;
 
   const onRegister = async () => {
     if (busy) return;
@@ -124,7 +120,7 @@ export default function RegisterScreen() {
   };
 
   return (
-    <KeyboardAvoidingView style={{ flex: 1, backgroundColor: palette.background }}
+    <KeyboardAvoidingView style={{ flex: 1, backgroundColor: colors.bg.secondary }}
       behavior={Platform.select({ ios: 'padding', android: undefined })}
       keyboardVerticalOffset={Platform.select({ ios: 80, android: 0 })}
     >

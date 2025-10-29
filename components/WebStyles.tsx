@@ -4,7 +4,7 @@
  * For NativeWind v4 with Expo, CSS should be imported directly
  */
 import { Platform } from 'react-native';
-import { logger } from '@/utils/logger';
+import { logger } from '@/utils';
 
 // Direct CSS import for web (works with Expo web build)
 if (Platform.OS === 'web') {

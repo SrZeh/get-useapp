@@ -8,7 +8,7 @@ import {
     where
 } from "firebase/firestore";
 import { useEffect, useState } from "react";
-import { logger } from "@/utils/logger";
+import { logger } from "@/utils";
 
 /**
  * Retorna true se existe QUALQUER thread onde o usuário tem unreadCount > 0.

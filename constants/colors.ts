@@ -45,12 +45,12 @@ export const ExtendedColors = {
     focus: '#96ff9a',
   },
 
-  // Dark Mode Enhancements
+  // Dark Mode Enhancements - Modern refined dark palette
   darkMode: {
-    surface: '#0f1416',
-    elevated: '#151a1c',
-    overlay: 'rgba(21, 23, 24, 0.85)',
-    glow: 'rgba(150, 255, 154, 0.15)',
+    surface: '#0f1419', // Warm dark primary
+    elevated: '#1e293b', // Slate-800 for elevated surfaces
+    overlay: 'rgba(15, 20, 25, 0.85)', // Updated overlay to match new dark
+    glow: 'rgba(150, 255, 154, 0.15)', // Brand green glow
   },
 } as const;
 

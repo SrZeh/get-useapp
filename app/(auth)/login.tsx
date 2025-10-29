@@ -8,10 +8,8 @@ import { useMemo, useState } from 'react';
 import { ActivityIndicator, Alert, KeyboardAvoidingView, Platform, TextInput, TouchableOpacity, View } from 'react-native';
 import { LiquidGlassView } from '@/components/liquid-glass';
 import { Button } from '@/components/Button';
-import { useColorScheme } from '@/hooks/use-color-scheme';
-import { Colors } from '@/constants/theme';
-import { HapticFeedback } from '@/utils/haptics';
-import { logger } from '@/utils/logger';
+import { useThemeColors } from '@/utils/theme';
+import { HapticFeedback, logger } from '@/utils';
 import { extractErrorCode, getErrorMessage } from '@/constants/errors';
 
 export default function LoginScreen() {
@@ -20,9 +18,7 @@ export default function LoginScreen() {
   const [busyLogin, setBusyLogin] = useState(false);
   const [busyReset, setBusyReset] = useState(false);
   const [errMsg, setErrMsg] = useState<string | null>(null);
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === 'dark';
-  const palette = Colors[colorScheme];
+  const colors = useThemeColors();
 
   const notify = (title: string, msg: string) => {
     if (Platform.OS === 'web') {
@@ -38,13 +34,13 @@ export default function LoginScreen() {
       borderRadius: 16,
       padding: 16,
       fontSize: 17, // iOS body size
-      color: palette.text,
-      borderColor: palette.border,
-      backgroundColor: palette.inputBg,
+      color: colors.text.primary,
+      borderColor: colors.border.default,
+      backgroundColor: colors.input.bg,
     }),
-    [palette]
+    [colors]
   );
-  const placeholderColor = palette.textTertiary;
+  const placeholderColor = colors.input.placeholder;
 
   const SITE_URL = process.env.EXPO_PUBLIC_SITE_URL ?? 'https://upperreggae.web.app';
   const actionCodeSettings: ActionCodeSettings = {
@@ -120,7 +116,7 @@ export default function LoginScreen() {
 
   return (
     <KeyboardAvoidingView
-      style={{ flex: 1, backgroundColor: palette.background }}
+      style={{ flex: 1, backgroundColor: colors.bg.secondary }}
       behavior={Platform.select({ ios: 'padding', android: undefined })}
       keyboardVerticalOffset={Platform.select({ ios: 80, android: 0 })}
     >
@@ -178,17 +174,17 @@ export default function LoginScreen() {
           {!!errMsg && (
             <ThemedText 
               type="callout" 
-              style={{ color: palette.error, marginTop: 16, textAlign: 'center' }}
+              style={{ color: colors.semantic.error, marginTop: 16, textAlign: 'center' }}
             >
               {errMsg}
             </ThemedText>
           )}
 
-          <View style={{ marginTop: 24, paddingTop: 24, borderTopWidth: 1, borderTopColor: palette.border }}>
+          <View style={{ marginTop: 24, paddingTop: 24, borderTopWidth: 1, borderTopColor: colors.border.default }}>
             <Link href="/(auth)/register" asChild>
               <TouchableOpacity>
-                <ThemedText type="body" style={{ textAlign: 'center', color: palette.tint }}>
-                  Não tem conta? <ThemedText type="headline" style={{ color: palette.tint }}>Criar conta</ThemedText>
+                <ThemedText type="body" style={{ textAlign: 'center', color: colors.icon.selected }}>
+                  Não tem conta? <ThemedText type="headline" style={{ color: colors.icon.selected }}>Criar conta</ThemedText>
                 </ThemedText>
               </TouchableOpacity>
             </Link>

@@ -30,6 +30,3 @@ export const GradientTypes = {
 
 export type GradientType = keyof typeof GradientTypes;
 
-// Re-export LinearGradient for convenience
-export { LinearGradient };
-

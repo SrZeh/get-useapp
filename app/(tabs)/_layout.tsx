@@ -4,8 +4,9 @@ import { TabIcon } from "@/components/ui/TabIcon";
 import { ThemedText } from "@/components/themed-text";
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { useThemeColors } from "@/utils";
 import { Link, Tabs } from "expo-router";
-import React from "react";
+import React, { useMemo } from "react";
 import { Pressable } from "react-native";
 import { Image } from "expo-image";
 
@@ -42,13 +43,14 @@ function LogoIcon() {
 }
 
 function HeaderTitle() {
+  const colors = useThemeColors();
   return (
     <ThemedText
       type="headline"
       style={{
-        color: "#96ff9a",
+        color: colors.brand.primary,
         fontWeight: "600",
-        textShadowColor: "#000000",
+        textShadowColor: colors.isDark ? "#000000" : "rgba(0,0,0,0.1)",
         textShadowOffset: { width: 0, height: 2 },
         textShadowRadius: 4,
       }}
@@ -60,34 +62,37 @@ function HeaderTitle() {
 
 export default function TabLayout() {
   const scheme = useColorScheme() ?? "light";
-  const palette = Colors[scheme];
+  const colors = useThemeColors();
 
   const showTxDot = useTransactionsDot();
   const { user } = useAuth();
   const isLoggedIn = !!user;
 
+  // Memoize screen options to ensure they update when theme changes
+  const screenOptions = useMemo(() => ({
+    headerShown: true,
+    headerTitleAlign: "center" as const,
+    headerTitle: () => <HeaderTitle />,
+    headerLeft: () => <LogoIcon />,
+    headerRight: () => <AuthHeaderRight />,
+    headerStyle: { backgroundColor: colors.bg.primary },
+    headerTintColor: colors.text.primary,
+    headerTitleStyle: { color: colors.text.primary },
+    tabBarStyle: isLoggedIn
+      ? {
+          backgroundColor: colors.bg.primary,
+          borderTopColor: colors.border.default,
+          borderTopWidth: 1,
+        }
+      : { display: "none" as const },
+    tabBarActiveTintColor: colors.icon.selected,
+    tabBarInactiveTintColor: colors.icon.default,
+  }), [colors, isLoggedIn]);
+
   return (
     <Tabs
       initialRouteName="index"
-      screenOptions={{
-        headerShown: true,
-        headerTitleAlign: "center",
-        headerTitle: () => <HeaderTitle />,
-        headerLeft: () => <LogoIcon />,
-        headerRight: () => <AuthHeaderRight />,
-        headerStyle: { backgroundColor: palette.background },
-        headerTintColor: palette.text,
-        headerTitleStyle: { color: palette.text },
-        tabBarStyle: isLoggedIn
-          ? {
-              backgroundColor: palette.background,
-              borderTopColor: palette.border,
-              borderTopWidth: 1,
-            }
-          : { display: "none" },
-        tabBarActiveTintColor: palette.tabIconSelected,
-        tabBarInactiveTintColor: palette.tabIconDefault,
-      }}
+      screenOptions={screenOptions}
     >
       {/* ESQUERDA: Meus Itens */}
       <Tabs.Screen

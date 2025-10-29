@@ -1,11 +1,8 @@
 // app/item/new.tsx
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
-import { auth, db, storage } from "@/lib/firebase";
+import { auth } from "@/lib/firebase";
 import { Picker } from "@react-native-picker/picker";
-import { router } from "expo-router";
-import { addDoc, collection, serverTimestamp } from "firebase/firestore";
-import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
 import React, { useMemo, useState } from "react";
 import { useImagePicker } from "@/hooks/useImagePicker";
 import {
@@ -23,15 +20,17 @@ import { LiquidGlassView } from "@/components/liquid-glass";
 import { Button } from "@/components/Button";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { Colors } from "@/constants/theme";
-import { HapticFeedback } from "@/utils/haptics";
+import { useThemeColors, HapticFeedback, logger, validateItemInput, parseDailyRate, parseMinRentalDays } from "@/utils";
 import { Image as ExpoImage } from "expo-image";
-import { logger } from "@/utils/logger";
 import { ITEM_CATEGORIES } from "@/constants/categories";
+import { useItemService, useNavigationService } from "@/providers/ServicesProvider";
+import { uploadUserImageFromUri } from "@/services/images";
 
 export default function NewItemScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
   const palette = Colors[colorScheme];
+  const colors = useThemeColors();
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -45,7 +44,9 @@ export default function NewItemScreen() {
   const [city, setCity] = useState("");
   const [neighborhood, setNeighborhood] = useState("");
 
-  const [imageUri, setImageUri] = useState<string | null>(null);
+  const { imageUri, pickFromGallery, pickFromCamera } = useImagePicker();
+  const itemService = useItemService();
+  const navigation = useNavigationService();
   const [saving, setSaving] = useState(false);
 
   const textInputBase = useMemo(
@@ -54,52 +55,13 @@ export default function NewItemScreen() {
       borderRadius: 16,
       padding: 16,
       fontSize: 17,
-      color: palette.text,
-      borderColor: palette.border,
-      backgroundColor: palette.inputBg,
+      color: colors.text.primary,
+      borderColor: colors.border.default,
+      backgroundColor: colors.input.bg,
     }),
-    [palette]
+    [colors]
   );
-  const placeholderColor = palette.textTertiary;
-
-  const requestGalleryPermission = async () => {
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== "granted") {
-      Alert.alert("Permissão necessária", "Conceda acesso às fotos para selecionar uma imagem.");
-      return false;
-    }
-    return true;
-  };
-
-  const pickImage = async () => {
-    const ok = await requestGalleryPermission();
-    if (!ok) return;
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      quality: 0.85,
-      allowsMultipleSelection: false,
-      allowsEditing: true,
-    });
-    if (!result.canceled) {
-      setImageUri(result.assets[0].uri);
-    }
-  };
-
-  const pickCamera = async () => {
-    const { status } = await ImagePicker.requestCameraPermissionsAsync();
-    if (status !== "granted") {
-      Alert.alert("Permissão necessária", "Conceda acesso à câmera.");
-      return;
-    }
-    const result = await ImagePicker.launchCameraAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      quality: 0.85,
-      allowsEditing: true,
-    });
-    if (!result.canceled) {
-      setImageUri(result.assets[0].uri);
-    }
-  };
+  const placeholderColor = colors.input.placeholder;
 
   const handleSave = async () => {
     const uid = auth.currentUser?.uid;
@@ -107,84 +69,71 @@ export default function NewItemScreen() {
       Alert.alert("Sessão expirada", "Faça login novamente para cadastrar itens.");
       return;
     }
-    if (!title.trim() || !description.trim()) {
-      Alert.alert("Campos obrigatórios", "Preencha título e descrição.");
-      return;
-    }
-    if (!category) {
-      Alert.alert("Categoria", "Selecione uma categoria.");
-      return;
-    }
-    const days = Number(minRentalDays);
-    if (!Number.isFinite(days) || days <= 0) {
-      Alert.alert("Valor inválido", "Dias mínimos deve ser maior que 0.");
+
+    // Validate input using validation utilities
+    const itemValidation = validateItemInput({
+      title,
+      description,
+      category,
+      minRentalDays,
+      dailyRate,
+      isFree,
+    });
+
+    if (!itemValidation.valid) {
+      Alert.alert("Campos inválidos", itemValidation.error ?? "Verifique os campos preenchidos.");
       return;
     }
 
+    // Parse numeric values
+    let days: number;
     let rate = 0;
+
+    try {
+      days = parseMinRentalDays(minRentalDays);
+    } catch (error) {
+      Alert.alert("Valor inválido", error instanceof Error ? error.message : "Dias mínimos inválido.");
+      return;
+    }
+
     if (!isFree) {
-      const parsed = dailyRate.trim() ? Number(dailyRate.replace(",", ".")) : NaN;
-      if (!Number.isFinite(parsed) || parsed <= 0) {
-        Alert.alert("Valor inválido", "Informe a diária (maior que 0) ou marque Grátis.");
+      try {
+        rate = parseDailyRate(dailyRate);
+      } catch (error) {
+        Alert.alert("Valor inválido", error instanceof Error ? error.message : "Diária inválida.");
         return;
       }
-      rate = parsed;
     }
 
     setSaving(true);
     try {
-      // 1) Upload da imagem (opcional)
+      // 1) Upload da imagem (opcional) usando ImageUploadService
       let photoUrl: string | null = null;
       if (imageUri) {
-        const resp = await fetch(imageUri);
-        const blob = await resp.blob();
-
-        const guessed = blob.type && blob.type.startsWith("image/")
-          ? blob.type
-          : "image/jpeg";
-        const ext = guessed.split("/")[1] || "jpg";
-        const filename = `item-${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-        const storagePath = `items/${uid}/${filename}`;
-
-        const storageRef = ref(storage, storagePath);
-        await uploadBytes(storageRef, blob, { contentType: guessed });
-        photoUrl = await getDownloadURL(storageRef);
+        const uploadResult = await uploadUserImageFromUri(imageUri, {
+          forceFormat: 'jpeg',
+          maxBytes: 2 * 1024 * 1024, // 2MB max
+        });
+        photoUrl = uploadResult.url;
       }
 
-      // 2) Documento no Firestore (já publicado)
-      const normalize = (s?: string) => (s ?? "").trim();
-      const toLower = (s?: string) => normalize(s).toLowerCase();
-
-      const docRef = await addDoc(collection(db, "items"), {
-        ownerUid: uid,
-        title: normalize(title),
-        description: normalize(description),
-        category: normalize(category),
-        condition: normalize(condition),
+      // 2) Criar item usando service interface
+      const result = await itemService.createItem({
+        title,
+        description,
+        category,
+        condition,
         minRentalDays: days,
-        dailyRate: rate,
+        dailyRate: isFree ? 0 : rate,
         isFree,
         photos: photoUrl ? [photoUrl] : [],
-        available: true,
-
-        // vitrine / localização
+        city,
+        neighborhood,
         published: true,
-        city: normalize(city),
-        neighborhood: normalize(neighborhood),
-        cityLower: toLower(city),
-        neighborhoodLower: toLower(neighborhood),
-
-        // agregados de avaliação (inicial)
-        ratingAvg: 0,
-        ratingCount: 0,
-        lastReviewSnippet: "",
-
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
       });
 
-      Alert.alert("Sucesso", `Item cadastrado! (id: ${docRef.id})`);
-      router.replace("/(tabs)"); // ajuste a rota final que você usa
+      Alert.alert("Sucesso", `Item cadastrado! (id: ${result.data.id})`);
+      navigation.navigateToHome();
     } catch (e: unknown) {
       const error = e as { code?: string; message?: string };
       logger.error("Error creating new item", e, { code: error?.code, message: error?.message });
@@ -312,10 +261,10 @@ export default function NewItemScreen() {
 
           {/* Imagem: câmera e galeria */}
           <View style={{ marginTop: 16, flexDirection: "row", gap: 16 }}>
-            <TouchableOpacity onPress={pickCamera} disabled={saving}>
+            <TouchableOpacity onPress={pickFromCamera} disabled={saving}>
               <ThemedText type="defaultSemiBold">Usar câmera</ThemedText>
             </TouchableOpacity>
-            <TouchableOpacity onPress={pickImage} disabled={saving}>
+            <TouchableOpacity onPress={pickFromGallery} disabled={saving}>
               <ThemedText type="defaultSemiBold">
                 {imageUri ? "Alterar foto" : "Selecionar foto"}
               </ThemedText>
@@ -323,9 +272,10 @@ export default function NewItemScreen() {
           </View>
 
           {imageUri && (
-            <Image
+            <ExpoImage
               source={{ uri: imageUri }}
               style={{ width: "40%", height: 140, marginTop: 12, borderRadius: 10 }}
+              contentFit="cover"
             />
           )}
 

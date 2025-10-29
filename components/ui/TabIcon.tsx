@@ -2,6 +2,7 @@
 import React from "react";
 import { ImageSourcePropType, View, ViewStyle, StyleProp } from "react-native";
 import { Image } from "expo-image";
+import { useThemeColors } from "@/utils/theme";
 
 type IconComponent = React.ComponentType<{
   width?: number | string;
@@ -22,6 +23,7 @@ type Props = {
 };
 
 export function TabIcon({ Icon, color, size = 22, showDot, style }: Props) {
+  const colors = useThemeColors();
   const isComponent = typeof Icon === "function";
   const isString = typeof Icon === "string";
   const isNumber = typeof Icon === "number"; // require('...') em RN vira number
@@ -72,7 +74,7 @@ export function TabIcon({ Icon, color, size = 22, showDot, style }: Props) {
             width: 8,
             height: 8,
             borderRadius: 4,
-            backgroundColor: "#ff3b30",
+            backgroundColor: colors.semantic.error,
           }}
         />
       ) : null}

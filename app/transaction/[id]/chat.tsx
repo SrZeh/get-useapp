@@ -13,7 +13,7 @@ import {
   serverTimestamp,
 } from "firebase/firestore";
 import React, { useEffect, useRef, useState } from "react";
-import { logger } from "@/utils/logger";
+import { logger, useThemeColors } from "@/utils";
 import {
   KeyboardAvoidingView,
   Platform,
@@ -32,6 +32,7 @@ export default function ReservationChatScreen() {
   const rawId = params.id as string | string[] | undefined;
   const id = Array.isArray(rawId) ? rawId[0] : rawId; // garante string
   const uid = auth.currentUser?.uid ?? null;
+  const colors = useThemeColors();
 
   const [msgs, setMsgs] = useState<Msg[]>([]);
   const [text, setText] = useState("");
@@ -136,10 +137,10 @@ export default function ReservationChatScreen() {
                     borderRadius: 12,
                     marginBottom: 8,
                     borderWidth: 2,
-                    backgroundColor: mine ? "#00ce08" : "#96ff9a",
+                    backgroundColor: mine ? colors.brand.dark : colors.brand.primary,
                   }}
                 >
-                  <ThemedText style={{ color: "#111827" }}>
+                  <ThemedText style={{ color: colors.isDark ? colors.text.primary : "#111827" }}>
                     {m.text}
                   </ThemedText>
                 </View>
@@ -154,12 +155,12 @@ export default function ReservationChatScreen() {
             gap: 8,
             padding: 12,
             borderTopWidth: 1,
-            borderColor: "#e5e7eb",
+            borderTopColor: colors.border.default,
           }}
         >
           <TextInput
             placeholder="Escreva uma mensagem…"
-            placeholderTextColor="#9aa0a6"
+            placeholderTextColor={colors.input.placeholder}
             value={text}
             onChangeText={setText}
             style={{
@@ -167,9 +168,9 @@ export default function ReservationChatScreen() {
               borderWidth: 1,
               borderRadius: 10,
               padding: 12,
-              backgroundColor: "#f9fafb",
-              borderColor: "#d1d5db",
-              color: "#111827",
+              backgroundColor: colors.input.bg,
+              borderColor: colors.border.default,
+              color: colors.text.primary,
             }}
           />
           <TouchableOpacity
@@ -178,7 +179,7 @@ export default function ReservationChatScreen() {
               paddingVertical: 10,
               paddingHorizontal: 14,
               borderRadius: 10,
-              backgroundColor: "#08af0e",
+              backgroundColor: colors.brand.dark,
             }}
           >
             <ThemedText type="defaultSemiBold" style={{ color: "#fff" }}>

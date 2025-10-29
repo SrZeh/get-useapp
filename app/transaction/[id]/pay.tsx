@@ -6,6 +6,7 @@ import { useLocalSearchParams } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
 import React, { useMemo, useState } from "react";
 import { ActivityIndicator, Alert, ScrollView, TouchableOpacity, View } from "react-native";
+import { useThemeColors } from "@/utils";
 import {
   createCheckoutSession,
   confirmCheckoutSession,
@@ -16,6 +17,7 @@ export default function PayScreen() {
   const raw = params.id as string | string[] | undefined;
   const id = Array.isArray(raw) ? raw[0] : raw;
   const uid = auth.currentUser?.uid ?? null;
+  const colors = useThemeColors();
 
   const [busyCheckout, setBusyCheckout] = useState(false);
   const [busyConfirm, setBusyConfirm] = useState(false);
@@ -90,6 +92,7 @@ export default function PayScreen() {
               paddingHorizontal: 18,
               borderRadius: 10,
               borderWidth: 1,
+              borderColor: colors.border.default,
             }}
           >
             {busyCheckout
@@ -106,6 +109,7 @@ export default function PayScreen() {
               paddingHorizontal: 18,
               borderRadius: 10,
               borderWidth: 1,
+              borderColor: colors.border.default,
             }}
           >
             {busyConfirm

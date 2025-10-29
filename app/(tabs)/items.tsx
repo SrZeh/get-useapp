@@ -2,7 +2,6 @@
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { auth, db } from "@/lib/firebase";
-import { router } from "expo-router";
 import { onAuthStateChanged } from "firebase/auth";
 import {
   collection,
@@ -31,13 +30,11 @@ import { Button } from "@/components/Button";
 import { ShimmerLoader } from "@/components/ShimmerLoader";
 import { AnimatedCard } from "@/components/AnimatedCard";
 import { LinearGradient } from "expo-linear-gradient";
-import { GradientTypes } from "@/utils/gradients";
-import { HapticFeedback } from "@/utils/haptics";
+import { GradientTypes, HapticFeedback, useThemeColors, calcAvg, renderStars, logger } from "@/utils";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { Image as ExpoImage } from "expo-image";
 import type { Item } from "@/types";
-import { calcAvg, renderStars } from "@/utils/ratings";
-import { logger } from "@/utils/logger";
+import { useNavigationService } from "@/providers/ServicesProvider";
 
 export default function ItemsScreen() {
   const [items, setItems] = useState<Item[]>([]);
@@ -45,7 +42,9 @@ export default function ItemsScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const scheme = useColorScheme();
+  const colors = useThemeColors();
   const isDark = scheme === "dark";
+  const navigation = useNavigationService();
 
 
   // guardo unsub para limpar quando trocar de usuário
@@ -225,8 +224,8 @@ export default function ItemsScreen() {
     );
   };
 
-  const goNew = () => router.push("/item/new");
-  const goEdit = (id: string) => router.push(`/item/edit/${id}`);
+  const goNew = () => navigation.navigateToNewItem();
+  const goEdit = (id: string) => navigation.navigateToEditItem(id);
 
   const renderItem = useCallback(({ item }: { item: Item }) => (
     <AnimatedCard>
@@ -344,7 +343,7 @@ export default function ItemsScreen() {
                 justifyContent: 'center',
                 alignItems: 'center',
                 borderRadius: 12,
-                backgroundColor: "#ef4444",
+                backgroundColor: colors.semantic.error,
                 opacity: updatingId === item.id ? 0.6 : 1,
               }}
             >
@@ -392,7 +391,7 @@ export default function ItemsScreen() {
             <RefreshControl 
               refreshing={refreshing} 
               onRefresh={onRefresh}
-              tintColor="#96ff9a"
+              tintColor={colors.brand.primary}
             />
           }
           removeClippedSubviews={true}

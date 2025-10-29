@@ -8,14 +8,22 @@ import { AnimatedCard } from "@/components/AnimatedCard";
 import { LiquidGlassView } from "@/components/liquid-glass";
 import { Button } from "@/components/Button";
 import { LinearGradient } from "expo-linear-gradient";
-import { HapticFeedback } from "@/utils/haptics";
+import { HapticFeedback, useThemeColors } from "@/utils";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import type { Reservation } from "@/types";
-import { router } from "expo-router";
 import { View } from "react-native";
+import type { BaseCardProps } from "@/components/types";
+import { useNavigationService } from "@/providers/ServicesProvider";
 
-type ReservationCardProps = {
+type ReservationCardProps = BaseCardProps & {
+  /**
+   * Reservation data to display
+   */
   reservation: Reservation;
+
+  /**
+   * Custom actions to render in the card
+   */
   actions?: React.ReactNode;
 };
 
@@ -31,7 +39,9 @@ const STATUS_COLORS: Record<string, [string, string]> = {
 };
 
 export const ReservationCard = React.memo(function ReservationCard({ reservation: r, actions }: ReservationCardProps) {
-  const isDark = useColorScheme() === "dark";
+  const colors = useThemeColors();
+  const isDark = colors.isDark;
+  const navigation = useNavigationService();
   
   const daysLabel = r.days 
     ? `${r.days} ${r.days === 1 ? 'dia' : 'dias'}`
@@ -74,13 +84,13 @@ export const ReservationCard = React.memo(function ReservationCard({ reservation
           </View>
 
           {actions && (
-            <View style={{ marginTop: 16, gap: 10, paddingTop: 16, borderTopWidth: 1, borderTopColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' }}>
+            <View style={{ marginTop: 16, gap: 10, paddingTop: 16, borderTopWidth: 1, borderTopColor: colors.border.default }}>
               {actions}
               <Button
                 variant="ghost"
                 onPress={() => {
                   HapticFeedback.light();
-                  router.push({ pathname: "/transaction/[id]/chat", params: { id: r.id } });
+                  navigation.navigateToTransactionChat(r.id);
                 }}
                 style={{ alignSelf: 'flex-start' }}
               >

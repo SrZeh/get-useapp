@@ -8,76 +8,80 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        // Brand Colors
+        // Brand Colors - Strategic use only (CTAs, success, trust)
         brand: {
-          primary: '#96ff9a',
-          secondary: '#80e685',
-          tertiary: '#6acc6f',
-          dark: '#08af0e',
-          light: '#b3ffb5',
-          glow: '#ccffe0',
-          success: '#00ce08',
+          primary: '#96ff9a', // Main brand green
+          secondary: '#80e685', // Lighter variant for hover states
+          tertiary: '#6acc6f', // Medium for pressed states
+          dark: '#08af0e', // Darker green for contrast on light backgrounds
+          light: '#b3ffb5', // Light variant for subtle accents
+          glow: '#ccffe0', // Ultra-light for glow effects
+          success: '#08af0e', // Success uses brand green
         },
-        // Light Mode Backgrounds
+        // Light Mode Backgrounds - Clean, neutral, professional
         'light-bg': {
-          primary: '#96ff9a',
-          secondary: '#ffffff',
-          tertiary: '#f3f4f6',
+          primary: '#ffffff', // Pure white (not green!)
+          secondary: '#f9fafb', // Off-white (gray-50)
+          tertiary: '#f3f4f6', // Light gray (gray-100)
         },
-        // Dark Mode Backgrounds
+        // Dark Mode Backgrounds - Modern dark with subtle warmth
         'dark-bg': {
-          primary: '#151718',
-          secondary: '#111214',
-          tertiary: '#0b1220',
+          primary: '#0f1419', // Warm dark (not pure black)
+          secondary: '#1a1f2e', // Slightly lighter with blue tint
+          tertiary: '#0d1117', // Almost black for depth
         },
-        // Light Mode Text
+        // Light Mode Text - High contrast for readability
         'light-text': {
-          primary: '#11181C',
-          secondary: '#111827',
-          tertiary: '#374151',
-          quaternary: '#6b7280',
+          primary: '#0a0a0a', // Near black (maximum contrast)
+          secondary: '#1f2937', // Dark gray (gray-800)
+          tertiary: '#4b5563', // Medium gray (gray-600)
+          quaternary: '#6b7280', // Light gray (gray-500)
         },
-        // Dark Mode Text
+        // Dark Mode Text - High contrast, green only for accents
         'dark-text': {
-          primary: '#96ff9a',
-          secondary: '#e5e7eb',
-          tertiary: '#cbd5e1',
-          quaternary: '#ffffff',
+          primary: '#f9fafb', // Off-white (not green - better readability)
+          secondary: '#e5e7eb', // Light gray (gray-200)
+          tertiary: '#cbd5e1', // Lighter gray (gray-300)
+          quaternary: '#94a3b8', // Medium gray (gray-400)
         },
-        // Borders
+        // Borders - Refined, subtle
         border: {
-          light: '#e5e7eb',
-          'light-alt': '#d1d5db',
-          dark: '#374151',
-          'dark-alt': '#2a2a2a',
+          light: '#e5e7eb', // Gray-200 for light mode
+          'light-alt': '#d1d5db', // Gray-300 alternate
+          dark: '#334155', // Slate-700 for dark mode (more refined)
+          'dark-alt': '#1e293b', // Slate-800 alternate
         },
         // Input Backgrounds
         input: {
-          'light-bg': '#ffffff',
-          'dark-bg': '#111827',
+          'light-bg': '#ffffff', // Clean white
+          'dark-bg': '#1a1f2e', // Slightly lighter than dark-bg-secondary
         },
-        // Card Backgrounds
+        // Card Backgrounds - Elevated surfaces
         card: {
-          'light-bg': '#f9fafb',
-          'dark-bg': '#0b1220',
+          'light-bg': '#ffffff', // White cards on white background with shadow
+          'dark-bg': '#1e293b', // Slate-800 for elevation in dark mode
         },
-        // Semantic Colors
+        // Semantic Colors - Clear and distinct
         success: {
-          primary: '#08af0e',
-          light: '#40ef47',
-          dark: '#00ce08',
-          soft: '#16a34a',
+          primary: '#08af0e', // Brand green for trust/success
+          light: '#40ef47', // Lighter variant
+          dark: '#00ce08', // Darker variant
+          soft: '#16a34a', // Softer green (green-600)
         },
         error: {
-          primary: '#ef4444',
-          dark: '#dc2626',
+          primary: '#ef4444', // Clear red (red-500)
+          dark: '#dc2626', // Darker red (red-600)
+          light: '#f87171', // Lighter for dark mode (red-400)
         },
         warning: {
-          primary: '#f59e0b',
+          primary: '#f59e0b', // Amber (amber-500)
+          dark: '#d97706', // Darker (amber-600)
+          light: '#fbbf24', // Lighter for dark mode (amber-400)
         },
         info: {
-          primary: '#2563eb',
-          dark: '#1d4ed8',
+          primary: '#3b82f6', // Modern blue (blue-500)
+          dark: '#2563eb', // Darker (blue-600)
+          light: '#60a5fa', // Lighter for dark mode (blue-400)
         },
         // Neutral/Gray Scale
         neutral: {
@@ -227,7 +231,8 @@ module.exports = {
         'gradient-premium': 'linear-gradient(90deg, #96ff9a 0%, #7fe884 50%, #66cc6b 100%)',
         'gradient-success': 'linear-gradient(90deg, #08af0e 0%, #00ce08 100%)',
         'gradient-overlay': 'linear-gradient(180deg, rgba(150, 255, 154, 0.1) 0%, transparent 100%)',
-        'gradient-dark': 'linear-gradient(135deg, #151718 0%, #0f1416 50%, #0a0d0f 100%)',
+        'gradient-dark': 'linear-gradient(135deg, #0f1419 0%, #1a1f2e 50%, #0d1117 100%)',
+        'gradient-light': 'linear-gradient(180deg, #ffffff 0%, #f9fafb 100%)',
       },
     },
   },
