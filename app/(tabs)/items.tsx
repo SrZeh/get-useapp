@@ -52,6 +52,7 @@ export default function ItemsScreen() {
           justifyContent: 'space-between',
           alignItems: 'center',
           padding: Spacing.sm,
+          marginTop: Spacing['2xl'],
         }}
       >
         <ThemedText type="large-title">Meus Itens</ThemedText>

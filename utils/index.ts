@@ -79,6 +79,12 @@ export { getDepositMessage } from "./payments";
 export {
   calculateReservationTotal,
   calculateReservationSummary,
+  isExpired,
+  getStatusColors,
+  formatISODate,
+  formatTimestamp,
+  formatPaymentMethod,
+  translateStatus,
 } from "./reservations";
 
 // Error handling utilities

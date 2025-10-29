@@ -156,6 +156,11 @@ export function OwnerInbox() {
                       onPress={() => removeReq(r.id)}
                       disabled={busyId === r.id}
                       loading={busyId === r.id}
+                      style={{
+                        backgroundColor: 'rgba(239, 68, 68, 0.8)',
+                        borderWidth: 0,
+                      }}
+                      textStyle={{ color: '#ffffff' }}
                     >
                       Excluir reserva
                     </Button>

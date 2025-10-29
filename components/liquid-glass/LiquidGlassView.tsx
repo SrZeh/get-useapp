@@ -1,7 +1,5 @@
 import React from 'react';
-import { Platform, View, ViewStyle, StyleSheet } from 'react-native';
-import { useColorScheme } from '@/hooks/use-color-scheme';
-import { useThemeColors } from '@/utils';
+import { Platform, View, ViewStyle, StyleSheet, useColorScheme as useRNColorScheme } from 'react-native';
 import { BlurView } from 'expo-blur';
 import type { ViewProps } from 'react-native';
 
@@ -54,9 +52,11 @@ export function LiquidGlassView({
   opacity,
   ...rest
 }: LiquidGlassProps) {
-  const colorScheme = useColorScheme();
-  const colors = useThemeColors();
-  const isDark = colors.isDark;
+  // Use React Native's useColorScheme directly as fallback
+  // This avoids the need for ThemeProvider context
+  const rnColorScheme = useRNColorScheme();
+  const colorScheme = (rnColorScheme ?? 'light') as 'light' | 'dark';
+  const isDark = colorScheme === 'dark';
 
   // iOS: Use native liquid glass with iOS 26 materials (if available)
   if (Platform.OS === 'ios' && ExpoLiquidGlassView && LiquidGlassType && CornerStyle) {

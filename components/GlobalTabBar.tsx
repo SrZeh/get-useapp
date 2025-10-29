@@ -2,10 +2,12 @@
 import { TabIcon } from "@/components/ui/TabIcon";
 import { useThemeColors } from "@/utils";
 import { router, usePathname, useSegments } from "expo-router";
-import React from "react";
-import { TouchableOpacity, Text, Platform, View, ViewStyle } from "react-native";
+import React, { useRef, useEffect } from "react";
+import { TouchableOpacity, Text, Platform, View, ViewStyle, Animated, LayoutChangeEvent } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LiquidGlassView } from "@/components/liquid-glass";
+import { Spacing, BorderRadius } from "@/constants/spacing";
+import { getSpringConfig } from "@/constants/animations";
 
 import ArrowsSvg from "@/assets/icons/arrows.svg";
 import HouseSvg from "@/assets/icons/house.svg";
@@ -52,12 +54,18 @@ const tabs: TabConfig[] = [
 ];
 
 export function GlobalTabBar({ style, opacity }: GlobalTabBarProps = {}) {
+  // ALL HOOKS MUST BE CALLED BEFORE ANY CONDITIONAL RETURNS
   const colors = useThemeColors();
   const pathname = usePathname();
   const segments = useSegments();
   const insets = useSafeAreaInsets();
   const showTxDot = useTransactionsDot();
   const { user } = useAuth();
+  
+  // Animation for sliding pill - track position and width separately
+  const slidePosition = useRef(new Animated.Value(0)).current;
+  const slideWidth = useRef(new Animated.Value(0)).current;
+  const tabLayouts = useRef<Record<string, { width: number; x: number }>>({});
 
   // Use a safe default header height
   // Common header heights: ~44 on iOS, ~56 on Android, ~64 on web
@@ -70,11 +78,6 @@ export function GlobalTabBar({ style, opacity }: GlobalTabBarProps = {}) {
   }) ?? 56;
 
   const isLoggedIn = !!user;
-
-  // Don't show on auth pages
-  if (!isLoggedIn || segments[0] === "(auth)") {
-    return null;
-  }
 
   const getActiveTab = () => {
     const normalizedPath = pathname || "";
@@ -109,6 +112,48 @@ export function GlobalTabBar({ style, opacity }: GlobalTabBarProps = {}) {
   };
 
   const activeTab = getActiveTab();
+  
+  // Theme-aware brand color: use dark green in light mode for contrast, light green in dark mode
+  const brandColor = colors.isDark ? colors.brand.primary : colors.brand.dark;
+
+  // Update animation when active tab changes
+  // This effect must run even if we're going to return null, to satisfy Rules of Hooks
+  useEffect(() => {
+    // Only animate if we're actually rendering the tab bar
+    if (isLoggedIn && segments[0] !== "(auth)") {
+      const activeTabLayout = tabLayouts.current[activeTab || 'index'];
+      if (activeTabLayout) {
+        Animated.parallel([
+          Animated.spring(slidePosition, {
+            toValue: activeTabLayout.x,
+            useNativeDriver: false,
+            ...getSpringConfig(20, 300),
+          }),
+          Animated.spring(slideWidth, {
+            toValue: activeTabLayout.width,
+            useNativeDriver: false,
+            ...getSpringConfig(20, 300),
+          }),
+        ]).start();
+      }
+    }
+  }, [activeTab, slidePosition, slideWidth, isLoggedIn, segments]);
+
+  // Don't show on auth pages
+  if (!isLoggedIn || segments[0] === "(auth)") {
+    return null;
+  }
+
+  const handleTabLayout = (tabName: string) => (event: LayoutChangeEvent) => {
+    const { width, x } = event.nativeEvent.layout;
+    tabLayouts.current[tabName] = { width, x };
+    
+    // Initialize position if this is the active tab
+    if (activeTab === tabName) {
+      slidePosition.setValue(x);
+      slideWidth.setValue(width);
+    }
+  };
 
   const handleTabPress = (tab: TabConfig) => {
     if (Platform.OS === "ios") {
@@ -118,10 +163,7 @@ export function GlobalTabBar({ style, opacity }: GlobalTabBarProps = {}) {
   };
 
   return (
-    <LiquidGlassView
-      intensity="subtle"
-      tint="system"
-      opacity={opacity}
+    <View
       style={{
         position: 'absolute',
         bottom: 0,
@@ -129,70 +171,100 @@ export function GlobalTabBar({ style, opacity }: GlobalTabBarProps = {}) {
         right: 0,
         width: '100%',
         marginTop: headerHeight,
-        borderTopWidth: 1,
-        borderTopColor: colors.border.default,
+        paddingHorizontal: Spacing.sm,
+        paddingTop: Spacing.xs,
+        paddingBottom: Math.max(insets.bottom, Spacing.xs),
+        ...Platform.select({
+          ios: {
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: -2 },
+            shadowOpacity: 0.1,
+            shadowRadius: 4,
+          },
+          android: {
+            elevation: 8,
+          },
+        }),
         ...style,
       }}
     >
-      <View
+      <LiquidGlassView
+        intensity="standard"
+        tint="system"
+        opacity={opacity}
+        cornerRadius={BorderRadius.xl}
         style={{
-          paddingBottom: Math.max(insets.bottom, 8),
-          paddingTop: 8,
-          flexDirection: "row",
-          justifyContent: "space-around",
-          alignItems: "center",
-          ...Platform.select({
-            ios: {
-              shadowColor: "#000",
-              shadowOffset: { width: 0, height: -2 },
-              shadowOpacity: 0.1,
-              shadowRadius: 4,
-            },
-            android: {
-              elevation: 8,
-            },
-          }),
+          padding: Spacing['3xs'],
+          position: 'relative',
         }}
       >
-      {tabs.map((tab) => {
-        const isActive = activeTab === tab.name;
-        const tabColor = isActive ? colors.icon.selected : colors.icon.default;
-        const showDot = tab.name === "transactions" && showTxDot;
-
-        return (
-          <TouchableOpacity
-            key={tab.name}
-            onPress={() => handleTabPress(tab)}
-            style={{
-              flex: 1,
-              alignItems: "center",
-              justifyContent: "center",
-              paddingVertical: 4,
-            }}
-            accessibilityRole="button"
-            accessibilityLabel={tab.title}
-            accessibilityState={{ selected: isActive }}
-          >
-            <TabIcon
-              Icon={tab.Icon}
-              color={tabColor}
-              size={tab.size}
-              showDot={showDot}
-            />
-            <Text
+        <View
+          style={{
+            flexDirection: "row",
+            justifyContent: "space-around",
+            alignItems: "center",
+            position: 'relative',
+          }}
+        >
+          {/* Sliding Pill Indicator */}
+          {activeTab && (
+            <Animated.View
               style={{
-                fontSize: 11,
-                marginTop: 4,
-                color: tabColor,
-                fontWeight: isActive ? "600" : "400",
+                position: 'absolute',
+                left: slidePosition,
+                top: 0,
+                bottom: 0,
+                height: '100%',
+                width: slideWidth,
+                backgroundColor: brandColor,
+                borderRadius: BorderRadius.lg,
+                opacity: 0.2,
               }}
-            >
-              {tab.title}
-            </Text>
-          </TouchableOpacity>
-        );
-      })}
-      </View>
-    </LiquidGlassView>
+            />
+          )}
+          
+          {tabs.map((tab) => {
+            const isActive = activeTab === tab.name;
+            const tabColor = isActive ? brandColor : colors.text.secondary;
+            const showDot = tab.name === "transactions" && showTxDot;
+
+            return (
+              <TouchableOpacity
+                key={tab.name}
+                onPress={() => handleTabPress(tab)}
+                onLayout={handleTabLayout(tab.name)}
+                style={{
+                  flex: 1,
+                  alignItems: "center",
+                  justifyContent: "center",
+                  paddingVertical: Spacing['3xs'],
+                  zIndex: 1,
+                }}
+                accessibilityRole="button"
+                accessibilityLabel={tab.title}
+                accessibilityState={{ selected: isActive }}
+              >
+                <TabIcon
+                  Icon={tab.Icon}
+                  color={tabColor}
+                  size={tab.size}
+                  showDot={showDot}
+                />
+                <Text
+                  style={{
+                    fontSize: 11,
+                    marginTop: Spacing['3xs'],
+                    color: tabColor,
+                    fontWeight: isActive ? "600" : "400",
+                  }}
+                >
+                  {tab.title}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      </LiquidGlassView>
+    </View>
   );
 }

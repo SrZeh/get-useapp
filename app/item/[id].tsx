@@ -227,7 +227,7 @@ export default function ItemDetailScreen() {
     >
       <ThemedView style={{ flex: 1, backgroundColor: palette.background }}>
         <ScrollView 
-          contentContainerStyle={{ padding: Spacing.sm, paddingBottom: Spacing.xl }}
+          contentContainerStyle={{ padding: Spacing.sm, paddingBottom: Spacing['3xl'] }}
           showsVerticalScrollIndicator={false}
         >
           {/* HEADER DO ITEM */}

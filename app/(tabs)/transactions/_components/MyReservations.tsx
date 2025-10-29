@@ -141,13 +141,27 @@ export function MyReservations() {
                       variant="ghost"
                       size="sm"
                       onPress={() => removeMine(r.id, r)}
+                      style={{
+                        backgroundColor: 'rgba(239, 68, 68, 0.8)',
+                        borderWidth: 0,
+                      }}
+                      textStyle={{ color: '#ffffff' }}
                     >
                       Excluir
                     </Button>
                   )}
                 </View>
               ) : canDeleteByRenter(r) ? (
-                <Button variant="ghost" size="sm" onPress={() => removeMine(r.id, r)}>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onPress={() => removeMine(r.id, r)}
+                  style={{
+                    backgroundColor: 'rgba(239, 68, 68, 0.8)',
+                    borderWidth: 0,
+                  }}
+                  textStyle={{ color: '#ffffff' }}
+                >
                   Excluir
                 </Button>
               ) : r.status === 'picked_up' ? (
