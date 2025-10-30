@@ -127,7 +127,9 @@ export const ItemCard = React.memo(function ItemCard({
           {item.title}
         </ThemedText>
 
-        {/* Rating */}
+        {/* Rating - displayed under item name */}
+        {/* Ratings come from reviews: when a user leaves a review, Firestore triggers 
+            update the item's ratingAvg and ratingCount. See docs/RATINGS-EXPLANATION.md */}
         {item.ratingCount !== undefined && item.ratingCount > 0 ? (
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 12 }}>
             <StarRating value={item.ratingAvg ?? 0} size={14} />
