@@ -24,9 +24,12 @@
     }
   ],
   "hosting": {
-    "public": "dist",
+    "public": "web-dist",
     "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
     "rewrites": [{ "source": "**", "destination": "/index.html" }],
+    "predeploy": [
+      "npx --yes expo export --platform web --output-dir web-dist"
+    ],
     "headers": [
       {
         "source": "**/*.@(js|css|svg|png|jpg|jpeg|gif|webp|ico|woff|woff2)",
