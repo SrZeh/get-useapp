@@ -2,13 +2,8 @@ import React from 'react';
 import { ThemedText } from '@/components/themed-text';
 import { LiquidGlassView } from '@/components/liquid-glass';
 import { ReviewForm } from './ReviewForm';
-import type { Review } from '@/types';
+import type { Review, EligibleReservation } from '@/types';
 import { Spacing, BorderRadius } from '@/constants/spacing';
-
-type EligibleReservation = {
-  id: string;
-  label: string;
-};
 
 type ReviewSectionProps = {
   userId: string | null;

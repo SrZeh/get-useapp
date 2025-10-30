@@ -4,35 +4,15 @@
  */
 
 import { useState, useCallback } from 'react';
-
-const VIACEP_API = 'https://viacep.com.br/ws';
-
-type ViaCEPResponse = {
-  cep: string;
-  logradouro: string;
-  complemento: string;
-  bairro: string;
-  localidade: string;
-  uf: string;
-  erro?: boolean;
-};
+import type { ViaCEPResponse } from '@/types';
+import { API_CONFIG } from '@/constants/api';
+import { formatCEP } from '@/utils/formatters';
 
 type UseViaCEPReturn = {
   loading: boolean;
   error: string | null;
   fetchAddress: (cep: string) => Promise<{ neighborhood: string; city: string } | null>;
 };
-
-/**
- * Formats CEP input: 00000-000
- */
-function formatCEP(value: string): string {
-  const digits = value.replace(/\D/g, '');
-  if (digits.length <= 5) {
-    return digits;
-  }
-  return `${digits.substring(0, 5)}-${digits.substring(5, 8)}`;
-}
 
 /**
  * Hook for fetching neighborhood and city from ViaCEP
@@ -52,7 +32,7 @@ export function useViaCEP(): UseViaCEPReturn {
     setError(null);
 
     try {
-      const response = await fetch(`${VIACEP_API}/${cleanCEP}/json/`);
+      const response = await fetch(`${API_CONFIG.VIACEP_API}/${cleanCEP}/json/`);
       
       if (!response.ok) {
         throw new Error('Erro ao buscar CEP');
@@ -87,7 +67,8 @@ export function useViaCEP(): UseViaCEPReturn {
 }
 
 /**
- * Formats CEP value for display
+ * Formats CEP value for display (convenience wrapper)
+ * @deprecated Use formatCEP from @/utils/formatters directly
  */
 export function formatCEPValue(value: string): string {
   return formatCEP(value);

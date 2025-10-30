@@ -34,3 +34,16 @@ export function shuffle<T>(arr: T[]): T[] {
   return a;
 }
 
+/**
+ * Format CEP (Brazilian postal code) input: 00000-000
+ * @param value - Raw CEP input
+ * @returns Formatted CEP string
+ */
+export function formatCEP(value: string): string {
+  const digits = value.replace(/\D/g, '');
+  if (digits.length <= 5) {
+    return digits;
+  }
+  return `${digits.substring(0, 5)}-${digits.substring(5, 8)}`;
+}
+

@@ -7,6 +7,7 @@ export const API_CONFIG = {
   FUNCTIONS_BASE_URL: process.env.EXPO_PUBLIC_FUNCTIONS_BASE_URL ?? "https://southamerica-east1-upperreggae.cloudfunctions.net",
   FIREBASE_PROJECT_ID: "upperreggae",
   FIRESTORE_DB_NAME: "getanduseapp",
+  VIACEP_API: "https://viacep.com.br/ws",
 } as const;
 
 export const FIRESTORE_COLLECTIONS = {

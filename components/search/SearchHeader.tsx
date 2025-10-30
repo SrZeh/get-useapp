@@ -1,43 +1,23 @@
+/**
+ * SearchHeader - Search and filter interface for items
+ * 
+ * Refactored to use extracted components:
+ * - SearchHeaderBranding: Logo and title
+ * - SearchBar: Search input
+ * - LocationFilter: City and neighborhood filters
+ * - CategoryFilter: Category chips
+ */
+
 import React from 'react';
-import { View, TextInput, ViewStyle } from 'react-native';
-import { Image } from 'expo-image';
-import { ThemedText } from '@/components/themed-text';
-import { LiquidGlassView } from '@/components/liquid-glass';
-import { ScrollableCategories } from '@/components/ScrollableCategories';
+import { View, ViewStyle } from 'react-native';
 import { ShimmerLoader } from '@/components/ShimmerLoader';
-import { CategoryChip } from '@/components/CategoryChip';
-import { DropdownFilter } from '@/components/DropdownFilter';
 import { PriceInputFilter } from '@/components/PriceInputFilter';
-import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-
-type CategoryIconMap = Record<string, keyof typeof Ionicons.glyphMap>;
-
-const CATEGORY_ICONS: CategoryIconMap = {
-  'Ferramentas elétricas': 'flash',
-  'Ferramentas manuais': 'hammer',
-  'Construção & Reforma': 'construct',
-  'Marcenaria & Carpintaria': 'cut',
-  'Jardinagem': 'leaf',
-  'Camping & Trilha': 'trail-sign',
-  'Esportes & Lazer': 'football',
-  'Mobilidade (bike/patinete)': 'bicycle',
-  'Fotografia & Vídeo': 'camera',
-  'Música & Áudio': 'musical-notes',
-  'Informática & Acessórios': 'laptop',
-  'Eletroportáteis': 'tv',
-  'Cozinha & Utensílios': 'restaurant',
-  'Eventos & Festas': 'balloon',
-  'Móveis & Decoração': 'home',
-  'Automotivo & Moto': 'car',
-  'Bebê & Infantil': 'heart',
-  'Brinquedos & Jogos': 'game-controller',
-  'Pet': 'paw',
-  'Saúde & Beleza': 'medical',
-  'Outros': 'apps',
-};
-
+import { SearchHeaderBranding } from './SearchHeaderBranding';
+import { SearchBar } from './SearchBar';
+import { LocationFilter } from './LocationFilter';
+import { CategoryFilter } from './CategoryFilter';
 import type { FilterConfiguration } from './types';
 
 type SearchHeaderProps = {
@@ -124,20 +104,6 @@ export function SearchHeader({
   const onCategoryChange = filterConfig?.category?.onChange ?? onCategoryChangeProp ?? (() => {});
   const categories = filterConfig?.category?.options?.map(opt => opt.value) ?? categoriesProp ?? [];
 
-  const renderChip = (label: string, value: string) => {
-    const active = category === value;
-    const icon = value ? CATEGORY_ICONS[value] : undefined;
-    return (
-      <CategoryChip
-        key={value || '_all'}
-        label={label}
-        selected={active}
-        onPress={() => onCategoryChange(active ? '' : value)}
-        icon={icon}
-      />
-    );
-  };
-
   return (
     <View
       style={[
@@ -151,157 +117,47 @@ export function SearchHeader({
         style,
       ]}
     >
-      {/* Title */}
-      <ThemedText
-        type="large-title"
-        style={{ textAlign: 'center', marginBottom: 8 }}
-        className="text-light-text-primary dark:text-dark-text-primary"
-      >
-        Precisou?
-      </ThemedText>
-
-      {/* Logo */}
-      <View style={{ alignItems: 'center', marginBottom: 16 }}>
-        <Image
-          source={require('../../assets/images/logo.png')}
-          style={{ width: 300, height: 150 }}
-          contentFit="contain"
-          transition={200}
-        />
-      </View>
-
-      {/* Prompt */}
-      <ThemedText
-        type="callout"
-        style={{ marginBottom: 12 }}
-        className="text-light-text-primary dark:text-dark-text-secondary"
-      >
-        O que você quer alugar?
-      </ThemedText>
+      {/* Branding */}
+      <SearchHeaderBranding />
 
       {/* Search Input */}
-      <LiquidGlassView intensity="subtle" cornerRadius={16} style={{ marginBottom: 12 }}>
-        <View
-          style={{
-            flexDirection: 'row',
-            alignItems: 'center',
-            paddingHorizontal: 16,
-            paddingVertical: 12,
-            gap: 12,
-          }}
-        >
-          <Ionicons
-            name="search"
-            size={20}
-            color={palette.textTertiary}
-          />
-          <TextInput
-            placeholder="Buscar por título, descrição…"
-            placeholderTextColor={palette.textTertiary}
-            value={search}
-            onChangeText={onSearchChange}
-            onSubmitEditing={() => {
-              // Handle search submission if needed
-            }}
-            returnKeyType="search"
-            style={{
-              flex: 1,
-              backgroundColor: 'transparent',
-              color: palette.text,
-              fontSize: 17,
-            }}
-            accessibilityLabel="Buscar itens"
-            accessibilityHint="Digite para buscar por título ou descrição e pressione Enter"
-          />
-        </View>
-      </LiquidGlassView>
+      <SearchBar
+        value={search}
+        onChangeText={onSearchChange}
+        style={{ marginBottom: 12 }}
+      />
 
-      {/* Location Filters */}
-      <View style={{ flexDirection: 'row', gap: 8, marginBottom: 12 }}>
-        <View style={{ flex: 1 }}>
-          <LiquidGlassView intensity="subtle" cornerRadius={16}>
-            <TextInput
-              placeholder="Cidade"
-              placeholderTextColor={palette.textTertiary}
-              value={city}
-              onChangeText={onCityChange}
-              autoCapitalize="words"
-              style={{
-                width: '100%',
-                paddingHorizontal: 16,
-                paddingVertical: 12,
-                backgroundColor: 'transparent',
-                color: palette.text,
-                fontSize: 17,
-              }}
-              accessibilityLabel="Filtrar por cidade"
-              accessibilityHint="Digite o nome da cidade"
-            />
-          </LiquidGlassView>
-        </View>
-        <View style={{ flex: 1 }}>
-          <LiquidGlassView intensity="subtle" cornerRadius={16}>
-            <TextInput
-              placeholder="Bairro"
-              placeholderTextColor={palette.textTertiary}
-              value={neighborhood}
-              onChangeText={onNeighborhoodChange}
-              autoCapitalize="words"
-              style={{
-                width: '100%',
-                paddingHorizontal: 16,
-                paddingVertical: 12,
-                backgroundColor: 'transparent',
-                color: palette.text,
-                fontSize: 17,
-              }}
-              accessibilityLabel="Filtrar por bairro"
-              accessibilityHint="Digite o nome do bairro"
-            />
-          </LiquidGlassView>
-        </View>
-      </View>
+      {/* Location Filters - Text Inputs (Legacy) */}
+      {(onCityChange || onNeighborhoodChange) && (
+        <LocationFilter
+          city={city}
+          neighborhood={neighborhood}
+          onCityChange={onCityChange}
+          onNeighborhoodChange={onNeighborhoodChange}
+          style={{ marginBottom: 12 }}
+        />
+      )}
 
       {/* Dropdown Filters for Cities, Neighborhoods, and Price */}
       {((cities.length > 0 || neighborhoods.length > 0) && (onCitySelect || onNeighborhoodSelect)) || (onMinPriceChange || onMaxPriceChange) ? (
         <View style={{ marginBottom: 12 }}>
           <View style={{ flexDirection: 'row', gap: 8 }}>
-            {/* Location Filters - Left Half */}
+            {/* Location Filters - Dropdowns */}
             {(cities.length > 0 || neighborhoods.length > 0) && (onCitySelect || onNeighborhoodSelect) && (
               <View style={{ flex: 1 }}>
-                <View style={{ flexDirection: 'row', gap: 8 }}>
-                  {cities.length > 0 && onCitySelect && (
-                    <View style={{ flex: 1 }}>
-                      <DropdownFilter
-                        title="Filtrar por Cidade"
-                        options={cities}
-                        selectedValue={selectedCity}
-                        onValueChange={onCitySelect}
-                        placeholder="Todas as cidades"
-                        icon="location"
-                        loading={locationsLoading}
-                      />
-                    </View>
-                  )}
-                  
-                  {neighborhoods.length > 0 && onNeighborhoodSelect && (
-                    <View style={{ flex: 1 }}>
-                      <DropdownFilter
-                        title="Filtrar por Bairro"
-                        options={neighborhoods}
-                        selectedValue={selectedNeighborhood}
-                        onValueChange={onNeighborhoodSelect}
-                        placeholder="Todos os bairros"
-                        icon="location-outline"
-                        loading={locationsLoading}
-                      />
-                    </View>
-                  )}
-                </View>
+                <LocationFilter
+                  cities={cities}
+                  neighborhoods={neighborhoods}
+                  selectedCity={selectedCity}
+                  selectedNeighborhood={selectedNeighborhood}
+                  onCitySelect={onCitySelect}
+                  onNeighborhoodSelect={onNeighborhoodSelect}
+                  locationsLoading={locationsLoading}
+                />
               </View>
             )}
             
-            {/* Price Min/Max Filters - Right Half */}
+            {/* Price Min/Max Filters */}
             {(onMinPriceChange || onMaxPriceChange) && (
               <View style={{ flex: 1 }}>
                 <PriceInputFilter
@@ -317,10 +173,11 @@ export function SearchHeader({
       ) : null}
 
       {/* Category Chips */}
-      <ScrollableCategories>
-        {renderChip('Todas', '')}
-        {categories.map((c) => renderChip(c, c))}
-      </ScrollableCategories>
+      <CategoryFilter
+        selectedCategory={category}
+        categories={categories}
+        onCategoryChange={onCategoryChange}
+      />
 
       {/* Loading State */}
       {loading && (

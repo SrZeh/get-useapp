@@ -5,7 +5,7 @@
  * Allows for easy swapping of implementations and mocking in tests.
  */
 
-import type { Reservation, ReservationStatus, NewReservationInput } from '@/types';
+import type { Reservation, ReservationStatus, NewReservationInput, EligibleReservation } from '@/types';
 import type { Unsubscribe } from 'firebase/firestore';
 
 /**
@@ -47,7 +47,7 @@ export interface IReservationService {
    * @param itemId - Item ID
    * @returns Array of eligible reservations with labels
    */
-  listEligibleReservationsForReview(renterUid: string, itemId: string): Promise<Array<{ id: string; label: string }>>;
+  listEligibleReservationsForReview(renterUid: string, itemId: string): Promise<EligibleReservation[]>;
 
   /**
    * Subscribe to owner reservations with real-time updates

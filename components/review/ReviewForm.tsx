@@ -8,11 +8,7 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Colors } from '@/constants/theme';
 import { useThemeColors, HapticFeedback } from '@/utils';
 import { Spacing, BorderRadius } from '@/constants/spacing';
-
-type EligibleReservation = {
-  id: string;
-  label: string;
-};
+import type { EligibleReservation } from '@/types';
 
 type ReviewFormProps = {
   eligibleReservations: EligibleReservation[];

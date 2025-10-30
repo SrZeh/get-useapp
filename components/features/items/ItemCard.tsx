@@ -1,4 +1,10 @@
-import React from 'react';
+/**
+ * ItemCard - Displays an item in a card format
+ * 
+ * Refactored to use extracted ItemCardBadges component and React.memo for performance
+ */
+
+import React, { useCallback } from 'react';
 import { View, TouchableOpacity, ViewStyle } from 'react-native';
 import { Image } from 'expo-image';
 import { ThemedText } from '@/components/themed-text';
@@ -8,7 +14,8 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import type { Item } from '@/types';
 import { useNavigationService } from '@/providers/ServicesProvider';
 import type { BaseCardProps } from '@/components/types';
-import { Spacing, BorderRadius } from '@/constants/spacing';
+import { Spacing } from '@/constants/spacing';
+import { ItemCardBadges } from './ItemCardBadges';
 
 type ItemCardProps = BaseCardProps & {
   /**
@@ -33,17 +40,7 @@ type ItemCardProps = BaseCardProps & {
   renderBadges?: (item: Item) => React.ReactNode;
 };
 
-/**
- * ItemCard component - displays an item in a card format
- * 
- * Features:
- * - Responsive image display
- * - Badge rendering (category, condition, min days, location)
- * - Price display with formatting
- * - Conditional styling for owned items
- * - Navigation to item details
- */
-export function ItemCard({
+export const ItemCard = React.memo(function ItemCard({
   item,
   width,
   onPress,
@@ -56,14 +53,14 @@ export function ItemCard({
   const colors = useThemeColors();
   const navigation = useNavigationService();
 
-  const handlePress = () => {
+  const handlePress = useCallback(() => {
     if (isMine) return;
     if (onPress) {
       onPress();
     } else {
       navigation.navigateToItem(item.id);
     }
-  };
+  }, [isMine, onPress, navigation, item.id]);
 
   const cardStyle: ViewStyle = {
     width: width ?? '100%',
@@ -134,93 +131,7 @@ export function ItemCard({
           {renderBadges ? (
             renderBadges(item)
           ) : (
-            <>
-              {!!item.category && (
-                <View
-                  style={{
-                    paddingVertical: Spacing['3xs'],
-                    paddingHorizontal: Spacing['2xs'],
-                    borderRadius: BorderRadius.full,
-                    backgroundColor: colors.bg.tertiary,
-                  }}
-                >
-                  <ThemedText
-                    type="caption-1"
-                    className="text-light-text-tertiary dark:text-dark-text-tertiary"
-                  >
-                    {item.category}
-                  </ThemedText>
-                </View>
-              )}
-              {!!item.condition && (
-                <View
-                  style={{
-                    paddingVertical: Spacing['3xs'],
-                    paddingHorizontal: Spacing['2xs'],
-                    borderRadius: BorderRadius.full,
-                    backgroundColor: colors.bg.tertiary,
-                  }}
-                >
-                  <ThemedText
-                    type="caption-1"
-                    className="text-light-text-tertiary dark:text-dark-text-tertiary"
-                  >
-                    {item.condition}
-                  </ThemedText>
-                </View>
-              )}
-              {!!item.minRentalDays && (
-                <View
-                  style={{
-                    paddingVertical: Spacing['3xs'],
-                    paddingHorizontal: Spacing['2xs'],
-                    borderRadius: BorderRadius.full,
-                    backgroundColor: colors.bg.tertiary,
-                  }}
-                >
-                  <ThemedText
-                    type="caption-1"
-                    className="text-light-text-tertiary dark:text-dark-text-tertiary"
-                  >
-                    {item.minRentalDays} dia(s) mínimo
-                  </ThemedText>
-                </View>
-              )}
-              {!!item.city && (
-                <View
-                  style={{
-                    paddingVertical: Spacing['3xs'],
-                    paddingHorizontal: Spacing['2xs'],
-                    borderRadius: BorderRadius.full,
-                    backgroundColor: colors.bg.tertiary,
-                  }}
-                >
-                  <ThemedText
-                    type="caption-1"
-                    className="text-light-text-tertiary dark:text-dark-text-tertiary"
-                  >
-                    {item.city}
-                  </ThemedText>
-                </View>
-              )}
-              {!!item.neighborhood && (
-                <View
-                  style={{
-                    paddingVertical: Spacing['3xs'],
-                    paddingHorizontal: Spacing['2xs'],
-                    borderRadius: BorderRadius.full,
-                    backgroundColor: colors.bg.tertiary,
-                  }}
-                >
-                  <ThemedText
-                    type="caption-1"
-                    className="text-light-text-tertiary dark:text-dark-text-tertiary"
-                  >
-                    {item.neighborhood}
-                  </ThemedText>
-                </View>
-              )}
-            </>
+            <ItemCardBadges item={item} />
           )}
         </View>
 
@@ -269,5 +180,25 @@ export function ItemCard({
       </View>
     </TouchableOpacity>
   );
-}
+}, (prev, next) => {
+  // Custom comparison function for optimal memoization
+  // Only re-render if item data or relevant props change
+  return (
+    prev.item.id === next.item.id &&
+    prev.item.title === next.item.title &&
+    prev.item.dailyRate === next.item.dailyRate &&
+    prev.item.photos?.[0] === next.item.photos?.[0] &&
+    prev.item.description === next.item.description &&
+    prev.item.category === next.item.category &&
+    prev.item.condition === next.item.condition &&
+    prev.item.minRentalDays === next.item.minRentalDays &&
+    prev.item.city === next.item.city &&
+    prev.item.neighborhood === next.item.neighborhood &&
+    prev.isMine === next.isMine &&
+    prev.width === next.width &&
+    prev.cardSpacing === next.cardSpacing &&
+    prev.renderBadges === next.renderBadges &&
+    prev.onPress === next.onPress
+  );
+});
 

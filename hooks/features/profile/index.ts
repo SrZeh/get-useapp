@@ -3,4 +3,5 @@
  */
 
 export { useUpdateProfile, useLoadProfile } from './useProfile';
+export { useProfileData } from './useProfileData';
 

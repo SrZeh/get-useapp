@@ -71,12 +71,18 @@ export type {
   ReviewType,
   ReviewRating,
   NewReviewInput,
+  EligibleReservation,
 } from './review';
 
 export {
   isReview,
   isValidRating,
 } from './review';
+
+// Address types
+export type {
+  ViaCEPResponse,
+} from './address';
 
 // Error types
 export type {

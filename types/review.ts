@@ -74,3 +74,12 @@ export function isValidRating(rating: unknown): rating is ReviewRating {
   return typeof rating === 'number' && rating >= 1 && rating <= 5 && Number.isInteger(rating);
 }
 
+/**
+ * Eligible reservation for review purposes
+ * Used in review forms to display available reservations for review
+ */
+export interface EligibleReservation {
+  id: string;
+  label: string;
+}
+

@@ -22,3 +22,9 @@ export type { ItemListFilters, ItemListActions, UseItemListResult } from './useI
 export { useResponsiveGrid } from './useResponsiveGrid';
 export type { ResponsiveGridConfig } from './useResponsiveGrid';
 
+// Item detail hooks
+export { useItemDetail } from './useItemDetail';
+export { useItemBookingCalendar } from './useItemBookingCalendar';
+export { useItemReviewSubmission } from './useItemReviewSubmission';
+export { useItemReservation } from './useItemReservation';
+
