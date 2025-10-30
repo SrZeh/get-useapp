@@ -12,6 +12,116 @@ This is an Expo React Native application built with TypeScript, Firebase, and Na
 - **Navigation**: Expo Router with React Navigation
 - **Platform Support**: iOS, Android, Web
 
+## Multi-Platform Development Requirements
+
+### Platform Support Commitment
+**CRITICAL**: All features, updates, and new code MUST work across all supported platforms (iOS, Android, Web). This is not optional.
+
+### Platform Testing Requirements
+- **All features** must be tested on iOS, Android, and Web before completion
+- Consider platform-specific behaviors and limitations
+- Handle platform differences gracefully with appropriate fallbacks
+- Document any platform-specific limitations or workarounds
+
+### Multi-Platform Best Practices
+
+#### Shared Code First
+```typescript
+// ✅ Good: Platform-agnostic code by default
+export function MyFeature() {
+  return (
+    <View className="flex-1">
+      <Text>Works on all platforms</Text>
+    </View>
+  );
+}
+
+// ✅ Good: Platform-specific only when necessary
+import { Platform } from 'react-native';
+
+export function MyFeature() {
+  return (
+    <View>
+      {Platform.OS === 'web' && <WebSpecificComponent />}
+      {Platform.OS !== 'web' && <MobileSpecificComponent />}
+    </View>
+  );
+}
+```
+
+#### Platform-Specific Files
+- Use `.native.ts`, `.web.ts`, `.ios.ts`, `.android.ts` suffixes ONLY when absolutely necessary
+- Prefer platform checks in shared files over separate platform files
+- Keep platform-specific code minimal and isolated
+- Always provide web alternatives for native-only features
+
+#### Feature Parity
+- **Core functionality** must work identically across all platforms
+- Platform-specific optimizations are allowed (but must not affect core features)
+- If a feature cannot work on a platform, provide a clear alternative or message
+- Never implement features that only work on one platform unless explicitly requested
+
+#### Web-Specific Considerations
+- Ensure all navigation works with browser back/forward buttons
+- Test responsive layouts at common viewport sizes
+- Handle keyboard/mouse interactions appropriately
+- Consider SEO implications for publicly accessible pages
+- Ensure touch targets are large enough for mobile web
+
+#### Native-Specific Considerations
+- Handle safe area insets properly
+- Test haptic feedback where appropriate
+- Ensure proper keyboard dismissal
+- Consider native navigation patterns
+- Handle deep linking appropriately
+
+### Common Multi-Platform Patterns
+
+#### Platform Detection
+```typescript
+import { Platform } from 'react-native';
+
+// ✅ Good: Platform-specific behavior
+const isWeb = Platform.OS === 'web';
+const isIOS = Platform.OS === 'ios';
+const isAndroid = Platform.OS === 'android';
+
+// ✅ Good: Platform-specific styling
+<View className={`p-md ${Platform.OS === 'web' ? 'max-w-4xl mx-auto' : 'flex-1'}`}>
+
+// ✅ Good: Platform-specific imports
+import * as WebFeature from '@/lib/feature.web';
+import * as NativeFeature from '@/lib/feature.native';
+```
+
+#### Conditional Feature Rendering
+```typescript
+// ✅ Good: Graceful platform handling
+{Platform.OS === 'web' ? (
+  <WebImagePicker />
+) : (
+  <NativeImagePicker />
+)}
+
+// ✅ Good: Shared base with platform variations
+<BaseFeature
+  variant={Platform.OS === 'web' ? 'web' : 'mobile'}
+  {...props}
+/>
+```
+
+### Platform-Specific Anti-Patterns
+
+#### What NOT to Do
+- ❌ Don't implement features that only work on iOS or Android
+- ❌ Don't use platform-specific code when platform-agnostic code would work
+- ❌ Don't hardcode platform assumptions (e.g., assuming all users have haptic feedback)
+- ❌ Don't skip web testing for "mobile-first" features
+- ❌ Don't create completely different code paths per platform unnecessarily
+- ❌ Don't use native-only libraries without web alternatives
+- ❌ Don't implement gestures that don't work on web
+- ❌ Don't assume screen sizes or orientations
+
 ## Architecture Principles
 
 ### SOLID Principles
@@ -680,16 +790,19 @@ async function handleSubmit() {
 ## Code Generation Preferences
 
 When generating code:
-1. Always use TypeScript with proper types
-2. Follow the project's file structure
-3. Use NativeWind classes for styling
-4. Implement both light and dark mode
-5. Include proper error handling
-6. Use absolute imports with `@/` prefix
-7. Export components as named exports (prefer) or default
-8. Include loading and error states
-9. Add JSDoc comments for complex functions
-10. Follow SOLID principles in architecture decisions
+1. **Always ensure multi-platform compatibility (iOS, Android, Web)** - This is non-negotiable
+2. Always use TypeScript with proper types
+3. Follow the project's file structure
+4. Use NativeWind classes for styling
+5. Implement both light and dark mode
+6. Include proper error handling
+7. Use absolute imports with `@/` prefix
+8. Export components as named exports (prefer) or default
+9. Include loading and error states
+10. Add JSDoc comments for complex functions
+11. Follow SOLID principles in architecture decisions
+12. Test platform-specific behavior when adding new features
+13. Provide platform fallbacks when using platform-specific APIs
 
 ## Additional Notes
 
@@ -701,10 +814,12 @@ When generating code:
 - Maintain WCAG AA contrast ratios
 
 ### Platform Considerations
-- Test on iOS, Android, and Web
+- **MANDATORY**: Test on iOS, Android, and Web for ALL features
 - Handle platform-specific UI/UX differences
 - Use platform-specific file extensions when needed
 - Consider safe area insets on mobile
+- Ensure feature parity across all platforms
+- Document any platform limitations or workarounds
 
 ### Firebase Functions
 - Keep business logic in `/functions` directory

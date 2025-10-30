@@ -1,8 +1,6 @@
 // app/(tabs)/_layout.tsx
 import { AuthHeaderRight } from "@/components/features/auth";
 import { TabIcon } from "@/components/ui/TabIcon";
-import { ThemedText } from "@/components/themed-text";
-import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useThemeColors } from "@/utils";
 import { Tabs } from "expo-router";
@@ -22,27 +20,11 @@ import { useTransactionsDot } from "@/hooks/features/transactions";
 import { useAuth } from "@/providers/AuthProvider";
 
 import { HeaderLogo } from '@/components/layouts';
+import { HeaderMenu } from '@/components/HeaderMenu';
 
-function LogoIcon() {
-  return <HeaderLogo marginLeft={16} />;
-}
-
-function HeaderTitle() {
-  const colors = useThemeColors();
-  return (
-    <ThemedText
-      type="headline"
-      style={{
-        color: colors.brand.primary,
-        fontWeight: "600",
-        textShadowColor: 'rgba(0, 0, 0, 0.8)',
-        textShadowOffset: { width: 0, height: 2 },
-        textShadowRadius: 6,
-      }}
-    >
-      Get&Use
-    </ThemedText>
-  );
+// Centered header title should be the logo
+function HeaderTitleLogo() {
+  return <HeaderLogo />;
 }
 
 function HeaderBackground() {
@@ -70,8 +52,8 @@ export default function TabLayout() {
   const screenOptions = useMemo(() => ({
     headerShown: true,
     headerTitleAlign: "center" as const,
-    headerTitle: () => <HeaderTitle />,
-    headerLeft: () => <LogoIcon />,
+    headerTitle: () => <HeaderTitleLogo />,
+    headerLeft: () => <HeaderMenu />,
     headerRight: () => <AuthHeaderRight />,
     headerBackground: () => <HeaderBackground />,
     headerTransparent: true,
