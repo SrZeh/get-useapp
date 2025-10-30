@@ -10,6 +10,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useThemeColors } from '@/utils';
+import { AnimationDuration } from '@/constants/animations';
 
 type ShimmerLoaderProps = {
   width?: number | string;
@@ -31,7 +32,7 @@ export function ShimmerLoader({
 
   React.useEffect(() => {
     shimmer.value = withRepeat(
-      withTiming(1, { duration: 2000 }),
+      withTiming(1, { duration: AnimationDuration.maximum * 5 }), // 2s = 400ms * 5
       -1,
       false
     );

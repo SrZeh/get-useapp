@@ -16,6 +16,7 @@ import { getErrorUserMessage } from '@/constants/errors';
 import { Colors } from '@/constants/theme';
 import { ExtendedColors } from '@/constants/colors';
 import { Spacing, BorderRadius } from '@/constants/spacing';
+import { TEXT_ON_COLOR } from '@/utils';
 
 // Simple button component that doesn't require ThemeProvider
 function ErrorButton({ 
@@ -47,7 +48,7 @@ function ErrorButton({
   };
   
   const textStyle = {
-    color: variant === 'primary' ? '#ffffff' : brandColor,
+    color: variant === 'primary' ? TEXT_ON_COLOR.white : brandColor,
     fontWeight: '600' as const,
     fontSize: 17, // Body size
   };

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { TouchableOpacity, ViewStyle, ActivityIndicator, Animated } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { GradientTypes, HapticFeedback, useThemeColors, useButtonColors } from '@/utils';
+import { GradientTypes, HapticFeedback, useThemeColors, useButtonColors, TEXT_ON_COLOR } from '@/utils';
 import { ThemedText } from './themed-text';
 import { AnimationConfigs, getSpringConfig } from '@/constants/animations';
 import { Spacing, BorderRadius } from '@/constants/spacing';
@@ -141,7 +141,7 @@ export function Button({
             style,
           ]}
         >
-          {renderButtonContent('white')}
+          {renderButtonContent(TEXT_ON_COLOR.white)}
         </LinearGradient>
       );
     }
@@ -159,7 +159,7 @@ export function Button({
             style,
           ]}
         >
-          {renderButtonContent('white')}
+          {renderButtonContent(TEXT_ON_COLOR.white)}
         </LinearGradient>
       );
     }

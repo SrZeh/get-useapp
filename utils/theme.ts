@@ -244,7 +244,7 @@ export function useButtonColors(variant: 'primary' | 'secondary' | 'ghost' | 'ou
   const variants = {
     primary: {
       bg: colors.brand.primary,
-      text: '#ffffff',
+      text: TEXT_ON_COLOR.white,
       border: 'transparent',
     },
     secondary: {
@@ -264,7 +264,7 @@ export function useButtonColors(variant: 'primary' | 'secondary' | 'ghost' | 'ou
     },
     destructive: {
       bg: colors.semantic.error,
-      text: '#ffffff',
+      text: TEXT_ON_COLOR.white,
       border: 'transparent',
     },
   };
@@ -361,4 +361,15 @@ export function useTextClasses() {
     quaternary: colors.isDark ? 'text-dark-text-quaternary' : 'text-light-text-quaternary',
   };
 }
+
+/**
+ * Constants for text on colored backgrounds
+ * Use these when you need white or black text on colored backgrounds
+ */
+export const TEXT_ON_COLOR = {
+  /** White text for use on colored backgrounds (buttons, badges, etc.) */
+  white: '#ffffff',
+  /** Black/dark text for use on light colored backgrounds (light mode brand colors) */
+  black: '#0a0a0a',
+} as const;
 

@@ -21,6 +21,7 @@ export {
   useChipColors,
   useButtonColors,
   useThemeMode,
+  TEXT_ON_COLOR,
   type ThemeColors,
   type ThemeMode,
 } from "./theme";

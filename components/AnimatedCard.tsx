@@ -7,6 +7,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { HapticFeedback } from '@/utils';
+import { AnimationDuration, ReanimatedPresets } from '@/constants/animations';
 import type { BaseCardWithChildrenProps } from '@/components/types';
 
 type AnimatedCardProps = BaseCardWithChildrenProps;
@@ -29,14 +30,14 @@ export function AnimatedCard({
   const handlePressIn = () => {
     if (disabled) return;
     HapticFeedback.light();
-    scale.value = withSpring(0.96, { damping: 15 });
-    opacity.value = withTiming(0.9, { duration: 100 });
+    scale.value = withSpring(0.96, ReanimatedPresets.buttonPress);
+    opacity.value = withTiming(0.9, { duration: AnimationDuration.fast });
   };
 
   const handlePressOut = () => {
     if (disabled) return;
-    scale.value = withSpring(1, { damping: 15 });
-    opacity.value = withTiming(1, { duration: 100 });
+    scale.value = withSpring(1, ReanimatedPresets.buttonPress);
+    opacity.value = withTiming(1, { duration: AnimationDuration.fast });
   };
 
   if (!onPress) {

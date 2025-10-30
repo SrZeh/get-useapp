@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, ViewStyle, StyleSheet } from 'react-native';
 import { ThemedText } from './themed-text';
-import { useThemeColors } from '@/utils';
+import { useThemeColors, TEXT_ON_COLOR } from '@/utils';
 import { Spacing, BorderRadius } from '@/constants/spacing';
 
 type BadgeVariant = 'primary' | 'success' | 'warning' | 'error';
@@ -68,16 +68,17 @@ export function Badge({
   const getTextColor = (): string => {
     switch (variant) {
       case 'primary':
-        // For brand color, use dark text for better contrast
-        return colors.isDark ? '#ffffff' : '#0a0a0a';
+        // For brand color, use dark text on light mode, white on dark mode for better contrast
+        return colors.isDark ? TEXT_ON_COLOR.white : colors.text.primary;
       case 'success':
-        // Success uses brand green, same text color logic
-        return colors.isDark ? '#ffffff' : '#0a0a0a';
+        // Success uses brand green, same text color logic as primary
+        return colors.isDark ? TEXT_ON_COLOR.white : colors.text.primary;
       case 'warning':
-        // Warning and error always use white text for contrast on colored backgrounds
-        return '#ffffff';
+        // Warning always uses white text for contrast on colored backgrounds
+        return TEXT_ON_COLOR.white;
       case 'error':
-        return '#ffffff';
+        // Error always uses white text for contrast on colored backgrounds
+        return TEXT_ON_COLOR.white;
       default:
         return colors.text.primary;
     }
