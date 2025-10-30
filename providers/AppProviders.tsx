@@ -24,9 +24,11 @@ import { AuthProvider } from '@/providers/AuthProvider';
 import { ServicesProvider } from '@/providers/ServicesProvider';
 import { ThemeProvider } from '@/providers/ThemeProvider';
 import { composeProviders } from './composeProviders';
+import { IconFontsProvider } from './IconFontsProvider';
 
 // Compose all providers in the correct dependency order
 const ComposedProviders = composeProviders(
+  IconFontsProvider,
   ErrorBoundary,
   AuthProvider,
   ServicesProvider,
