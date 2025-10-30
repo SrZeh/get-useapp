@@ -162,29 +162,23 @@ export function GlobalTabBar({ style, opacity }: GlobalTabBarProps = {}) {
     router.push(tab.route as any);
   };
 
+  // Replace row arrangement with column, remove tab text
+  const isWeb = Platform.OS === "web";
+  const sidebarWidth = 72; // enough for icons
+
   return (
     <View
       style={{
         position: 'absolute',
-        bottom: 0,
+        top: isWeb ? 0 : insets.top,
         left: 0,
-        right: 0,
-        width: '100%',
-        marginTop: headerHeight,
-        paddingHorizontal: Spacing.sm,
-        paddingTop: Spacing.xs,
+        bottom: 0,
+        width: sidebarWidth,
+        zIndex: 999,
+        paddingTop: isWeb ? headerHeight : Spacing['lg'],
         paddingBottom: Math.max(insets.bottom, Spacing.xs),
-        ...Platform.select({
-          ios: {
-            shadowColor: "#000",
-            shadowOffset: { width: 0, height: -2 },
-            shadowOpacity: 0.1,
-            shadowRadius: 4,
-          },
-          android: {
-            elevation: 8,
-          },
-        }),
+        backgroundColor: 'transparent',
+        flexDirection: 'column',
         ...style,
       }}
     >
@@ -194,76 +188,47 @@ export function GlobalTabBar({ style, opacity }: GlobalTabBarProps = {}) {
         opacity={opacity}
         cornerRadius={BorderRadius.xl}
         style={{
-          padding: Spacing['3xs'],
-          position: 'relative',
+          flex: 1,
+          alignItems: 'center',
+          justifyContent: 'flex-start',
+          paddingVertical: Spacing.md,
+          paddingHorizontal: Spacing['3xs'],
+          width: '100%',
+          backgroundColor: 'transparent',
         }}
       >
-        <View
-          style={{
-            flexDirection: "row",
-            justifyContent: "space-around",
-            alignItems: "center",
-            position: 'relative',
-          }}
-        >
-          {/* Sliding Pill Indicator */}
-          {activeTab && (
-            <Animated.View
+        {/* Sort tabs so 'index' comes first */}
+        {[...tabs].sort((a, b) => (a.name === 'index' ? -1 : b.name === 'index' ? 1 : 0)).map((tab) => {
+          const isActive = activeTab === tab.name;
+          const tabColor = isActive ? brandColor : colors.text.secondary;
+          const showDot = tab.name === "transactions" && showTxDot;
+          return (
+            <TouchableOpacity
+              key={tab.name}
+              onPress={() => handleTabPress(tab)}
+              onLayout={handleTabLayout(tab.name)}
               style={{
-                position: 'absolute',
-                left: slidePosition,
-                top: 0,
-                bottom: 0,
-                height: '100%',
-                width: slideWidth,
-                backgroundColor: brandColor,
+                width: sidebarWidth,
+                height: sidebarWidth,
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginBottom: Spacing.md,
                 borderRadius: BorderRadius.lg,
-                opacity: 0.2,
+                backgroundColor: isActive ? brandColor + '22' : 'transparent', // light colored background for active
               }}
-            />
-          )}
-          
-          {tabs.map((tab) => {
-            const isActive = activeTab === tab.name;
-            const tabColor = isActive ? brandColor : colors.text.secondary;
-            const showDot = tab.name === "transactions" && showTxDot;
-
-            return (
-              <TouchableOpacity
-                key={tab.name}
-                onPress={() => handleTabPress(tab)}
-                onLayout={handleTabLayout(tab.name)}
-                style={{
-                  flex: 1,
-                  alignItems: "center",
-                  justifyContent: "center",
-                  paddingVertical: Spacing['3xs'],
-                  zIndex: 1,
-                }}
-                accessibilityRole="button"
-                accessibilityLabel={tab.title}
-                accessibilityState={{ selected: isActive }}
-              >
-                <TabIcon
-                  Icon={tab.Icon}
-                  color={tabColor}
-                  size={tab.size}
-                  showDot={showDot}
-                />
-                <Text
-                  style={{
-                    fontSize: 11,
-                    marginTop: Spacing['3xs'],
-                    color: tabColor,
-                    fontWeight: isActive ? "600" : "400",
-                  }}
-                >
-                  {tab.title}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
+              accessibilityRole="button"
+              accessibilityLabel={tab.title}
+              accessibilityState={{ selected: isActive }}
+            >
+              <TabIcon
+                Icon={tab.Icon}
+                color={tabColor}
+                size={32}
+                showDot={showDot}
+              />
+            </TouchableOpacity>
+          );
+        })}
       </LiquidGlassView>
     </View>
   );
