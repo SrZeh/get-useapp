@@ -134,7 +134,7 @@ export default function VitrineScreen() {
             gap: grid.cardSpacing,
           } : undefined}
           contentContainerStyle={{ 
-            paddingBottom: Spacing.md,
+            paddingBottom: Spacing.xl * 2,
             paddingHorizontal: grid.numColumns > 1 ? 0 : grid.screenPadding,
             flexGrow: 1,
           }}
@@ -149,22 +149,6 @@ export default function VitrineScreen() {
           }
           onEndReachedThreshold={0.15}
           onEndReached={itemList.loadMore}
-          ListFooterComponent={
-            itemList.loadingMore ? (
-              <View style={{ padding: Spacing.sm, paddingHorizontal: grid.screenPadding }}>
-                <ShimmerLoader height={120} borderRadius={BorderRadius.sm} />
-              </View>
-            ) : !itemList.hasMore && itemList.filteredItems.length > 0 ? (
-              <View style={{ padding: Spacing.xs, alignItems: "center" }}>
-                <ThemedText 
-                  type="footnote"
-                  className="text-light-text-tertiary dark:text-dark-text-tertiary"
-                >
-                  {/* Fim da lista */}
-                </ThemedText>
-              </View>
-            ) : null
-          }
           showsVerticalScrollIndicator={false}
           nestedScrollEnabled={true}
         />

@@ -3,9 +3,9 @@ import { Platform, View, StyleSheet, TouchableOpacity, Linking, ScrollView } fro
 import { Link } from 'expo-router';
 import { ThemedText } from './themed-text';
 import { LiquidGlassView } from './liquid-glass/LiquidGlassView';
-import { ExtendedColors } from '@/constants/colors';
 import { Spacing } from '@/constants/spacing';
 import { useThemeColors } from '@/utils';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 /**
  * Footer component with Brazilian footer information
@@ -14,6 +14,7 @@ import { useThemeColors } from '@/utils';
  */
 export function Footer() {
   const colors = useThemeColors();
+  const insets = useSafeAreaInsets();
 
   const handleEmailPress = () => {
     Linking.openURL('mailto:contato@getuseapp.com');
@@ -24,22 +25,34 @@ export function Footer() {
   };
 
   return (
-    <View
-      style={[
-        styles.container,
-        {
-          backgroundColor: ExtendedColors.brand.primary, // Green background
-          marginTop: Spacing.lg,
-        },
-      ]}
-    >
+    <View style={[styles.container, { marginTop: 0 }]}>
       <LiquidGlassView
-        intensity="strong"
-        tint="light"
+        intensity="subtle"
+        tint="system"
         cornerRadius={0}
-        opacity={0.85}
-        style={styles.glassOverlay}
+        opacity={0}
+        style={[
+          styles.glassOverlay,
+          {
+            paddingBottom: Math.max(insets.bottom, Spacing.sm),
+            borderTopLeftRadius: 16,
+            borderTopRightRadius: 16,
+            overflow: 'hidden',
+          },
+        ]}
       >
+        {/* Light green translucent overlay for mint glass tint (no base opacity) */}
+        <View
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(150, 255, 154, 0.14)',
+          }}
+          pointerEvents="none"
+        />
         <View style={styles.content}>
           {/* Horizontal Row Layout */}
           <ScrollView 
@@ -49,49 +62,49 @@ export function Footer() {
           >
             {/* App Name */}
             <View style={styles.appInfo}>
-              <ThemedText type="title" style={styles.appName}>
+              <ThemedText type="title" style={[styles.appName, { color: colors.text.primary }]}>
                 Get & Use
               </ThemedText>
             </View>
 
-            <View style={styles.separator} />
+            <View style={[styles.separator, { backgroundColor: 'rgba(150, 255, 154, 0.28)' }]} />
 
             {/* Links Section */}
             <View style={styles.linksContainer}>
               <Link href="/termosdeuso" asChild>
                 <TouchableOpacity style={styles.linkItem}>
-                  <ThemedText style={styles.link}>Termos de Uso</ThemedText>
+                  <ThemedText style={[styles.link, { color: colors.text.primary, opacity: 0.9 }]}>Termos de Uso</ThemedText>
                 </TouchableOpacity>
               </Link>
               <TouchableOpacity style={styles.linkItem}>
-                <ThemedText style={styles.link}>Política de Privacidade</ThemedText>
+                <ThemedText style={[styles.link, { color: colors.text.primary, opacity: 0.9 }]}>Política de Privacidade</ThemedText>
               </TouchableOpacity>
               <TouchableOpacity style={styles.linkItem}>
-                <ThemedText style={styles.link}>Central de Ajuda</ThemedText>
+                <ThemedText style={[styles.link, { color: colors.text.primary, opacity: 0.9 }]}>Central de Ajuda</ThemedText>
               </TouchableOpacity>
             </View>
 
-            <View style={styles.separator} />
+            <View style={[styles.separator, { backgroundColor: 'rgba(150, 255, 154, 0.28)' }]} />
 
             {/* Contact Section */}
             <View style={styles.contactSection}>
               <TouchableOpacity onPress={handleEmailPress} style={styles.contactItem}>
-                <ThemedText style={styles.contactText}>
+                <ThemedText style={[styles.contactText, { color: colors.text.primary, opacity: 0.85 }]}>
                   contato@getuseapp.com
                 </ThemedText>
               </TouchableOpacity>
               <TouchableOpacity onPress={handlePhonePress} style={styles.contactItem}>
-                <ThemedText style={styles.contactText}>
+                <ThemedText style={[styles.contactText, { color: colors.text.primary, opacity: 0.85 }]}>
                   (11) 99999-9999
                 </ThemedText>
               </TouchableOpacity>
             </View>
 
-            <View style={styles.separator} />
+            <View style={[styles.separator, { backgroundColor: 'rgba(150, 255, 154, 0.28)' }]} />
 
             {/* Copyright */}
             <View style={styles.copyright}>
-              <ThemedText style={styles.copyrightText}>
+              <ThemedText style={[styles.copyrightText, { color: colors.text.secondary, opacity: 0.8 }]}>
                 © {new Date().getFullYear()} Get & Use
               </ThemedText>
             </View>
@@ -128,13 +141,12 @@ const styles = StyleSheet.create({
   appName: {
     fontWeight: '700',
     fontSize: 16,
-    color: '#000000', // Dark text on green background
     whiteSpace: 'nowrap' as any,
   },
   separator: {
     width: 1,
     height: 20,
-    backgroundColor: 'rgba(0, 0, 0, 0.2)',
+    backgroundColor: 'rgba(127, 127, 127, 0.25)',
     flexShrink: 0,
   },
   linksContainer: {
@@ -150,8 +162,6 @@ const styles = StyleSheet.create({
   link: {
     fontSize: 13,
     textDecorationLine: 'underline' as const,
-    color: '#000000',
-    opacity: 0.9,
     whiteSpace: 'nowrap' as any,
   },
   contactSection: {
@@ -166,8 +176,6 @@ const styles = StyleSheet.create({
   },
   contactText: {
     fontSize: 13,
-    color: '#000000',
-    opacity: 0.85,
     whiteSpace: 'nowrap' as any,
   },
   copyright: {
@@ -175,8 +183,6 @@ const styles = StyleSheet.create({
   },
   copyrightText: {
     fontSize: 12,
-    color: '#000000',
-    opacity: 0.75,
     whiteSpace: 'nowrap' as any,
   },
 });

@@ -83,9 +83,10 @@ export function AppContent() {
                 <Footer />
               </CoachmarksProvider>
             </OnboardingProvider>
+            <GlobalSidebar />
+
           </View>
         </View>
-        <GlobalSidebar />
         <StatusBar style={scheme === 'dark' ? 'light' : 'dark'} />
       </ThemeProvider>
     );
