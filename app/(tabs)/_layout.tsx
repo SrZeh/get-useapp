@@ -59,7 +59,7 @@ export default function TabLayout() {
     headerTransparent: true,
     headerTintColor: colors.text.primary,
     headerTitleStyle: { color: colors.text.primary },
-    tabBarStyle: { display: "none" as const }, // Use GlobalTabBar instead
+    tabBarStyle: { display: "none" as const }, // Use GlobalSidebar instead
     tabBarActiveTintColor: colors.icon.selected,
     tabBarInactiveTintColor: colors.icon.default,
   }), [colors, isLoggedIn]);

@@ -16,7 +16,8 @@ import { useThemeColors } from '@/utils';
 import { HeaderLogo } from '@/components/layouts/HeaderLogo';
 import { OnboardingProvider } from '@/providers/OnboardingProvider';
 import { CoachmarksProvider } from '@/providers/CoachmarksProvider';
-import { GlobalTabBar } from '@/components/GlobalTabBar';
+import { GlobalSidebar } from '@/components/GlobalSidebar';
+import { Footer } from '@/components/Footer';
 import { WebStyles } from '@/components/WebStyles';
 
 /**
@@ -79,11 +80,12 @@ export function AppContent() {
                 <View style={{ flex: 1 }}>
                   {content}
                 </View>
-                <GlobalTabBar />
+                <Footer />
               </CoachmarksProvider>
             </OnboardingProvider>
           </View>
         </View>
+        <GlobalSidebar />
         <StatusBar style={scheme === 'dark' ? 'light' : 'dark'} />
       </ThemeProvider>
     );
@@ -106,11 +108,12 @@ export function AppContent() {
               <View style={{ flex: 1 }}>
                 {content}
               </View>
-              <GlobalTabBar />
+              <Footer />
             </CoachmarksProvider>
           </OnboardingProvider>
         </View>
       </View>
+      <GlobalSidebar />
       <StatusBar style={scheme === 'dark' ? 'light' : 'dark'} />
     </ThemeProvider>
   );

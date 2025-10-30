@@ -70,7 +70,7 @@ export { PriceRangeFilter } from './PriceRangeFilter';
 export { ReservationCard } from './ReservationCard';
 export { ResponsiveGrid } from './ResponsiveGrid';
 export { ScrollableCategories } from './ScrollableCategories';
-export { GlobalTabBar } from './GlobalTabBar';
+export { GlobalSidebar } from './GlobalSidebar';
 export { Footer } from './Footer';
 
 // Coachmarks
