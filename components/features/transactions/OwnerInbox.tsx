@@ -12,6 +12,7 @@ import type { Reservation } from './types';
 import { useReservationService } from '@/providers/ServicesProvider';
 import { Spacing, BorderRadius } from '@/constants/spacing';
 import { OwnerReservationActions } from './owner-actions';
+import { Footer } from '@/components/Footer';
 
 /**
  * OwnerInbox component - displays reservations for item owners
@@ -108,7 +109,7 @@ export function OwnerInbox() {
 
 
   return (
-    <ScrollView style={{ padding: Spacing.sm }} contentContainerStyle={{ paddingBottom: Spacing.lg }}>
+    <ScrollView style={{ padding: Spacing.sm }} contentContainerStyle={{ paddingBottom: 0 }}>
       {rows.length === 0 ? (
         <LiquidGlassView intensity="standard" cornerRadius={BorderRadius.xl} style={{ padding: Spacing.lg, alignItems: 'center' }}>
           <ThemedText type="title" style={{ textAlign: 'center' }}>
@@ -138,6 +139,7 @@ export function OwnerInbox() {
           ))}
         </View>
       )}
+      <Footer />
     </ScrollView>
   );
 }

@@ -19,6 +19,7 @@ import { ShimmerLoader } from "@/components/ShimmerLoader";
 import { ItemCard } from "@/components/features/items";
 import { SearchHeader } from "@/components/search";
 import { EmptyState } from "@/components/states";
+import { Footer } from "@/components/Footer";
 import { useItemList, useResponsiveGrid } from "@/hooks/features/items";
 import { Spacing, BorderRadius } from "@/constants/spacing";
 import type { Item } from "@/types";
@@ -115,6 +116,7 @@ export default function VitrineScreen() {
           keyExtractor={(it) => it.id}
           renderItem={renderItem}
           ListHeaderComponent={renderHeader}
+          ListFooterComponent={<Footer />}
           removeClippedSubviews={true}
           maxToRenderPerBatch={10}
           windowSize={10}
@@ -134,7 +136,7 @@ export default function VitrineScreen() {
             gap: grid.cardSpacing,
           } : undefined}
           contentContainerStyle={{ 
-            paddingBottom: Spacing.xl * 2,
+            paddingBottom: 0,
             paddingHorizontal: grid.numColumns > 1 ? 0 : grid.screenPadding,
             flexGrow: 1,
           }}

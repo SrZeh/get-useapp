@@ -7,6 +7,7 @@ import { LiquidGlassView } from '@/components/liquid-glass';
 import { Button } from '@/components/Button';
 import { ShimmerLoader } from '@/components/ShimmerLoader';
 import { ItemManagementCard } from '@/components/features/items';
+import { Footer } from '@/components/Footer';
 import { useThemeColors } from '@/utils';
 import { useNavigationService } from '@/providers/ServicesProvider';
 import { useUserItems, useItemOperations } from '@/hooks/features/items';
@@ -85,8 +86,9 @@ export default function ItemsScreen() {
           refreshing={refreshing}
           onRefresh={refresh}
           keyExtractor={(it) => it.id}
-          contentContainerStyle={{ padding: Spacing.sm, paddingBottom: Spacing.lg }}
+          contentContainerStyle={{ padding: Spacing.sm, paddingBottom: 0 }}
           ItemSeparatorComponent={() => <View style={{ height: Spacing.sm }} />}
+          ListFooterComponent={<Footer />}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.brand.primary} />
           }

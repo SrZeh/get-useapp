@@ -9,6 +9,7 @@
  * 2. AuthProvider - Required by ServicesProvider and other providers
  * 3. ServicesProvider - Provides business logic services
  * 4. ThemeProvider - Provides theme context
+ * 5. SidebarProvider - Provides sidebar state management
  * 
  * Usage:
  * ```tsx
@@ -23,6 +24,7 @@ import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { AuthProvider } from '@/providers/AuthProvider';
 import { ServicesProvider } from '@/providers/ServicesProvider';
 import { ThemeProvider } from '@/providers/ThemeProvider';
+import { SidebarProvider } from '@/providers/SidebarProvider';
 import { composeProviders } from './composeProviders';
 import { IconFontsProvider } from './IconFontsProvider';
 
@@ -33,6 +35,7 @@ const ComposedProviders = composeProviders(
   AuthProvider,
   ServicesProvider,
   ThemeProvider,
+  SidebarProvider,
 );
 
 /**

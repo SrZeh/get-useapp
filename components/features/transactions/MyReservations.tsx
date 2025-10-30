@@ -10,6 +10,7 @@ import type { Reservation } from './types';
 import { useReservationService, useNavigationService } from '@/providers/ServicesProvider';
 import { Spacing, BorderRadius } from '@/constants/spacing';
 import { RenterReservationActions } from './renter-actions';
+import { Footer } from '@/components/Footer';
 
 // chama a Cloud Function cancelWithRefund
 async function cancelWithRefund(reservationId: string): Promise<void> {
@@ -84,7 +85,7 @@ export function MyReservations() {
 
 
   return (
-    <ScrollView style={{ padding: Spacing.sm }} contentContainerStyle={{ paddingBottom: Spacing.lg }}>
+    <ScrollView style={{ padding: Spacing.sm }} contentContainerStyle={{ paddingBottom: 0 }}>
       {rows.length === 0 ? (
         <LiquidGlassView intensity="standard" cornerRadius={BorderRadius.xl} style={{ padding: Spacing.lg, alignItems: 'center' }}>
           <ThemedText type="title" style={{ textAlign: 'center' }}>
@@ -112,6 +113,7 @@ export function MyReservations() {
           ))}
         </View>
       )}
+      <Footer />
     </ScrollView>
   );
 }

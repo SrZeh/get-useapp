@@ -1,17 +1,23 @@
 // components/HeaderMenu.tsx
-import { router } from "expo-router";
 import React from "react";
 import { TouchableOpacity } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { useSidebar } from "@/providers/SidebarProvider";
+import * as Haptics from "expo-haptics";
+import { Platform } from "react-native";
 
 export function HeaderMenu() {
   const scheme = useColorScheme() ?? "light";
   const palette = Colors[scheme];
+  const { toggle } = useSidebar();
 
   const handlePress = () => {
-    router.push("/modal");
+    if (Platform.OS === "ios") {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
+    toggle();
   };
 
   return (
@@ -21,7 +27,7 @@ export function HeaderMenu() {
       android_ripple={{ borderless: true }}
       accessibilityRole="button"
       accessibilityLabel="Menu"
-      accessibilityHint="Toque para abrir o menu"
+      accessibilityHint="Toque para abrir o menu lateral"
     >
       <MaterialIcons
         name="menu"

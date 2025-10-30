@@ -1,20 +1,25 @@
 import React from 'react';
-import { Platform, View, StyleSheet, TouchableOpacity, Linking, ScrollView } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, Linking } from 'react-native';
 import { Link } from 'expo-router';
+import { Image } from 'expo-image';
 import { ThemedText } from './themed-text';
 import { LiquidGlassView } from './liquid-glass/LiquidGlassView';
 import { Spacing } from '@/constants/spacing';
 import { useThemeColors } from '@/utils';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useResponsive } from '@/hooks/useResponsive';
 
 /**
- * Footer component with Brazilian footer information
- * Displays legal links, contact info, and copyright in a single row layout
+ * Footer component with responsive 3-column grid layout
+ * Section 1: Logo
+ * Section 2: Links and contact info
+ * Section 3: Copyright
  * Uses green background with glass blur effect
  */
 export function Footer() {
   const colors = useThemeColors();
   const insets = useSafeAreaInsets();
+  const { isMobile, isTablet } = useResponsive();
 
   const handleEmailPress = () => {
     Linking.openURL('mailto:contato@getuseapp.com');
@@ -23,6 +28,10 @@ export function Footer() {
   const handlePhonePress = () => {
     Linking.openURL('tel:+5511999999999');
   };
+
+  // Responsive padding
+  const horizontalPadding = isMobile ? Spacing.md : isTablet ? Spacing.lg : Spacing.xl;
+  const verticalPadding = isMobile ? Spacing.md : Spacing.lg;
 
   return (
     <View style={[styles.container, { marginTop: 0 }]}>
@@ -41,7 +50,7 @@ export function Footer() {
           },
         ]}
       >
-        {/* Light green translucent overlay for mint glass tint (no base opacity) */}
+        {/* Light green translucent overlay for mint glass tint */}
         <View
           style={{
             position: 'absolute',
@@ -53,62 +62,71 @@ export function Footer() {
           }}
           pointerEvents="none"
         />
-        <View style={styles.content}>
-          {/* Horizontal Row Layout */}
-          <ScrollView 
-            horizontal 
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.rowContent}
-          >
-            {/* App Name */}
-            <View style={styles.appInfo}>
-              <ThemedText type="title" style={[styles.appName, { color: colors.text.primary }]}>
-                Get & Use
-              </ThemedText>
-            </View>
-
-            <View style={[styles.separator, { backgroundColor: 'rgba(150, 255, 154, 0.28)' }]} />
-
-            {/* Links Section */}
-            <View style={styles.linksContainer}>
-              <Link href="/termosdeuso" asChild>
-                <TouchableOpacity style={styles.linkItem}>
-                  <ThemedText style={[styles.link, { color: colors.text.primary, opacity: 0.9 }]}>Termos de Uso</ThemedText>
+        <View style={[styles.content, { paddingHorizontal: horizontalPadding, paddingTop: verticalPadding }]}>
+          {/* Responsive Grid Layout */}
+          <View style={[styles.grid, isMobile && styles.gridMobile]}>
+            {/* Section 1: Logo */}
+            <View style={[styles.gridItem, styles.logoSection]}>
+              <Link href="/" asChild>
+                <TouchableOpacity style={styles.logoContainer} accessibilityRole="link" accessibilityLabel="Get & Use">
+                  <Image
+                    source={require("@/assets/images/logo.png")}
+                    style={styles.logo}
+                    contentFit="contain"
+                    transition={200}
+                  />
+                  <ThemedText type="title" style={[styles.appName, { color: colors.text.primary }]}>
+                    Get & Use
+                  </ThemedText>
                 </TouchableOpacity>
               </Link>
-              <TouchableOpacity style={styles.linkItem}>
-                <ThemedText style={[styles.link, { color: colors.text.primary, opacity: 0.9 }]}>Política de Privacidade</ThemedText>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.linkItem}>
-                <ThemedText style={[styles.link, { color: colors.text.primary, opacity: 0.9 }]}>Central de Ajuda</ThemedText>
-              </TouchableOpacity>
             </View>
 
-            <View style={[styles.separator, { backgroundColor: 'rgba(150, 255, 154, 0.28)' }]} />
+            {/* Section 2: Links and Contact Info */}
+            <View style={[styles.gridItem, styles.linksContactSection]}>
+              {/* Links */}
+              <View style={styles.linksContainer}>
+                <Link href="/termosdeuso" asChild>
+                  <TouchableOpacity style={styles.linkItem}>
+                    <ThemedText style={[styles.link, { color: colors.text.primary, opacity: 0.9 }]}>
+                      Termos de Uso
+                    </ThemedText>
+                  </TouchableOpacity>
+                </Link>
+                <TouchableOpacity style={styles.linkItem}>
+                  <ThemedText style={[styles.link, { color: colors.text.primary, opacity: 0.9 }]}>
+                    Política de Privacidade
+                  </ThemedText>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.linkItem}>
+                  <ThemedText style={[styles.link, { color: colors.text.primary, opacity: 0.9 }]}>
+                    Central de Ajuda
+                  </ThemedText>
+                </TouchableOpacity>
+              </View>
 
-            {/* Contact Section */}
-            <View style={styles.contactSection}>
-              <TouchableOpacity onPress={handleEmailPress} style={styles.contactItem}>
-                <ThemedText style={[styles.contactText, { color: colors.text.primary, opacity: 0.85 }]}>
-                  contato@getuseapp.com
-                </ThemedText>
-              </TouchableOpacity>
-              <TouchableOpacity onPress={handlePhonePress} style={styles.contactItem}>
-                <ThemedText style={[styles.contactText, { color: colors.text.primary, opacity: 0.85 }]}>
-                  (11) 99999-9999
-                </ThemedText>
-              </TouchableOpacity>
+              {/* Contact Info */}
+              <View style={styles.contactSection}>
+                <TouchableOpacity onPress={handleEmailPress} style={styles.contactItem}>
+                  <ThemedText style={[styles.contactText, { color: colors.text.primary, opacity: 0.85 }]}>
+                    contato@getuseapp.com
+                  </ThemedText>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={handlePhonePress} style={styles.contactItem}>
+                  <ThemedText style={[styles.contactText, { color: colors.text.primary, opacity: 0.85 }]}>
+                    (11) 99999-9999
+                  </ThemedText>
+                </TouchableOpacity>
+              </View>
             </View>
 
-            <View style={[styles.separator, { backgroundColor: 'rgba(150, 255, 154, 0.28)' }]} />
-
-            {/* Copyright */}
-            <View style={styles.copyright}>
-              <ThemedText style={[styles.copyrightText, { color: colors.text.secondary, opacity: 0.8 }]}>
-                © {new Date().getFullYear()} Get & Use
+            {/* Section 3: Copyright */}
+            <View style={[styles.gridItem, styles.copyrightSection, isMobile && styles.copyrightMobile]}>
+              <ThemedText style={[styles.copyrightText, isMobile && styles.copyrightTextMobile, { color: colors.text.secondary, opacity: 0.8 }]}>
+                © 2025 Get & Use
               </ThemedText>
             </View>
-          </ScrollView>
+          </View>
         </View>
       </LiquidGlassView>
     </View>
@@ -126,64 +144,85 @@ const styles = StyleSheet.create({
     borderBottomWidth: 0,
   },
   content: {
-    paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.sm,
+    width: '100%',
   },
-  rowContent: {
-    flexDirection: 'row' as const,
-    alignItems: 'center' as const,
-    gap: Spacing.md,
-    flexWrap: 'wrap' as const,
+  grid: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: Spacing.lg,
+    flexWrap: 'wrap',
   },
-  appInfo: {
+  gridMobile: {
+    flexDirection: 'column',
+    gap: Spacing.lg,
+  },
+  gridItem: {
+    flex: 1,
+    minWidth: 200, // Minimum width for desktop columns
+  },
+  logoSection: {
     flexShrink: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  logoContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  logo: {
+    width: 32,
+    height: 32,
   },
   appName: {
     fontWeight: '700',
-    fontSize: 16,
-    whiteSpace: 'nowrap' as any,
+    fontSize: 18,
   },
-  separator: {
-    width: 1,
-    height: 20,
-    backgroundColor: 'rgba(127, 127, 127, 0.25)',
-    flexShrink: 0,
+  linksContactSection: {
+    flex: 1.5,
+    gap: Spacing.md,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   linksContainer: {
-    flexDirection: 'row' as const,
-    alignItems: 'center' as const,
-    gap: Spacing.sm,
-    flexShrink: 1,
-    flexWrap: 'wrap' as const,
+    flexDirection: 'column',
+    gap: Spacing.xs,
+    marginBottom: Spacing.md,
+    alignItems: 'center',
   },
   linkItem: {
-    flexShrink: 0,
+    alignSelf: 'center',
   },
   link: {
-    fontSize: 13,
-    textDecorationLine: 'underline' as const,
-    whiteSpace: 'nowrap' as any,
+    fontSize: 14,
+    textDecorationLine: 'underline',
   },
   contactSection: {
-    flexDirection: 'row' as const,
-    alignItems: 'center' as const,
-    gap: Spacing.sm,
-    flexShrink: 1,
-    flexWrap: 'wrap' as const,
+    flexDirection: 'column',
+    gap: Spacing.xs,
+    alignItems: 'center',
   },
   contactItem: {
-    flexShrink: 0,
+    alignSelf: 'center',
   },
   contactText: {
-    fontSize: 13,
-    whiteSpace: 'nowrap' as any,
+    fontSize: 14,
   },
-  copyright: {
+  copyrightSection: {
     flexShrink: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  copyrightMobile: {
+    alignItems: 'center',
   },
   copyrightText: {
-    fontSize: 12,
-    whiteSpace: 'nowrap' as any,
+    fontSize: 13,
+    textAlign: 'center',
+  },
+  copyrightTextMobile: {
+    textAlign: 'center',
   },
 });
 
