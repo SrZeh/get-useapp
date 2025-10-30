@@ -7,7 +7,7 @@ import { View, ViewStyle } from 'react-native';
 import { ThemedText } from '@/components/themed-text';
 import { LiquidGlassView } from '@/components/liquid-glass';
 import { useThemeColors } from '@/utils/theme';
-import { Ionicons } from '@expo/vector-icons';
+import { DollarIcon } from '@/assets/icons/category-icons';
 import { Picker } from '@react-native-picker/picker';
 import { PRICE_OPTIONS } from './PriceRangeFilter';
 import { Spacing, BorderRadius } from '@/constants/spacing';
@@ -72,10 +72,11 @@ export const PriceInputFilter = memo(function PriceInputFilter({
         {onMinPriceChange && (
           <View style={{ flex: 1 }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8, gap: 6 }}>
-              <Ionicons
-                name="cash"
-                size={18}
+              <DollarIcon
+                width={18}
+                height={18}
                 color={colors.text.primary}
+                stroke={colors.text.primary}
               />
               <ThemedText
                 type="caption-1"
@@ -125,10 +126,11 @@ export const PriceInputFilter = memo(function PriceInputFilter({
         {onMaxPriceChange && (
           <View style={{ flex: 1 }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8, gap: 6 }}>
-              <Ionicons
-                name="cash"
-                size={18}
+              <DollarIcon
+                width={18}
+                height={18}
                 color={colors.text.primary}
+                stroke={colors.text.primary}
               />
               <ThemedText
                 type="caption-1"

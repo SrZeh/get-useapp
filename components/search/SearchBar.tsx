@@ -5,7 +5,7 @@
 import React from 'react';
 import { View, TextInput } from 'react-native';
 import { LiquidGlassView } from '@/components/liquid-glass';
-import { Ionicons } from '@expo/vector-icons';
+import { SearchIcon } from '@/assets/icons/search-icon';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
@@ -38,10 +38,11 @@ export const SearchBar = React.memo(function SearchBar({
           gap: 12,
         }}
       >
-        <Ionicons
-          name="search"
-          size={20}
+        <SearchIcon
+          width={20}
+          height={20}
           color={palette.textTertiary}
+          stroke={palette.textTertiary}
         />
         <TextInput
           placeholder={placeholder}

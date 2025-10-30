@@ -5,32 +5,60 @@
 import React, { useMemo } from 'react';
 import { ScrollableCategories } from '@/components/ScrollableCategories';
 import { CategoryChip } from '@/components/CategoryChip';
-import { Ionicons } from '@expo/vector-icons';
+import {
+  FlashIcon,
+  HammerIcon,
+  ConstructIcon,
+  CutIcon,
+  LeafIcon,
+  TrailSignIcon,
+  FootballIcon,
+  BicycleIcon,
+  CameraIcon,
+  MusicalNotesIcon,
+  LaptopIcon,
+  TvIcon,
+  RestaurantIcon,
+  BalloonIcon,
+  HomeIcon,
+  CarIcon,
+  HeartIcon,
+  GameControllerIcon,
+  PawIcon,
+  MedicalIcon,
+  AppsIcon,
+} from '@/assets/icons/category-icons';
 
-type CategoryIconMap = Record<string, keyof typeof Ionicons.glyphMap>;
+type CategoryIconComponent = React.ComponentType<{ 
+  width?: number; 
+  height?: number; 
+  color?: string; 
+  fill?: string;
+  stroke?: string;
+}>;
 
-const CATEGORY_ICONS: CategoryIconMap = {
-  'Ferramentas elétricas': 'flash',
-  'Ferramentas manuais': 'hammer',
-  'Construção & Reforma': 'construct',
-  'Marcenaria & Carpintaria': 'cut',
-  'Jardinagem': 'leaf',
-  'Camping & Trilha': 'trail-sign',
-  'Esportes & Lazer': 'football',
-  'Mobilidade (bike/patinete)': 'bicycle',
-  'Fotografia & Vídeo': 'camera',
-  'Música & Áudio': 'musical-notes',
-  'Informática & Acessórios': 'laptop',
-  'Eletroportáteis': 'tv',
-  'Cozinha & Utensílios': 'restaurant',
-  'Eventos & Festas': 'balloon',
-  'Móveis & Decoração': 'home',
-  'Automotivo & Moto': 'car',
-  'Bebê & Infantil': 'heart',
-  'Brinquedos & Jogos': 'game-controller',
-  'Pet': 'paw',
-  'Saúde & Beleza': 'medical',
-  'Outros': 'apps',
+const CATEGORY_ICONS: Record<string, CategoryIconComponent> = {
+  'Ferramentas elétricas': FlashIcon,
+  'Ferramentas manuais': HammerIcon,
+  'Construção & Reforma': ConstructIcon,
+  'Marcenaria & Carpintaria': CutIcon,
+  'Jardinagem': LeafIcon,
+  'Camping & Trilha': TrailSignIcon,
+  'Esportes & Lazer': FootballIcon,
+  'Mobilidade (bike/patinete)': BicycleIcon,
+  'Fotografia & Vídeo': CameraIcon,
+  'Música & Áudio': MusicalNotesIcon,
+  'Informática & Acessórios': LaptopIcon,
+  'Eletroportáteis': TvIcon,
+  'Cozinha & Utensílios': RestaurantIcon,
+  'Eventos & Festas': BalloonIcon,
+  'Móveis & Decoração': HomeIcon,
+  'Automotivo & Moto': CarIcon,
+  'Bebê & Infantil': HeartIcon,
+  'Brinquedos & Jogos': GameControllerIcon,
+  'Pet': PawIcon,
+  'Saúde & Beleza': MedicalIcon,
+  'Outros': AppsIcon,
 };
 
 type CategoryFilterProps = {

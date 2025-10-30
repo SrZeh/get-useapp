@@ -5,17 +5,24 @@ import Animated, {
   useAnimatedStyle,
   withSpring,
 } from 'react-native-reanimated';
-import { Ionicons } from '@expo/vector-icons';
 import { HapticFeedback, useChipColors } from '@/utils';
 import { ThemedText } from './themed-text';
 import { Spacing, BorderRadius } from '@/constants/spacing';
+
+type IconComponent = React.ComponentType<{ 
+  width?: number; 
+  height?: number; 
+  color?: string; 
+  fill?: string;
+  stroke?: string;
+}>;
 
 type CategoryChipProps = {
   label: string;
   selected?: boolean;
   onPress: () => void;
   style?: ViewStyle;
-  icon?: keyof typeof Ionicons.glyphMap;
+  icon?: string | IconComponent; // Support both legacy string and new component
 };
 
 export function CategoryChip({
@@ -74,11 +81,20 @@ export function CategoryChip({
         accessibilityHint="Toque duas vezes para selecionar ou desmarcar esta categoria"
       >
         {icon && (
-          <Ionicons
-            name={icon}
-            size={16}
-            color={chipColors.icon}
-          />
+          typeof icon === 'function' ? (
+            (() => {
+              const IconComponent = icon;
+              return (
+                <IconComponent
+                  width={16}
+                  height={16}
+                  color={chipColors.icon}
+                  fill={chipColors.icon}
+                  stroke={chipColors.icon}
+                />
+              );
+            })()
+          ) : null
         )}
         <ThemedText
           type="caption-1"

@@ -1,7 +1,7 @@
 // components/HeaderMenu.tsx
 import React from "react";
 import { TouchableOpacity } from "react-native";
-import { MaterialIcons } from "@expo/vector-icons";
+import { MenuIcon } from "@/assets/icons/menu-icon";
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useSidebar } from "@/providers/SidebarProvider";
@@ -29,10 +29,11 @@ export function HeaderMenu() {
       accessibilityLabel="Menu"
       accessibilityHint="Toque para abrir o menu lateral"
     >
-      <MaterialIcons
-        name="menu"
-        size={28}
+      <MenuIcon
+        width={28}
+        height={28}
         color={palette.icon}
+        stroke={palette.icon}
       />
     </TouchableOpacity>
   );

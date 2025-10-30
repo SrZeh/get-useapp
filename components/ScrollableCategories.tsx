@@ -8,7 +8,7 @@ import {
   ViewStyle,
   LayoutChangeEvent,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { ChevronLeftIcon, ChevronRightIcon } from '@/assets/icons/category-icons';
 import { HapticFeedback, useThemeColors, useGlassColors } from '@/utils';
 
 type ScrollableCategoriesProps = {
@@ -110,10 +110,11 @@ export function ScrollableCategories({
             elevation: 5,
           }}
         >
-          <Ionicons
-            name="chevron-back"
-            size={24}
+          <ChevronLeftIcon
+            width={24}
+            height={24}
             color={colors.brand.primary}
+            stroke={colors.brand.primary}
           />
         </TouchableOpacity>
       )}
@@ -164,10 +165,11 @@ export function ScrollableCategories({
             elevation: 5,
           }}
         >
-          <Ionicons
-            name="chevron-forward"
-            size={24}
+          <ChevronRightIcon
+            width={24}
+            height={24}
             color={colors.brand.primary}
+            stroke={colors.brand.primary}
           />
         </TouchableOpacity>
       )}
