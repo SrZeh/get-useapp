@@ -13,7 +13,7 @@ import { StatusBar } from 'expo-status-bar';
 import { ThemeProvider, DarkTheme, DefaultTheme } from '@react-navigation/native';
 import { useColorScheme } from '@/providers/ThemeProvider';
 import { useThemeColors } from '@/utils';
-import { HeaderLogo } from '@/components/layouts/HeaderLogo';
+import { useAppHeaderOptions } from '@/components/layouts';
 import { OnboardingProvider } from '@/providers/OnboardingProvider';
 import { CoachmarksProvider } from '@/providers/CoachmarksProvider';
 import { GlobalSidebar } from '@/components/GlobalSidebar';
@@ -28,14 +28,8 @@ export function AppContent() {
   const colors = useThemeColors();
   const isWeb = Platform.OS === 'web';
 
-  // Memoize screen options to ensure they update when theme changes
-  const screenOptions = useMemo(() => ({
-    headerTitleAlign: "center" as const,
-    headerTitle: () => <HeaderLogo />,
-    headerStyle: { backgroundColor: colors.bg.primary },
-    headerTintColor: colors.text.primary,
-    headerTitleStyle: { color: colors.text.primary },
-  }), [colors]);
+  // Get memoized header options from reusable component
+  const screenOptions = useAppHeaderOptions();
 
   // Determine navigation theme based on current color scheme
   const navigationTheme = useMemo(() => 
@@ -52,7 +46,9 @@ export function AppContent() {
         </Head>
       )}
       <Stack screenOptions={screenOptions}>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="index" />
+        <Stack.Screen name="items" />
+        <Stack.Screen name="transactions" />
         <Stack.Screen name="profile" options={{ headerShown: false }} />
         <Stack.Screen name="transaction/[id]/pay" options={{ headerShown: true, title: 'Pagamento' }} />
         <Stack.Screen name="transaction/[id]/chat" options={{ headerShown: true, title: 'Chat' }} />

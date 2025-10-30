@@ -78,15 +78,15 @@ export class ExpoRouterNavigationService implements INavigationService {
   }
 
   navigateToHome(): void {
-    router.replace('/(tabs)');
+    router.replace('/');
   }
 
   navigateToTransactions(): void {
-    router.push('/(tabs)/transactions');
+    router.push('/transactions');
   }
 
   navigateToItems(): void {
-    router.push('/(tabs)/items');
+    router.push('/items');
   }
 
   navigateToReservation(reservationId: string): void {

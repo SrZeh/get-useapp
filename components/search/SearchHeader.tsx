@@ -4,20 +4,23 @@
  * Refactored to use extracted components:
  * - SearchHeaderBranding: Logo and title
  * - SearchBar: Search input
- * - LocationFilter: City and neighborhood filters
- * - CategoryFilter: Category chips
+ * - SearchFilters: All filter controls (location, price, category)
+ * 
+ * Enhanced with debounced inputs for better UX:
+ * - All text inputs (search, city, neighborhood) update immediately (responsive typing)
+ * - Filter updates are debounced (waits 400ms after user stops typing)
+ * - Enter key on search input triggers immediate search
  */
 
-import React from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { View, ViewStyle } from 'react-native';
 import { ShimmerLoader } from '@/components/ShimmerLoader';
-import { PriceInputFilter } from '@/components/PriceInputFilter';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useDebounce } from '@/hooks/useDebounce';
 import { SearchHeaderBranding } from './SearchHeaderBranding';
 import { SearchBar } from './SearchBar';
-import { LocationFilter } from './LocationFilter';
-import { CategoryFilter } from './CategoryFilter';
+import { SearchFilters } from './SearchFilters';
 import type { FilterConfiguration } from './types';
 
 type SearchHeaderProps = {
@@ -94,15 +97,77 @@ export function SearchHeader({
   const palette = Colors[colorScheme];
 
   // Use filterConfig if provided, otherwise fall back to legacy props
-  const search = filterConfig?.search?.value ?? searchProp ?? '';
+  const externalSearch = filterConfig?.search?.value ?? searchProp ?? '';
   const onSearchChange = filterConfig?.search?.onChange ?? onSearchChangeProp ?? (() => {});
-  const city = filterConfig?.city?.value ?? cityProp ?? '';
+  const externalCity = filterConfig?.city?.value ?? cityProp ?? '';
   const onCityChange = filterConfig?.city?.onChange ?? onCityChangeProp ?? (() => {});
-  const neighborhood = filterConfig?.neighborhood?.value ?? neighborhoodProp ?? '';
+  const externalNeighborhood = filterConfig?.neighborhood?.value ?? neighborhoodProp ?? '';
   const onNeighborhoodChange = filterConfig?.neighborhood?.onChange ?? onNeighborhoodChangeProp ?? (() => {});
-  const category = filterConfig?.category?.value ?? categoryProp ?? '';
-  const onCategoryChange = filterConfig?.category?.onChange ?? onCategoryChangeProp ?? (() => {});
-  const categories = filterConfig?.category?.options?.map(opt => opt.value) ?? categoriesProp ?? [];
+
+  // Local state for immediate input updates (responsive UX)
+  const [localSearch, setLocalSearch] = useState(externalSearch);
+  const [localCity, setLocalCity] = useState(externalCity);
+  const [localNeighborhood, setLocalNeighborhood] = useState(externalNeighborhood);
+
+  // Sync local state with external prop changes (e.g., when filter is cleared externally)
+  // Only sync when external value changes, not when local state changes
+  useEffect(() => {
+    setLocalSearch(externalSearch);
+  }, [externalSearch]);
+
+  useEffect(() => {
+    setLocalCity(externalCity);
+  }, [externalCity]);
+
+  useEffect(() => {
+    setLocalNeighborhood(externalNeighborhood);
+  }, [externalNeighborhood]);
+
+  // Debounce the search value - waits 400ms after user stops typing
+  // This prevents aggressive filtering on every keystroke
+  const debouncedSearch = useDebounce(localSearch, 400);
+  const debouncedCity = useDebounce(localCity, 400);
+  const debouncedNeighborhood = useDebounce(localNeighborhood, 400);
+
+  // Update the parent filter when debounced values change
+  // Skip if the debounced value matches external (prevents unnecessary updates)
+  useEffect(() => {
+    if (debouncedSearch !== externalSearch) {
+      onSearchChange(debouncedSearch);
+    }
+  }, [debouncedSearch, externalSearch, onSearchChange]);
+
+  useEffect(() => {
+    if (debouncedCity !== externalCity) {
+      onCityChange(debouncedCity);
+    }
+  }, [debouncedCity, externalCity, onCityChange]);
+
+  useEffect(() => {
+    if (debouncedNeighborhood !== externalNeighborhood) {
+      onNeighborhoodChange(debouncedNeighborhood);
+    }
+  }, [debouncedNeighborhood, externalNeighborhood, onNeighborhoodChange]);
+
+  // Handle immediate input changes (updates local state immediately)
+  const handleSearchChange = useCallback((text: string) => {
+    setLocalSearch(text);
+  }, []);
+
+  const handleCityChange = useCallback((text: string) => {
+    setLocalCity(text);
+  }, []);
+
+  const handleNeighborhoodChange = useCallback((text: string) => {
+    setLocalNeighborhood(text);
+  }, []);
+
+  // Handle submit (Enter key) - triggers immediate search without waiting for debounce
+  const handleSubmit = useCallback(() => {
+    if (localSearch !== externalSearch) {
+      onSearchChange(localSearch);
+    }
+  }, [localSearch, externalSearch, onSearchChange]);
 
   return (
     <View
@@ -120,63 +185,35 @@ export function SearchHeader({
       {/* Branding */}
       <SearchHeaderBranding />
 
-      {/* Search Input */}
+      {/* Search Input - uses local state for responsive typing */}
       <SearchBar
-        value={search}
-        onChangeText={onSearchChange}
+        value={localSearch}
+        onChangeText={handleSearchChange}
+        onSubmit={handleSubmit}
         style={{ marginBottom: 12 }}
       />
 
-      {/* Location Filters - Text Inputs (Legacy) */}
-      {(onCityChange || onNeighborhoodChange) && (
-        <LocationFilter
-          city={city}
-          neighborhood={neighborhood}
-          onCityChange={onCityChange}
-          onNeighborhoodChange={onNeighborhoodChange}
-          style={{ marginBottom: 12 }}
-        />
-      )}
-
-      {/* Dropdown Filters for Cities, Neighborhoods, and Price */}
-      {((cities.length > 0 || neighborhoods.length > 0) && (onCitySelect || onNeighborhoodSelect)) || (onMinPriceChange || onMaxPriceChange) ? (
-        <View style={{ marginBottom: 12 }}>
-          <View style={{ flexDirection: 'row', gap: 8 }}>
-            {/* Location Filters - Dropdowns */}
-            {(cities.length > 0 || neighborhoods.length > 0) && (onCitySelect || onNeighborhoodSelect) && (
-              <View style={{ flex: 1 }}>
-                <LocationFilter
-                  cities={cities}
-                  neighborhoods={neighborhoods}
-                  selectedCity={selectedCity}
-                  selectedNeighborhood={selectedNeighborhood}
-                  onCitySelect={onCitySelect}
-                  onNeighborhoodSelect={onNeighborhoodSelect}
-                  locationsLoading={locationsLoading}
-                />
-              </View>
-            )}
-            
-            {/* Price Min/Max Filters */}
-            {(onMinPriceChange || onMaxPriceChange) && (
-              <View style={{ flex: 1 }}>
-                <PriceInputFilter
-                  minPrice={minPrice}
-                  maxPrice={maxPrice}
-                  onMinPriceChange={onMinPriceChange}
-                  onMaxPriceChange={onMaxPriceChange}
-                />
-              </View>
-            )}
-          </View>
-        </View>
-      ) : null}
-
-      {/* Category Chips */}
-      <CategoryFilter
-        selectedCategory={category}
-        categories={categories}
-        onCategoryChange={onCategoryChange}
+      {/* All Filters - Location, Price, Category */}
+      <SearchFilters
+        city={localCity}
+        onCityChange={handleCityChange}
+        neighborhood={localNeighborhood}
+        onNeighborhoodChange={handleNeighborhoodChange}
+        category={categoryProp}
+        onCategoryChange={onCategoryChangeProp}
+        categories={categoriesProp}
+        cities={cities}
+        neighborhoods={neighborhoods}
+        selectedCity={selectedCity}
+        selectedNeighborhood={selectedNeighborhood}
+        onCitySelect={onCitySelect}
+        onNeighborhoodSelect={onNeighborhoodSelect}
+        locationsLoading={locationsLoading}
+        minPrice={minPrice}
+        maxPrice={maxPrice}
+        onMinPriceChange={onMinPriceChange}
+        onMaxPriceChange={onMaxPriceChange}
+        filterConfig={filterConfig}
       />
 
       {/* Loading State */}

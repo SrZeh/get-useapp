@@ -34,7 +34,7 @@ export default function VerifyEmailScreen() {
         logger.warn('Failed to update emailVerified', { error: e, uid: fresh.uid });
       }
       Alert.alert('E-mail verificado!', 'Obrigado.');
-      router.replace('/(tabs)');
+      router.replace('/');
     } else {
       Alert.alert('Ainda não verificado', 'Confira sua caixa de entrada e spam.');
     }

@@ -74,7 +74,7 @@ export function useSubmitReview(
       
       HapticFeedback.success();
       Alert.alert('Obrigado!', 'Sua avaliação foi enviada.');
-      router.replace('/(tabs)/transactions');
+      router.replace('/transactions');
       return { success: true } as const;
     } catch (error: unknown) {
       HapticFeedback.error();

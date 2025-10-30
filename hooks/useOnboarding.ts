@@ -5,8 +5,8 @@ import * as Application from "expo-application";
 import { useEffect, useRef, useState } from "react";
 import { usePathname } from "expo-router";        // ⬅️ novo
 import { auth, db } from "@/lib/firebase";
-import { doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
-import type { UserProfile } from "@/types";
+import { doc, serverTimestamp, setDoc } from "firebase/firestore";
+import { useUserProfileStore } from "@/stores/userProfileStore";
 
 const APP_VERSION = Application.nativeApplicationVersion ?? "0";
 const CONTENT_VERSION = "15";
@@ -20,6 +20,20 @@ export function useOnboardingVisibility() {
   const [loading, setLoading] = useState(true);
   const pathname = usePathname();                 // ⬅️ rota atual
   const initedRef = useRef(false);                // evita rodar 2x o efeito
+
+  // Get profile from store (shared listener, no duplicate query!)
+  const currentUserProfile = useUserProfileStore((state) => state.currentUserProfile);
+  const currentUserLoading = useUserProfileStore((state) => state.currentUserLoading);
+  const getProfile = useUserProfileStore((state) => state.getProfile);
+  const subscribeToCurrentUser = useUserProfileStore((state) => state.subscribeToCurrentUser);
+
+  // Subscribe to current user profile (shared listener)
+  useEffect(() => {
+    const uid = auth.currentUser?.uid;
+    if (uid) {
+      subscribeToCurrentUser();
+    }
+  }, [subscribeToCurrentUser]);
 
   useEffect(() => {
     // ⬅️ não mostrar onboarding na página de termos (rota ou pdf)
@@ -53,9 +67,9 @@ export function useOnboardingVisibility() {
 
         const uid = auth.currentUser?.uid;
         if (uid) {
-          const snap = await getDoc(doc(db, "users", uid));
-          const data = snap.data() as Partial<UserProfile> | undefined;
-          const seen = snap.exists() && Boolean(data?.onboardingSeenAt);
+          // Get from cache or fetch if not cached (no duplicate query!)
+          const profile = await getProfile(uid, false);
+          const seen = Boolean(profile?.onboardingSeenAt);
           setVisible(!seen);
           if (!seen) ONBOARDING_SHOWN_THIS_SESSION = true;   // ⬅️ marca sessão
         } else {
@@ -65,7 +79,7 @@ export function useOnboardingVisibility() {
         setLoading(false);
       }
     })();
-  }, [pathname]); // ⬅️ reavalia ao trocar de rota (e suprime em /termosdeuso)
+  }, [pathname, getProfile]); // ⬅️ reavalia ao trocar de rota (e suprime em /termosdeuso)
 
   const markSeen = async (opts?: { termsAccepted?: boolean }) => {
     // grava flag local

@@ -10,9 +10,6 @@ import React from 'react';
 import { AppProviders } from '@/providers/AppProviders';
 import { AppContent } from '@/components/layouts';
 
-export const unstable_settings = {
-  anchor: '(tabs)',
-};
 
 /**
  * RootLayout - Root component for Expo Router

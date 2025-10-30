@@ -1,7 +1,7 @@
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { auth, db, storage } from '@/lib/firebase';
-import { doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import * as ImagePicker from 'expo-image-picker';
 import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
 import { router } from 'expo-router';
@@ -16,9 +16,9 @@ import { parseAddress, formatAddress } from '@/utils/address';
 import { Image as ExpoImage } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import type { UserProfile } from '@/types';
 import { Spacing, BorderRadius } from '@/constants/spacing';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useUserProfileStore } from '@/stores/userProfileStore';
 
 export default function EditProfile() {
   const uid = auth.currentUser?.uid;
@@ -48,30 +48,53 @@ export default function EditProfile() {
   const [nameError, setNameError] = useState<string | undefined>();
   const [phoneError, setPhoneError] = useState<string | undefined>();
 
+  // Get profile from store (cached, no duplicate query!)
+  const currentUserProfile = useUserProfileStore((state) => state.currentUserProfile);
+  const currentUserLoading = useUserProfileStore((state) => state.currentUserLoading);
+  const getProfile = useUserProfileStore((state) => state.getProfile);
+  const subscribeToCurrentUser = useUserProfileStore((state) => state.subscribeToCurrentUser);
+
+  // Subscribe to current user profile (shared listener)
+  useEffect(() => {
+    if (uid) {
+      subscribeToCurrentUser();
+    }
+  }, [uid, subscribeToCurrentUser]);
+
+  // Load profile data from store
   useEffect(() => {
     (async () => {
       if (!uid) { setLoading(false); return; }
-      const snap = await getDoc(doc(db, "users", uid));
-      const d = snap.data() as Partial<UserProfile> | undefined;
-      setName(d?.name ?? "");
-      // Format phone for display if it exists
-      setPhone(d?.phone ? displayPhone(d.phone) : "");
       
-      // Parse address into structured components
-      const parsedAddress = parseAddress(d?.address);
-      setCep(parsedAddress.cep);
-      setStreet(parsedAddress.street);
-      setNumber(parsedAddress.number);
-      setComplement(parsedAddress.complement);
-      setNeighborhood(parsedAddress.neighborhood);
-      setCity(parsedAddress.city);
-      setState(parsedAddress.state);
+      // Get from cache or fetch if not cached
+      const profile = await getProfile(uid, false); // Use cache first
+      const d = profile;
       
-      setEmail(d?.email ?? auth.currentUser?.email ?? "");
-      setPhotoURL(d?.photoURL ?? null);
+      if (d) {
+        setName(d.name ?? "");
+        // Format phone for display if it exists
+        setPhone(d.phone ? displayPhone(d.phone) : "");
+        
+        // Parse address into structured components
+        const parsedAddress = parseAddress(d.address);
+        setCep(parsedAddress.cep);
+        setStreet(parsedAddress.street);
+        setNumber(parsedAddress.number);
+        setComplement(parsedAddress.complement);
+        setNeighborhood(parsedAddress.neighborhood);
+        setCity(parsedAddress.city);
+        setState(parsedAddress.state);
+        
+        setEmail(d.email ?? auth.currentUser?.email ?? "");
+        setPhotoURL(d.photoURL ?? null);
+      } else {
+        // Fallback to auth user data
+        setEmail(auth.currentUser?.email ?? "");
+      }
+      
       setLoading(false);
     })();
-  }, [uid]);
+  }, [uid, getProfile]);
 
   const pickAvatar = async () => {
     HapticFeedback.light();

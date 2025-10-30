@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { getDocs, Query, DocumentSnapshot } from 'firebase/firestore';
 import { logger, shuffle } from '@/utils';
 import type { Item } from '@/types';
+import { useItemsStore } from '@/stores/itemsStore';
 
 type UsePaginationOptions<T> = {
   queryBuilder: (firstPage: boolean, lastDoc: DocumentSnapshot | null) => Query;
@@ -51,6 +52,9 @@ export function usePagination<T = Item>({
   const hasMoreRef = useRef(true);
   const isFetchingRef = useRef(false);
 
+  // Get setItem from store to cache items as they're fetched
+  const setItem = useItemsStore((state) => state.setItem);
+
   const transformDocs = transform || defaultTransform || ((docs: DocumentSnapshot[]) => {
     return docs.map((d) => ({ id: d.id, ...(d.data() as Partial<Item>) } as T));
   });
@@ -79,6 +83,19 @@ export function usePagination<T = Item>({
         const snap = await getDocs(q);
         const page = transformDocs(snap.docs);
 
+        // Cache items in store as they're fetched (optimization!)
+        if (page.length > 0 && typeof page[0] === 'object' && page[0] !== null && 'id' in page[0]) {
+          page.forEach((item: any) => {
+            if (item && item.id && typeof item.id === 'string') {
+              // Type guard: only cache if it looks like an Item
+              const maybeItem = item as Partial<Item>;
+              if (maybeItem.title !== undefined || maybeItem.ownerUid !== undefined) {
+                setItem(item as Item);
+              }
+            }
+          });
+        }
+
         if (snap.docs.length) {
           lastDocRef.current = snap.docs[snap.docs.length - 1];
         }
@@ -99,7 +116,7 @@ export function usePagination<T = Item>({
         isFetchingRef.current = false;
       }
     },
-    [queryBuilder, pageSize, transformDocs, defaultTransform]
+    [queryBuilder, pageSize, transformDocs, defaultTransform, setItem]
   );
 
   useEffect(() => {

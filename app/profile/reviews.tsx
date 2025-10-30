@@ -1,17 +1,16 @@
 // app/profile/reviews.tsx
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import React, { useEffect, useState } from 'react';
-import { auth, db } from '@/lib/firebase';
-import { doc, onSnapshot } from 'firebase/firestore';
+import React, { useEffect } from 'react';
+import { auth } from '@/lib/firebase';
 import { View, ScrollView } from 'react-native';
 import { LiquidGlassView } from '@/components/liquid-glass';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Colors } from '@/constants/theme';
 import { useThemeColors } from '@/utils';
-import type { UserProfile } from '@/types';
 import { Spacing, BorderRadius } from '@/constants/spacing';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useUserProfileStore } from '@/stores/userProfileStore';
 
 function Stars({ value = 0 }: { value?: number }) {
   const filled = Math.round(value);
@@ -26,22 +25,26 @@ function Stars({ value = 0 }: { value?: number }) {
 
 export default function ReviewsScreen() {
   const uid = auth.currentUser?.uid ?? '';
-  const [avg, setAvg] = useState<number | null>(null);
-  const [count, setCount] = useState<number>(0);
   const colorScheme = useColorScheme();
   const palette = Colors[colorScheme];
   const colors = useThemeColors();
   const insets = useSafeAreaInsets();
 
+  // Get profile from store (shared listener, no duplicate query!)
+  const currentUserProfile = useUserProfileStore((state) => state.currentUserProfile);
+  const currentUserLoading = useUserProfileStore((state) => state.currentUserLoading);
+  const subscribeToCurrentUser = useUserProfileStore((state) => state.subscribeToCurrentUser);
+
+  // Subscribe to current user profile (shared listener)
   useEffect(() => {
-    if (!uid) return;
-    const unsub = onSnapshot(doc(db, 'users', uid), (snap) => {
-      const u = snap.data() as Partial<UserProfile> | undefined;
-      setAvg(typeof u?.ratingAvg === 'number' ? u.ratingAvg : null);
-      setCount(typeof u?.ratingCount === 'number' ? u.ratingCount : 0);
-    });
-    return () => unsub();
-  }, [uid]);
+    if (uid) {
+      subscribeToCurrentUser();
+    }
+  }, [uid, subscribeToCurrentUser]);
+
+  // Extract rating data from profile
+  const avg = typeof currentUserProfile?.ratingAvg === 'number' ? currentUserProfile.ratingAvg : null;
+  const count = typeof currentUserProfile?.ratingCount === 'number' ? currentUserProfile.ratingCount : 0;
 
   return (
     <ThemedView style={{ flex: 1 }}>

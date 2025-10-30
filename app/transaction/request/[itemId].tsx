@@ -17,7 +17,7 @@ export default function RequestTransaction() {
         <ThemedText>Data de devolução: —</ThemedText>
       </View>
 
-      <TouchableOpacity className="mt-6" onPress={() => router.replace('/(tabs)/transactions')}>
+      <TouchableOpacity className="mt-6" onPress={() => router.replace('/transactions')}>
         <ThemedText type="defaultSemiBold">Enviar solicitação</ThemedText>
       </TouchableOpacity>
     </ThemedView>

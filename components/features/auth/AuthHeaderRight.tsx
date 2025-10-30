@@ -1,8 +1,7 @@
 // components/features/auth/AuthHeaderRight.tsx
-import { auth, db } from "@/lib/firebase";
+import { auth } from "@/lib/firebase";
 import { router } from "expo-router";
 import { onAuthStateChanged } from "firebase/auth";
-import { doc, getDoc } from "firebase/firestore";
 import React, { useEffect, useState } from "react";
 import { TouchableOpacity, View, StyleSheet } from "react-native";
 import { Image } from "expo-image";
@@ -10,7 +9,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { ThemedText } from "@/components/themed-text";
 import { useThemeColors } from "@/utils/theme";
 import { GradientTypes } from "@/utils/gradients";
-import type { UserProfile } from "@/types";
+import { useUserProfileStore } from "@/stores/userProfileStore";
 
 /**
  * Generate user initials from name
@@ -29,31 +28,26 @@ function getInitials(name: string | null | undefined): string {
 
 export default function AuthHeaderRight() {
   const [user, setUser] = useState(auth.currentUser);
-  const [photoURL, setPhotoURL] = useState<string | null>(null);
-  const [userName, setUserName] = useState<string | null>(null);
   const colors = useThemeColors();
 
+  // Get profile from store (shared listener, no duplicate query!)
+  const currentUserProfile = useUserProfileStore((state) => state.currentUserProfile);
+  const subscribeToCurrentUser = useUserProfileStore((state) => state.subscribeToCurrentUser);
+
   useEffect(() => {
-    const unsub = onAuthStateChanged(auth, async (u) => {
+    const unsub = onAuthStateChanged(auth, (u) => {
       setUser(u);
       if (u) {
-        // Try to get avatar and name from Firestore
-        try {
-          const snap = await getDoc(doc(db, "users", u.uid));
-          const data = snap.data() as Partial<UserProfile> | undefined;
-          setPhotoURL(data?.photoURL ?? u.photoURL ?? null);
-          setUserName(data?.name ?? u.displayName ?? null);
-        } catch {
-          setPhotoURL(u.photoURL ?? null);
-          setUserName(u.displayName ?? null);
-        }
-      } else {
-        setPhotoURL(null);
-        setUserName(null);
+        // Subscribe to current user profile (shared listener)
+        subscribeToCurrentUser();
       }
     });
     return () => unsub();
-  }, []);
+  }, [subscribeToCurrentUser]);
+
+  // Extract photo and name from profile
+  const photoURL = currentUserProfile?.photoURL ?? user?.photoURL ?? null;
+  const userName = currentUserProfile?.name ?? user?.displayName ?? null;
 
   const handlePress = () => {
     if (user) {

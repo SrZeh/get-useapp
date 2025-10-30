@@ -83,12 +83,13 @@ export const LocationFilter = React.memo(function LocationFilter({
     );
   }
 
-  // Legacy text inputs
+  // Legacy text inputs - use key props to maintain focus on re-renders
   return (
     <View style={[{ flexDirection: 'row', gap: 8 }, style]}>
       <View style={{ flex: 1 }}>
         <LiquidGlassView intensity="subtle" cornerRadius={16}>
           <TextInput
+            key="city-input"
             placeholder="Cidade"
             placeholderTextColor={palette.textTertiary}
             value={city}
@@ -110,6 +111,7 @@ export const LocationFilter = React.memo(function LocationFilter({
       <View style={{ flex: 1 }}>
         <LiquidGlassView intensity="subtle" cornerRadius={16}>
           <TextInput
+            key="neighborhood-input"
             placeholder="Bairro"
             placeholderTextColor={palette.textTertiary}
             value={neighborhood}

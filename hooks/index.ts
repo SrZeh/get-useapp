@@ -30,6 +30,9 @@ export { useReservationData } from './features/reservations';
 // Location hooks
 export { useLocations } from './useLocations';
 
+// Utility hooks
+export { useDebounce } from './useDebounce';
+
 // Feature hooks (re-exported for convenience)
 export * from './features';
 

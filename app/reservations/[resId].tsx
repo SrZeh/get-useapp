@@ -1,15 +1,15 @@
 // app/reservations/[resId].tsx
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
-import { auth, db } from "@/lib/firebase";
+import { auth } from "@/lib/firebase";
 import { router, useLocalSearchParams } from "expo-router";
-import { doc, getDoc } from "firebase/firestore";
 import { useEffect, useState } from "react";
 import { ActivityIndicator, Alert, TouchableOpacity, View } from "react-native";
 import { markPickup, releasePayoutToOwner } from "@/services/cloudFunctions";
 import { formatBRL } from "@/utils";
 import type { Reservation } from "@/types";
 import { Spacing } from "@/constants/spacing";
+import { useTransactionsStore } from "@/stores/transactionsStore";
 
 export default function ReservationDetail() {
   const { resId } = useLocalSearchParams<{ resId: string }>();
@@ -21,12 +21,21 @@ export default function ReservationDetail() {
   const isOwner = !!uid && res?.itemOwnerUid === uid;
   const isRenter = !!uid && res?.renterUid === uid;
 
+  // Get reservation from store (cached, no duplicate query!)
+  const getTransaction = useTransactionsStore((state) => state.getTransaction);
+
   // helper para recarregar o doc (evita conflito de nome "refresh")
   async function reload() {
-    const snap = await getDoc(doc(db, "reservations", String(resId)));
-    if (snap.exists()) {
-      setRes({ id: resId, ...(snap.data() as Partial<Reservation>) } as Reservation);
-    } else {
+    try {
+      const transaction = await getTransaction(String(resId), false); // Use cache first
+      if (transaction && 'itemId' in transaction) {
+        // It's a reservation
+        setRes(transaction as Reservation);
+      } else {
+        setRes(null);
+      }
+    } catch (error) {
+      console.error('Error loading reservation:', error);
       setRes(null);
     }
   }
@@ -36,7 +45,7 @@ export default function ReservationDetail() {
       await reload();
       setLoading(false);
     })();
-  }, [resId]);
+  }, [resId, getTransaction]);
 
   async function liberar() {
     if (!res?.id) return;

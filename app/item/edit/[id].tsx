@@ -26,6 +26,8 @@ import { useItemService, useNavigationService } from "@/providers/ServicesProvid
 import { uploadUserImageFromUri } from "@/services/images";
 import { Ionicons } from "@expo/vector-icons";
 import { Spacing } from "@/constants/spacing";
+import { useItemDetail } from "@/hooks/features/items";
+import { useItemsStore } from "@/stores/itemsStore";
 
 export default function EditItemScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -34,7 +36,6 @@ export default function EditItemScreen() {
   const palette = Colors[colorScheme];
   const colors = useThemeColors();
 
-  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
   const [title, setTitle] = useState("");
@@ -48,6 +49,9 @@ export default function EditItemScreen() {
   // novos
   const [city, setCity] = useState("");
   const [neighborhood, setNeighborhood] = useState("");
+
+  // Get item from store (cached, optimized!) instead of service
+  const { item, loading } = useItemDetail(id);
   const [published, setPublished] = useState<boolean>(true);
 
   // nova imagem local (para trocar)
@@ -59,37 +63,24 @@ export default function EditItemScreen() {
   const [titleError, setTitleError] = useState<string | undefined>();
   const [descriptionError, setDescriptionError] = useState<string | undefined>();
 
+  // Populate form from cached item (no duplicate query!)
   useEffect(() => {
-    (async () => {
-      try {
-        const item = await itemService.getItem(id);
-        if (!item) {
-          Alert.alert("Ops", "Item não encontrado.");
-          navigation.goBack();
-          return;
-        }
+    if (!item) return;
 
-        setTitle(item.title ?? "");
-        setDescription(item.description ?? "");
-        setCategory(item.category ?? "");
-        setCondition(item.condition ?? "Usado");
-        setMinRentalDays(String(item.minRentalDays ?? 1));
-        setDailyRate(
-          item.dailyRate != null && isFinite(item.dailyRate) ? String(item.dailyRate) : ""
-        );
-        setPhotoUrl(item.photos?.[0] ?? null);
+    setTitle(item.title ?? "");
+    setDescription(item.description ?? "");
+    setCategory(item.category ?? "");
+    setCondition(item.condition ?? "Usado");
+    setMinRentalDays(String(item.minRentalDays ?? 1));
+    setDailyRate(
+      item.dailyRate != null && isFinite(item.dailyRate) ? String(item.dailyRate) : ""
+    );
+    setPhotoUrl(item.photos?.[0] ?? null);
 
-        setCity(item.city ?? "");
-        setNeighborhood(item.neighborhood ?? "");
-        setPublished(item.published !== false); // default true
-      } catch (e: unknown) {
-        const error = e as { message?: string };
-        Alert.alert("Erro ao carregar", error?.message ?? String(e));
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, [id, navigation, itemService]);
+    setCity(item.city ?? "");
+    setNeighborhood(item.neighborhood ?? "");
+    setPublished(item.published !== false); // default true
+  }, [item]);
 
 
   const handleSave = async () => {
@@ -185,6 +176,27 @@ export default function EditItemScreen() {
         neighborhood,
       });
 
+      // Update cache with updated item
+      if (item) {
+        const updatedItem: Item = {
+          ...item,
+          title,
+          description,
+          category,
+          condition,
+          minRentalDays: days,
+          dailyRate: rate,
+          photos: newPhotoUrl ? [newPhotoUrl] : [],
+          published,
+          city,
+          neighborhood,
+        };
+        setItemInStore(updatedItem);
+      }
+
+      // Invalidate cache to force refetch
+      invalidateItem(id);
+
       Alert.alert("Sucesso", "Item atualizado.");
       navigation.goBack();
     } catch (e: unknown) {
@@ -194,6 +206,10 @@ export default function EditItemScreen() {
       setSaving(false);
     }
   };
+
+  // Get store action for cache invalidation after save
+  const invalidateItem = useItemsStore((state) => state.invalidateItem);
+  const setItemInStore = useItemsStore((state) => state.setItem);
 
   if (loading) {
     return (

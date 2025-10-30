@@ -95,7 +95,7 @@ export function useLogin() {
       
       if (result.success) {
         HapticFeedback.success();
-        router.replace('/(tabs)');
+        router.replace('/');
         return { success: true } as const;
       } else {
         HapticFeedback.error();

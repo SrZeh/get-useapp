@@ -37,9 +37,9 @@ type GlobalSidebarProps = {
 };
 
 const tabs: TabConfig[] = [
-  { name: "items", route: "/(tabs)/items", title: "Meus Itens", Icon: ShippingBoxSvg, size: 22 },
-  { name: "index", route: "/(tabs)", title: "Início", Icon: HouseSvg, size: 24 },
-  { name: "transactions", route: "/(tabs)/transactions", title: "Transações", Icon: ArrowsSvg, size: 22 },
+  { name: "items", route: "/items", title: "Meus Itens", Icon: ShippingBoxSvg, size: 22 },
+  { name: "index", route: "/", title: "Início", Icon: HouseSvg, size: 24 },
+  { name: "transactions", route: "/transactions", title: "Transações", Icon: ArrowsSvg, size: 22 },
   { name: "profile", route: "/profile", title: "Perfil", Icon: ProfileIcon, size: 24 },
 ];
 
@@ -69,14 +69,10 @@ export function GlobalSidebar({ style, opacity }: GlobalSidebarProps = {}) {
   const getActiveTab = () => {
     const normalizedPath = pathname || "";
     const currentSegments = segments;
-    if (normalizedPath.includes("/(tabs)/items") || currentSegments.includes("items")) return "items";
-    if (normalizedPath.includes("/(tabs)/transactions") || currentSegments.includes("transactions")) return "transactions";
+    if (normalizedPath === "/items" || currentSegments.includes("items")) return "items";
+    if (normalizedPath === "/transactions" || currentSegments.includes("transactions")) return "transactions";
     if (normalizedPath.includes("/profile") || currentSegments.includes("profile")) return "profile";
-    if (
-      normalizedPath === "/(tabs)" ||
-      normalizedPath === "/(tabs)/" ||
-      (currentSegments.includes("(tabs)") && !currentSegments.includes("items") && !currentSegments.includes("transactions"))
-    ) {
+    if (normalizedPath === "/" || normalizedPath === "") {
       return "index";
     }
     return null;
@@ -219,7 +215,7 @@ export function GlobalSidebar({ style, opacity }: GlobalSidebarProps = {}) {
           <Animated.View
             style={{
               flex: 1,
-              backgroundColor: 'rgba(0, 0, 0, 0.4)',
+              backgroundColor: 'rgba(255, 255, 255, 0.4)',
               opacity: overlayOpacity,
             }}
           />

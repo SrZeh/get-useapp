@@ -126,7 +126,9 @@ npm run lint       # Executa o linter
 ```
 /app                  # Expo Router - file-based routing
   /(auth)            # Telas de autenticação
-  /(tabs)            # Navegação por tabs
+  index.tsx          # Tela inicial (Vitrine)
+  items.tsx          # Meus itens
+  transactions.tsx   # Transações
   /item              # Gestão de itens
   /transaction       # Fluxo de transações
   /profile           # Perfil do usuário
@@ -318,7 +320,9 @@ npm run lint       # Run linter
 ```
 /app                  # Expo Router - file-based routing
   /(auth)            # Authentication screens
-  /(tabs)            # Tab navigation
+  index.tsx          # Home screen (Vitrine)
+  items.tsx          # My items
+  transactions.tsx   # Transactions
   /item              # Item management
   /transaction       # Transaction flow
   /profile           # User profile

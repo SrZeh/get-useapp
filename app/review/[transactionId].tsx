@@ -5,7 +5,8 @@ import { router, useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useMemo, useState } from 'react';
 import { Alert, KeyboardAvoidingView, Platform, ScrollView, TextInput, TouchableOpacity, View } from 'react-native';
 import { auth, db } from '@/lib/firebase';
-import { doc, getDoc, serverTimestamp, setDoc } from 'firebase/firestore';
+import { doc, serverTimestamp, setDoc } from 'firebase/firestore';
+import { useTransactionsStore } from '@/stores/transactionsStore';
 import { LiquidGlassView } from '@/components/liquid-glass';
 import { Button } from '@/components/Button';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -24,26 +25,28 @@ export default function ReviewScreen() {
   const palette = Colors[colorScheme];
   const colors = useThemeColors();
 
+  // Get reservation from store (cached, no duplicate query!)
+  const getTransaction = useTransactionsStore((state) => state.getTransaction);
+
   useEffect(() => {
     let alive = true;
     (async () => {
       if (!transactionId) return;
-      const snap = await getDoc(doc(db, 'reservations', String(transactionId)));
+      
+      // Get from cache or fetch if not cached
+      const transaction = await getTransaction(String(transactionId), false);
       if (!alive) return;
-      if (!snap.exists()) {
+      
+      if (!transaction || !('itemId' in transaction)) {
         Alert.alert('Avaliação', 'Reserva não encontrada.');
         router.back();
         return;
       }
-      const data = snap.data() as Partial<Reservation>;
-      const r: Reservation = {
-        id: snap.id,
-        ...data,
-      } as Reservation;
-      setRes(r);
+      
+      setRes(transaction as Reservation);
     })();
     return () => { alive = false; };
-  }, [transactionId]);
+  }, [transactionId, getTransaction]);
 
   const canReview = useMemo(() => {
     if (!uid || !res) return false;
@@ -80,7 +83,7 @@ export default function ReviewScreen() {
       // Agregações do item e do dono são feitas pela trigger onItemReviewCreated
       HapticFeedback.success();
       Alert.alert('Obrigado!', 'Sua avaliação foi enviada.');
-      router.replace('/(tabs)/transactions');
+      router.replace('/transactions');
     } catch (e: unknown) {
       HapticFeedback.error();
       const error = e as { code?: string; message?: string };

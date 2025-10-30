@@ -1,13 +1,13 @@
 /**
  * Custom hook for fetching reservation-related data
  * 
- * Handles fetching owner name and item details for a reservation
+ * Now optimized: Uses ZustandЅ stores for profile and item data (cached!)
  */
 
 import { useState, useEffect } from 'react';
-import { doc, getDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
-import type { Reservation, Item, UserProfile } from '@/types';
+import { useUserProfileStore } from '@/stores/userProfileStore';
+import { useItemsStore } from '@/stores/itemsStore';
+import type { Reservation, Item } from '@/types';
 
 type UseReservationDataReturn = {
   ownerName: string | null;
@@ -17,13 +17,19 @@ type UseReservationDataReturn = {
 
 /**
  * Hook to fetch owner name and item details for a reservation
+ * Now uses cached data from Zustand stores!
+ * 
  * @param reservation - Reservation object with itemOwnerUid and itemId
- * @returns Object with ownerName, item, and isLoading state
+ escapes @returns Object with ownerName, item, and isLoading state
  */
 export function useReservationData(reservation: Reservation): UseReservationDataReturn {
   const [ownerName, setOwnerName] = useState<string | null>(null);
   const [item, setItem] = useState<Item | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+
+  // Get store methods
+  const getProfile = useUserProfileStore((state) => state.getProfile);
+  const getItem = useItemsStore((state) => state.getItem);
 
   useEffect(() => {
     let isMounted = true;
@@ -32,14 +38,13 @@ export function useReservationData(reservation: Reservation): UseReservationData
       setIsLoading(true);
       const promises: Promise<void>[] = [];
 
-      // Fetch owner name
+      // Fetch owner name from cache (or Firestore if not cached)
       if (reservation.itemOwnerUid) {
         promises.push(
-          getDoc(doc(db, 'users', reservation.itemOwnerUid))
-            .then((snap) => {
-              const data = snap.data() as Partial<UserProfile> | undefined;
+          getProfile(reservation.itemOwnerUid)
+            .then((profile) => {
               if (isMounted) {
-                setOwnerName(data?.name ?? null);
+                setOwnerName(profile?.name ?? null);
               }
             })
             .catch((error) => {
@@ -51,17 +56,13 @@ export function useReservationData(reservation: Reservation): UseReservationData
         );
       }
 
-      // Fetch item details
+      // Fetch item details from cache (or Firestore if not cached)
       if (reservation.itemId) {
         promises.push(
-          getDoc(doc(db, 'items', reservation.itemId))
-            .then((snap) => {
-              if (snap.exists() && isMounted) {
-                const itemData = { id: snap.id, ...(snap.data() as Partial<Item>) } as Item;
+          getItem(reservation.itemId)
+            .then((itemData) => {
+              if (isMounted) {
                 setItem(itemData);
-              } else if (isMounted) {
-                console.warn('Item not found:', reservation.itemId);
-                setItem(null);
               }
             })
             .catch((error) => {
@@ -86,8 +87,7 @@ export function useReservationData(reservation: Reservation): UseReservationData
     return () => {
       isMounted = false;
     };
-  }, [reservation.itemOwnerUid, reservation.itemId]);
+  }, [reservation.itemOwnerUid, reservation.itemId, getProfile, getItem]);
 
   return { ownerName, item, isLoading };
 }
-
