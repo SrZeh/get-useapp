@@ -23,6 +23,8 @@ import { useItemList, useResponsiveGrid } from "@/hooks/features/items";
 import { Spacing, BorderRadius } from "@/constants/spacing";
 import type { Item } from "@/types";
 import { useThemeColors } from "@/utils/theme";
+import { SeoHead } from "@/utils/seo";
+import { itemsListingPtBR } from "@/constants/seo/examples/items.pt-BR";
 
 const CATEGORIES = [
   "Ferramentas elétricas","Ferramentas manuais","Construção & Reforma","Marcenaria & Carpintaria","Jardinagem",
@@ -100,6 +102,7 @@ export default function VitrineScreen() {
       behavior={Platform.select({ ios: "padding", android: undefined })}
       keyboardVerticalOffset={Platform.select({ ios: 80, android: 0 })}
     >
+      <SeoHead meta={itemsListingPtBR} />
       <ThemedView 
         style={{ 
           flex: 1, 

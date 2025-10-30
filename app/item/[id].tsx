@@ -23,6 +23,8 @@ import { ItemHeader } from "@/components/features/items";
 import { LoadingState } from "@/components/states";
 import { useReviewService } from "@/providers/ServicesProvider";
 import { Spacing } from "@/constants/spacing";
+import { SeoHead } from "@/utils/seo";
+import { buildItemDetailPtBR } from "@/constants/seo/examples/itemDetail.pt-BR";
 import {
   useItemDetail,
   useItemBookingCalendar,
@@ -77,6 +79,16 @@ export default function ItemDetailScreen() {
       behavior={Platform.select({ ios: "padding", android: undefined })}
       keyboardVerticalOffset={Platform.select({ ios: 80, android: 0 })}
     >
+      <SeoHead
+        meta={buildItemDetailPtBR({
+          itemName: item.title ?? 'Item para aluguel',
+          city: item.address?.city ?? 'São Paulo',
+          dailyRate: item.dailyRate,
+          category: item.category,
+          path: `/item/${id}`,
+          image: item.images?.[0] ?? undefined,
+        })}
+      />
       <ThemedView style={{ flex: 1, backgroundColor: palette.background }}>
         <ScrollView 
           contentContainerStyle={{ padding: Spacing.sm, paddingBottom: Spacing['3xl'] }}
