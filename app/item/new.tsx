@@ -49,7 +49,6 @@ export default function NewItemScreen() {
   const [condition, setCondition] = useState<string>("Usado");
   const [minRentalDays, setMinRentalDays] = useState("1");
   const [dailyRate, setDailyRate] = useState("");
-  const [isFree, setIsFree] = useState(false);
 
   // Address fields
   const [cep, setCep] = useState("");
@@ -72,7 +71,6 @@ export default function NewItemScreen() {
     condition: string;
     minRentalDays: number;
     dailyRate: number;
-    isFree: boolean;
     city?: string;
     neighborhood?: string;
     photos?: string[];
@@ -89,6 +87,7 @@ export default function NewItemScreen() {
     }
 
     // 2) Criar item usando service interface
+    // isFree is automatically calculated from dailyRate === 0 in buildItemDoc
     const result = await itemService.createItem({
       ...data,
       photos: photoUrl ? [photoUrl] : [],
@@ -128,7 +127,6 @@ export default function NewItemScreen() {
       condition,
       minRentalDays,
       dailyRate,
-      isFree,
       city,
       neighborhood,
       photos: [],
@@ -179,10 +177,8 @@ export default function NewItemScreen() {
                 <PricingSection
                   minRentalDays={minRentalDays}
                   dailyRate={dailyRate}
-                  isFree={isFree}
                   onMinRentalDaysChange={setMinRentalDays}
                   onDailyRateChange={setDailyRate}
-                  onIsFreeChange={setIsFree}
                   errors={errors}
                   colors={colors}
                 />

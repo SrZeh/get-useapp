@@ -27,7 +27,6 @@ export interface ItemFormInput {
   condition: string;
   minRentalDays: string;
   dailyRate: string;
-  isFree: boolean;
   city?: string;
   neighborhood?: string;
   photos?: string[];
@@ -44,7 +43,6 @@ export function useItemForm(
     condition: string;
     minRentalDays: number;
     dailyRate: number;
-    isFree: boolean;
     city?: string;
     neighborhood?: string;
     photos?: string[];
@@ -81,20 +79,6 @@ export function useItemForm(
       return { valid: false, error: 'Selecione uma categoria para o item.' };
     }
 
-    // Validate using utility
-    const itemValidation = validateItemInput({
-      title: input.title,
-      description: input.description,
-      category: input.category,
-      minRentalDays: input.minRentalDays,
-      dailyRate: input.dailyRate,
-      isFree: input.isFree,
-    });
-
-    if (!itemValidation.valid) {
-      return { valid: false, error: itemValidation.error };
-    }
-
     // Parse numeric values
     let days: number;
     let rate = 0;
@@ -107,14 +91,35 @@ export function useItemForm(
       return { valid: false, error: errorMsg };
     }
 
-    if (!input.isFree) {
-      try {
-        rate = parseDailyRate(input.dailyRate);
-      } catch (error) {
-        const errorMsg = error instanceof Error ? error.message : 'Diária inválida.';
+    try {
+      rate = parseDailyRate(input.dailyRate);
+      // Allow 0 for free items
+      if (rate < 0) {
+        const errorMsg = 'Valor da diária não pode ser negativo.';
         setErrors({ dailyRate: errorMsg });
         return { valid: false, error: errorMsg };
       }
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : 'Diária inválida.';
+      setErrors({ dailyRate: errorMsg });
+      return { valid: false, error: errorMsg };
+    }
+
+    // Calculate isFree from dailyRate
+    const isFree = rate === 0;
+
+    // Validate using utility
+    const itemValidation = validateItemInput({
+      title: input.title,
+      description: input.description,
+      category: input.category,
+      minRentalDays: input.minRentalDays,
+      dailyRate: input.dailyRate,
+      isFree: isFree,
+    });
+
+    if (!itemValidation.valid) {
+      return { valid: false, error: itemValidation.error };
     }
 
     return {
@@ -126,7 +131,7 @@ export function useItemForm(
         condition: input.condition,
         minRentalDays: days,
         dailyRate: rate,
-        isFree: input.isFree,
+        isFree: isFree,
         city: input.city?.trim(),
         neighborhood: input.neighborhood?.trim(),
         photos: input.photos || [],

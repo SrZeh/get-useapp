@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, StyleSheet, TouchableOpacity, Linking } from 'react-native';
 import { Link } from 'expo-router';
 import { Image } from 'expo-image';
@@ -6,27 +6,32 @@ import { ThemedText } from './themed-text';
 import { LiquidGlassView } from './liquid-glass/LiquidGlassView';
 import { Spacing } from '@/constants/spacing';
 import { useThemeColors } from '@/utils';
+import { useBrandColorsWithOpacity } from '@/utils/theme';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useResponsive } from '@/hooks/useResponsive';
+import { SupportModal } from '@/components/features/profile';
 
 /**
  * Footer component with responsive 3-column grid layout
  * Section 1: Logo
- * Section 2: Links and contact info
- * Section 3: Copyright
+ * Section 2: Links
+ * Section 3: Contact email (right)
+ * Copyright row below the 3 columns
  * Uses green background with glass blur effect
  */
 export function Footer() {
   const colors = useThemeColors();
+  const brandOpacity = useBrandColorsWithOpacity();
   const insets = useSafeAreaInsets();
   const { isMobile, isTablet } = useResponsive();
+  const [supportModalVisible, setSupportModalVisible] = useState(false);
 
   const handleEmailPress = () => {
     Linking.openURL('mailto:contato@getuseapp.com');
   };
 
-  const handlePhonePress = () => {
-    Linking.openURL('tel:+5511999999999');
+  const handleSupportPress = () => {
+    setSupportModalVisible(true);
   };
 
   // Responsive padding
@@ -82,53 +87,68 @@ export function Footer() {
               </Link>
             </View>
 
-            {/* Section 2: Links and Contact Info */}
-            <View style={[styles.gridItem, styles.linksContactSection]}>
-              {/* Links */}
-              <View style={styles.linksContainer}>
+            {/* Section 2: Links */}
+            <View style={[
+              styles.gridItem,
+              styles.linksSection,
+              { alignItems: 'center' }
+            ]}>
+              <View style={[
+                styles.linksContainer,
+                { alignItems: 'center' }
+              ]}>
                 <Link href="/termosdeuso" asChild>
-                  <TouchableOpacity style={styles.linkItem}>
+                  <TouchableOpacity style={{ alignSelf: 'center' }}>
                     <ThemedText style={[styles.link, { color: colors.text.primary, opacity: 0.9 }]}>
                       Termos de Uso
                     </ThemedText>
                   </TouchableOpacity>
                 </Link>
-                <TouchableOpacity style={styles.linkItem}>
-                  <ThemedText style={[styles.link, { color: colors.text.primary, opacity: 0.9 }]}>
-                    Política de Privacidade
-                  </ThemedText>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.linkItem}>
+                <Link href="/politica-de-privacidade" asChild>
+                  <TouchableOpacity style={{ alignSelf: 'center' }}>
+                    <ThemedText style={[styles.link, { color: colors.text.primary, opacity: 0.9 }]}>
+                      Política de Privacidade
+                    </ThemedText>
+                  </TouchableOpacity>
+                </Link>
+                <TouchableOpacity onPress={handleSupportPress} style={{ alignSelf: 'center' }}>
                   <ThemedText style={[styles.link, { color: colors.text.primary, opacity: 0.9 }]}>
                     Central de Ajuda
                   </ThemedText>
                 </TouchableOpacity>
               </View>
-
-              {/* Contact Info */}
-              <View style={styles.contactSection}>
-                <TouchableOpacity onPress={handleEmailPress} style={styles.contactItem}>
-                  <ThemedText style={[styles.contactText, { color: colors.text.primary, opacity: 0.85 }]}>
-                    contato@getuseapp.com
-                  </ThemedText>
-                </TouchableOpacity>
-                <TouchableOpacity onPress={handlePhonePress} style={styles.contactItem}>
-                  <ThemedText style={[styles.contactText, { color: colors.text.primary, opacity: 0.85 }]}>
-                    (11) 99999-9999
-                  </ThemedText>
-                </TouchableOpacity>
-              </View>
             </View>
 
-            {/* Section 3: Copyright */}
-            <View style={[styles.gridItem, styles.copyrightSection, isMobile && styles.copyrightMobile]}>
-              <ThemedText style={[styles.copyrightText, isMobile && styles.copyrightTextMobile, { color: colors.text.secondary, opacity: 0.8 }]}>
-                © 2025 Get & Use
-              </ThemedText>
+            {/* Section 3: Contact Email (Right) */}
+            <View style={[
+              styles.gridItem,
+              styles.emailSection,
+              { alignItems: isMobile ? 'center' : 'flex-end' }
+            ]}>
+              <TouchableOpacity onPress={handleEmailPress} style={{ alignSelf: isMobile ? 'center' : 'flex-end' }}>
+                <ThemedText style={[styles.contactText, { color: colors.text.primary, opacity: 0.85 }]}>
+                  contato@getuseapp.com
+                </ThemedText>
+              </TouchableOpacity>
             </View>
+          </View>
+
+          {/* Copyright Row Below */}
+          <View style={[styles.copyrightRow, isMobile && styles.copyrightRowMobile]}>
+            <ThemedText style={[styles.copyrightText, { color: colors.text.secondary, opacity: 0.8 }]}>
+              © 2025 Get & Use
+            </ThemedText>
           </View>
         </View>
       </LiquidGlassView>
+
+      {/* Support Modal */}
+      <SupportModal
+        visible={supportModalVisible}
+        onClose={() => setSupportModalVisible(false)}
+        colors={colors}
+        brandOpacity={brandOpacity}
+      />
     </View>
   );
 }
@@ -179,49 +199,40 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     fontSize: 18,
   },
-  linksContactSection: {
-    flex: 1.5,
-    gap: Spacing.md,
-    alignItems: 'center',
+  linksSection: {
+    flex: 1,
     justifyContent: 'center',
   },
   linksContainer: {
     flexDirection: 'column',
     gap: Spacing.xs,
-    marginBottom: Spacing.md,
-    alignItems: 'center',
-  },
-  linkItem: {
-    alignSelf: 'center',
   },
   link: {
     fontSize: 14,
     textDecorationLine: 'underline',
   },
-  contactSection: {
-    flexDirection: 'column',
-    gap: Spacing.xs,
-    alignItems: 'center',
-  },
-  contactItem: {
-    alignSelf: 'center',
+  emailSection: {
+    flexShrink: 0,
+    justifyContent: 'center',
   },
   contactText: {
     fontSize: 14,
   },
-  copyrightSection: {
-    flexShrink: 0,
+  copyrightRow: {
+    width: '100%',
     alignItems: 'center',
     justifyContent: 'center',
+    marginTop: Spacing.lg,
+    paddingTop: Spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(150, 255, 154, 0.2)',
   },
-  copyrightMobile: {
-    alignItems: 'center',
+  copyrightRowMobile: {
+    marginTop: Spacing.md,
+    paddingTop: Spacing.sm,
   },
   copyrightText: {
     fontSize: 13,
-    textAlign: 'center',
-  },
-  copyrightTextMobile: {
     textAlign: 'center',
   },
 });

@@ -392,10 +392,11 @@ export function validateItemInput(input: {
 /**
  * Parse daily rate from string to number
  * Handles comma as decimal separator
+ * Allows 0 for free items
  */
 export function parseDailyRate(rateString: string): number {
   const parsed = rateString.trim() ? Number(rateString.replace(',', '.')) : NaN;
-  if (!Number.isFinite(parsed) || parsed <= 0) {
+  if (!Number.isFinite(parsed) || parsed < 0) {
     throw new ValidationError('Valor inválido', 'dailyRate');
   }
   return parsed;

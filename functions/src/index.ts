@@ -248,9 +248,53 @@ export const acceptReservation = onCall(async ({ auth, data }) => {
       if (r.itemOwnerUid !== uid) throw new HttpsError("permission-denied", "Não é o dono.");
       if (r.status !== "requested") throw new HttpsError("failed-precondition", `Esperado 'requested', atual: '${r.status ?? "?"}'`);
 
+      // Calculate total to check if it's free
+      const total = Number(r.total) || 0;
+      const isFree = total === 0 || r.isFree === true;
+
+      // If free item, automatically block dates and mark as accepted (skip Stripe payment)
+      if (isFree) {
+        const days = eachDateKeysExclusive(r.startDate, r.endDate);
+        const bookedCol = db.collection("items").doc(r.itemId).collection("bookedDays");
+
+        // Check for date conflicts
+        for (const d of days) {
+          const dRef = bookedCol.doc(d);
+          const dSnap = await trx.get(dRef);
+          if (dSnap.exists) {
+            const curr = dSnap.data() as any;
+            if (curr?.resId && curr.resId !== reservationId) {
+              throw new HttpsError("already-exists", `Conflito no dia ${d}`);
+            }
+          }
+        }
+
+        // Block dates
+        for (const d of days) {
+          trx.set(bookedCol.doc(d), {
+            resId: reservationId,
+            renterUid: r.renterUid,
+            itemOwnerUid: r.itemOwnerUid,
+            status: "booked",
+            createdAt: TS(),
+          });
+        }
+
+        // Update reservation to accepted status
+        trx.update(resRef, {
+          status: "accepted",
+          acceptedAt: TS(),
+          updatedAt: TS(),
+          acceptedBy: uid,
+        });
+
+        return { ok: true, prevStatus: r.status, newStatus: "accepted", isFree: true, blockedDays: days.length };
+      }
+
+      // For paid items, just mark as accepted (renter will need to pay)
       trx.update(resRef, { status: "accepted", acceptedAt: TS(), updatedAt: TS(), acceptedBy: uid });
 
-      return { ok: true, prevStatus: r.status, newStatus: "accepted" };
+      return { ok: true, prevStatus: r.status, newStatus: "accepted", isFree: false };
     });
 
     return result;

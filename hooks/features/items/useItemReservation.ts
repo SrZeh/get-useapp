@@ -79,6 +79,9 @@ export function useItemReservation({
       
       await u.getIdToken(true); // Force refresh token for Security Rules
 
+      // Calculate isFree from total (price equals zero)
+      const isFree = total === 0;
+
       await reservationService.createReservation({
         itemId: item.id,
         itemTitle: item.title ?? "",
@@ -88,10 +91,14 @@ export function useItemReservation({
         endDate: endExclusive,
         days: daysCount,
         total: total,
-        isFree: !!item.isFree,
+        isFree: isFree,
       });
 
-      Alert.alert("Pedido enviado!", "Aguarde o dono aceitar para efetuar o pagamento.");
+      const message = isFree
+        ? "Pedido enviado! Como é gratuito, após o dono aceitar, as datas serão bloqueadas automaticamente."
+        : "Pedido enviado! Aguarde o dono aceitar para efetuar o pagamento.";
+
+      Alert.alert("Pedido enviado!", message);
       router.back();
     } catch (e: unknown) {
       const error = e as { message?: string };

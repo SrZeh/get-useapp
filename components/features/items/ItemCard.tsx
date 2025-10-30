@@ -16,6 +16,7 @@ import { useNavigationService } from '@/providers/ServicesProvider';
 import type { BaseCardProps } from '@/components/types';
 import { Spacing } from '@/constants/spacing';
 import { ItemCardBadges } from './ItemCardBadges';
+import { StarRating } from '@/components/review';
 
 type ItemCardProps = BaseCardProps & {
   /**
@@ -63,7 +64,7 @@ export const ItemCard = React.memo(function ItemCard({
   }, [isMine, onPress, navigation, item.id]);
 
   const cardStyle: ViewStyle = {
-    width: width ?? '100%',
+    width: (width ?? '100%') as ViewStyle['width'],
     borderRadius: 16,
     borderWidth: 1,
     overflow: 'hidden' as const,
@@ -88,7 +89,7 @@ export const ItemCard = React.memo(function ItemCard({
       style={cardStyle}
       accessibilityRole="button"
       accessibilityLabel={`Item: ${item.title}`}
-      accessibilityHint={isMine ? 'Este é seu item' : 'Toque para ver detalhes'}
+      accessibilityHint={isMine ? 'Este é seu item' : 'Toque para alugar'}
     >
       {/* Item Image */}
       {item.photos?.[0] ? (
@@ -120,11 +121,24 @@ export const ItemCard = React.memo(function ItemCard({
         <ThemedText
           type="title-3"
           numberOfLines={1}
-          style={{ marginBottom: 12, fontWeight: '600' }}
+          style={{ marginBottom: 8, fontWeight: '600' }}
           className="text-light-text-primary dark:text-dark-text-primary"
         >
           {item.title}
         </ThemedText>
+
+        {/* Rating */}
+        {item.ratingCount !== undefined && item.ratingCount > 0 ? (
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 12 }}>
+            <StarRating value={item.ratingAvg ?? 0} size={14} />
+            <ThemedText
+              type="caption-1"
+              className="text-light-text-tertiary dark:text-dark-text-tertiary"
+            >
+              ({item.ratingCount})
+            </ThemedText>
+          </View>
+        ) : null}
 
         {/* Badges */}
         <View style={{ flexDirection: 'row', gap: Spacing['2xs'], marginBottom: Spacing.xs, flexWrap: 'wrap' }}>
@@ -175,7 +189,7 @@ export const ItemCard = React.memo(function ItemCard({
             opacity: isMine ? 0.5 : 1,
           }}
         >
-          {isMine ? 'Seu item' : 'Ver detalhes'}
+          {isMine ? 'Seu item' : 'Alugue já'}
         </Button>
       </View>
     </TouchableOpacity>
@@ -194,6 +208,8 @@ export const ItemCard = React.memo(function ItemCard({
     prev.item.minRentalDays === next.item.minRentalDays &&
     prev.item.city === next.item.city &&
     prev.item.neighborhood === next.item.neighborhood &&
+    prev.item.ratingAvg === next.item.ratingAvg &&
+    prev.item.ratingCount === next.item.ratingCount &&
     prev.isMine === next.isMine &&
     prev.width === next.width &&
     prev.cardSpacing === next.cardSpacing &&

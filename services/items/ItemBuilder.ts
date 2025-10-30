@@ -16,12 +16,16 @@ import { normalize, toSearchable } from "./ItemNormalizer";
  * @returns Firestore document data
  */
 export function buildItemDoc(uid: string, input: NewItemInput) {
+  // Calculate isFree from dailyRate (0 means free)
+  const dailyRate = input.dailyRate ?? 0;
+  const isFree = dailyRate === 0;
+
   return {
     title: normalize(input.title),
     description: normalize(input.description),
     category: normalize(input.category),
     condition: normalize(input.condition),
-    dailyRate: input.dailyRate ?? null,
+    dailyRate: dailyRate,
     minRentalDays: input.minRentalDays ?? null,
     photos: input.photos ?? [],
     ownerUid: uid,
@@ -33,7 +37,7 @@ export function buildItemDoc(uid: string, input: NewItemInput) {
 
     published: input.published ?? true,
     available: true,
-    isFree: input.isFree ?? false,
+    isFree: isFree,
 
     // agregados para vitrine/avaliação
     ratingAvg: 0,

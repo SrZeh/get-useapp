@@ -3,12 +3,11 @@
  * 
  * Handles:
  * - Minimum rental days
- * - Daily rate (when not free)
- * - Free rental toggle
+ * - Daily rate (0 for free items)
  */
 
 import React from 'react';
-import { View, Switch, StyleSheet, Platform } from 'react-native';
+import { View, StyleSheet, Platform } from 'react-native';
 import { ThemedText } from '@/components/themed-text';
 import { LiquidGlassView } from '@/components/liquid-glass';
 import { Input } from '@/components/Input';
@@ -31,16 +30,14 @@ const dailyRateStringSchema = z
   .min(1, 'Valor da diária é obrigatório')
   .refine((val) => {
     const num = Number(val.replace(',', '.'));
-    return !isNaN(num) && num > 0;
-  }, 'Valor da diária deve ser um número positivo');
+    return !isNaN(num) && num >= 0;
+  }, 'Valor da diária deve ser um número maior ou igual a zero');
 
 type PricingSectionProps = {
   minRentalDays: string;
   dailyRate: string;
-  isFree: boolean;
   onMinRentalDaysChange: (value: string) => void;
   onDailyRateChange: (value: string) => void;
-  onIsFreeChange: (value: boolean) => void;
   errors: {
     minRentalDays?: string;
     dailyRate?: string;
@@ -51,13 +48,14 @@ type PricingSectionProps = {
 export const PricingSection = React.memo(function PricingSection({
   minRentalDays,
   dailyRate,
-  isFree,
   onMinRentalDaysChange,
   onDailyRateChange,
-  onIsFreeChange,
   errors,
   colors,
 }: PricingSectionProps) {
+  const parsedRate = Number(dailyRate.replace(',', '.')) || 0;
+  const isFree = parsedRate === 0;
+
   return (
     <LiquidGlassView
       intensity="subtle"
@@ -82,33 +80,24 @@ export const PricingSection = React.memo(function PricingSection({
           error={errors.minRentalDays}
         />
 
-        {!isFree && (
-          <Input
-            label="Valor da diária *"
-            placeholder="Ex: 25,00 ou 30.50"
-            value={dailyRate}
-            onChangeText={onDailyRateChange}
-            keyboardType={Platform.OS === "ios" ? "decimal-pad" : "numeric"}
-            helperText={!errors.dailyRate ? "Valor em reais (R$) por dia de aluguel" : undefined}
-            leftElement={<Ionicons name="cash" size={20} color={colors.icon.default} />}
-            zodSchema={dailyRateStringSchema}
-            validateOnBlur={true}
-            error={errors.dailyRate}
-          />
-        )}
-
-        <View style={styles.switchContainer}>
-          <Switch 
-            value={isFree} 
-            onValueChange={onIsFreeChange}
-            trackColor={{
-              false: colors.border.default,
-              true: colors.brand.primary,
-            }}
-            thumbColor={isFree ? colors.bg.primary : colors.text.tertiary}
-          />
-          <ThemedText style={styles.switchLabel}>Emprestar de graça</ThemedText>
-        </View>
+        <Input
+          label="Valor da diária *"
+          placeholder={isFree ? "0 para empréstimo gratuito" : "Ex: 25,00 ou 30.50"}
+          value={dailyRate}
+          onChangeText={onDailyRateChange}
+          keyboardType={Platform.OS === "ios" ? "decimal-pad" : "numeric"}
+          helperText={
+            !errors.dailyRate
+              ? isFree
+                ? "Item será emprestado gratuitamente (sem pagamento)"
+                : "Valor em reais (R$) por dia de aluguel"
+              : undefined
+          }
+          leftElement={<Ionicons name="cash" size={20} color={colors.icon.default} />}
+          zodSchema={dailyRateStringSchema}
+          validateOnBlur={true}
+          error={errors.dailyRate}
+        />
       </View>
     </LiquidGlassView>
   );
@@ -128,15 +117,6 @@ const styles = StyleSheet.create({
   sectionTitle: {
     marginBottom: Spacing.xs,
     fontWeight: '600',
-  },
-  switchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
-    paddingVertical: Spacing['2xs'],
-  },
-  switchLabel: {
-    flex: 1,
   },
 });
 
