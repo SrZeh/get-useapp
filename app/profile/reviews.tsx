@@ -11,6 +11,7 @@ import { Colors } from '@/constants/theme';
 import { useThemeColors } from '@/utils';
 import type { UserProfile } from '@/types';
 import { Spacing, BorderRadius } from '@/constants/spacing';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 function Stars({ value = 0 }: { value?: number }) {
   const filled = Math.round(value);
@@ -30,6 +31,7 @@ export default function ReviewsScreen() {
   const colorScheme = useColorScheme();
   const palette = Colors[colorScheme];
   const colors = useThemeColors();
+  const insets = useSafeAreaInsets();
 
   useEffect(() => {
     if (!uid) return;
@@ -43,7 +45,13 @@ export default function ReviewsScreen() {
 
   return (
     <ThemedView style={{ flex: 1 }}>
-      <ScrollView contentContainerStyle={{ padding: Spacing.sm, paddingBottom: Spacing.lg }}>
+      <ScrollView 
+        contentContainerStyle={{ 
+          padding: Spacing.sm, 
+          paddingTop: Spacing.sm + insets.top + 90, // Account for header height (approx 90px) + safe area
+          paddingBottom: Spacing.lg 
+        }}
+      >
         <ThemedText type="large-title" style={{ marginBottom: Spacing.lg }}>Minha reputação</ThemedText>
 
         <LiquidGlassView intensity="standard" cornerRadius={BorderRadius.xl} style={{ padding: Spacing.md, marginBottom: Spacing.md }}>

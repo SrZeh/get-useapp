@@ -1,35 +1,43 @@
 /**
  * useItemDetail - Hook for fetching and loading item detail data
+ * 
+ * Now uses Zustand store for optimized query management:
+ * - Checks cache first before querying Firestore
+ * - Caches fetched items to avoid duplicate queries
+ * - Optimizes Firestore reads
  */
 
 import { useEffect, useState } from 'react';
-import { doc, getDoc } from 'firebase/firestore';
 import { router } from 'expo-router';
 import { Alert } from 'react-native';
-import { db } from '@/lib/firebase';
+import { useItemsStore } from '@/stores/itemsStore';
 import { logger } from '@/utils';
 import type { Item } from '@/types';
 
 export function useItemDetail(itemId: string) {
   const [loading, setLoading] = useState(true);
   const [item, setItem] = useState<Item | null>(null);
+  
+  const getItem = useItemsStore((state) => state.getItem);
 
   useEffect(() => {
     let mounted = true;
 
     (async () => {
       try {
-        const snap = await getDoc(doc(db, "items", itemId));
+        setLoading(true);
+        // Get item from store (checks cache first)
+        const fetchedItem = await getItem(itemId);
         
         if (!mounted) return;
         
-        if (!snap.exists()) {
+        if (!fetchedItem) {
           Alert.alert("Item", "Item não encontrado.");
           router.back();
           return;
         }
         
-        setItem({ id: snap.id, ...(snap.data() as Partial<Item>) } as Item);
+        setItem(fetchedItem);
       } catch (e: unknown) {
         if (!mounted) return;
         const error = e as { message?: string };
@@ -45,7 +53,7 @@ export function useItemDetail(itemId: string) {
     return () => {
       mounted = false;
     };
-  }, [itemId]);
+  }, [itemId, getItem]);
 
   return { item, loading };
 }

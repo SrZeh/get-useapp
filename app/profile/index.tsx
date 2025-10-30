@@ -136,7 +136,13 @@ export default function ProfileScreen() {
 
   return (
     <ThemedView style={{ flex: 1 }}>
-      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 32 + tabBarHeight }}>
+      <ScrollView 
+        contentContainerStyle={{ 
+          padding: 16, 
+          paddingTop: 16 + insets.top + 90, // Account for header height (approx 90px) + safe area
+          paddingBottom: 32 + tabBarHeight 
+        }}
+      >
         <ThemedText type="large-title" style={{ marginBottom: 24 }}>
           Meu Perfil
         </ThemedText>

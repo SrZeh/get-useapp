@@ -18,10 +18,12 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import type { UserProfile } from '@/types';
 import { Spacing, BorderRadius } from '@/constants/spacing';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function EditProfile() {
   const uid = auth.currentUser?.uid;
   const colors = useThemeColors();
+  const insets = useSafeAreaInsets();
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -189,7 +191,13 @@ export default function EditProfile() {
       keyboardVerticalOffset={Platform.select({ ios: 80, android: 0 })}
     >
       <ThemedView style={{ flex: 1 }}>
-        <ScrollView contentContainerStyle={{ padding: Spacing.sm, paddingBottom: Spacing.lg }}>
+        <ScrollView 
+          contentContainerStyle={{ 
+            padding: Spacing.sm, 
+            paddingTop: Spacing.sm + insets.top + 90, // Account for header height (approx 90px) + safe area
+            paddingBottom: Spacing.lg 
+          }}
+        >
           <ThemedText type="large-title" style={{ marginBottom: Spacing.lg }}>Editar Perfil</ThemedText>
 
           <LiquidGlassView intensity="standard" cornerRadius={BorderRadius.xl} style={{ padding: Spacing.md, marginBottom: Spacing.md, alignItems: 'center' }}>

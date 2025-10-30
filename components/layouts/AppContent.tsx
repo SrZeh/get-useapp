@@ -53,6 +53,7 @@ export function AppContent() {
       )}
       <Stack screenOptions={screenOptions}>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="profile" options={{ headerShown: false }} />
         <Stack.Screen name="transaction/[id]/pay" options={{ headerShown: true, title: 'Pagamento' }} />
         <Stack.Screen name="transaction/[id]/chat" options={{ headerShown: true, title: 'Chat' }} />
         <Stack.Screen name="transaction/[id]/return" options={{ headerShown: true, title: 'Devolução' }} />

@@ -1,39 +1,32 @@
 /**
  * useProfileData - Hook for fetching user profile data
+ * 
+ * Now uses Zustand store for optimized query management:
+ * - Shares real-time listener across components
+ * - Caches profile to avoid duplicate queries
+ * - Optimizes Firestore reads
  */
 
-import { useEffect, useState } from 'react';
-import { doc, getDoc } from 'firebase/firestore';
-import { auth, db } from '@/lib/firebase';
+import { useEffect } from 'react';
+import { useUserProfileStore } from '@/stores/userProfileStore';
 import type { UserProfile } from '@/types';
 
 export function useProfileData() {
-  const uid = auth.currentUser?.uid;
-  const [user, setUser] = useState<UserProfile | null>(null);
-  const [loading, setLoading] = useState(true);
+  // Get data from Zustand store
+  const user = useUserProfileStore((state) => state.currentUserProfile);
+  const loading = useUserProfileStore((state) => state.currentUserLoading);
+  const subscribeToCurrentUser = useUserProfileStore((state) => state.subscribeToCurrentUser);
+  const unsubscribeFromCurrentUser = useUserProfileStore((state) => state.unsubscribeFromCurrentUser);
 
+  // Subscribe to current user profile on mount
   useEffect(() => {
-    (async () => {
-      if (!uid) {
-        setLoading(false);
-        return;
-      }
-      try {
-        const snap = await getDoc(doc(db, "users", uid));
-        if (snap.exists()) {
-          const data = snap.data() as Partial<UserProfile>;
-          setUser({ uid, ...data } as UserProfile);
-        } else {
-          setUser(null);
-        }
-      } catch (error) {
-        console.error('Error fetching profile:', error);
-        setUser(null);
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, [uid]);
+    subscribeToCurrentUser();
+    
+    return () => {
+      // Note: We don't unsubscribe here because other components might be using the listener
+      // The store manages the listener lifecycle
+    };
+  }, [subscribeToCurrentUser]);
 
   return { user, loading };
 }
