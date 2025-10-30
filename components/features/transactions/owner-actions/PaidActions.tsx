@@ -15,7 +15,7 @@ interface PaidActionsProps {
 export function PaidActions({ paymentMethodType }: PaidActionsProps) {
   return (
     <View style={{ gap: Spacing['2xs'] }}>
-      <ThemedText>Pago 💙 — aguardando o locatário marcar "Recebido!".</ThemedText>
+      <ThemedText>Pago 💙 — aguardando o locatário marcar &quot;Recebido!&quot;.</ThemedText>
       <ThemedText type="caption-1" style={{ opacity: 0.7 }}>
         {getDepositMessage(paymentMethodType)}
       </ThemedText>

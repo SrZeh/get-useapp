@@ -3,8 +3,8 @@
  */
 
 import React from 'react';
-import { View, StyleSheet, Modal, Pressable, Dimensions, TouchableWithoutFeedback, TouchableOpacity, Platform } from 'react-native';
-import { Linking } from 'react-native';
+import { View, StyleSheet, Modal, Pressable, Dimensions, TouchableWithoutFeedback, TouchableOpacity, Platform , Linking , Alert } from 'react-native';
+
 import { ThemedText } from '@/components/themed-text';
 import { LiquidGlassView } from '@/components/liquid-glass';
 import { Button } from '@/components/Button';
@@ -13,7 +13,7 @@ import { router } from 'expo-router';
 import { HapticFeedback } from '@/utils';
 import { Spacing, BorderRadius } from '@/constants/spacing';
 import { TERMS_URL } from '@/constants/terms';
-import { Alert } from 'react-native';
+
 import type { UseThemeColorsReturn } from '@/utils/theme';
 
 type SupportModalProps = {

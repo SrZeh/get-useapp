@@ -1,6 +1,6 @@
 import React from 'react';
 import { Platform } from 'react-native';
-import { Head } from 'expo-router';
+import Head from 'expo-router/head';
 
 export type HreflangLink = { lang: string; href: string };
 export type OpenGraphImage = { url: string; alt?: string; width?: number; height?: number };

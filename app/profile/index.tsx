@@ -10,13 +10,13 @@
  */
 
 import React, { useState } from 'react';
-import { ScrollView, TouchableOpacity, View, Platform, Alert } from 'react-native';
+import { ScrollView, TouchableOpacity, View, Platform, Alert , ActivityIndicator } from 'react-native';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { auth } from '@/lib/firebase';
 import { router } from 'expo-router';
 import { signOut } from 'firebase/auth';
-import { ActivityIndicator } from 'react-native';
+
 import { LiquidGlassView } from '@/components/liquid-glass';
 import { Button } from '@/components/Button';
 import { useTheme } from '@/providers/ThemeProvider';

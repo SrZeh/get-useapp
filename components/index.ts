@@ -54,7 +54,7 @@ export * from './features/items';
 export { HeaderLogo } from './layouts/HeaderLogo';
 
 // UI Components
-export * from './ui';
+export * from './ui/index';
 
 // Other Components
 export { AnimatedCard } from './AnimatedCard';
@@ -74,10 +74,10 @@ export { GlobalTabBar } from './GlobalTabBar';
 export { Footer } from './Footer';
 
 // Coachmarks
-export * from './coachmarks';
+export * from './coachmarks/index';
 
 // Onboarding
-export * from './onboarding';
+export * from './onboarding/index';
 
 // Types
 export type * from './types';

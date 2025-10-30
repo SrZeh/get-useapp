@@ -2,14 +2,12 @@
 // File: components/coachmarks/CoachmarkOverlay.tsx
 // =====================================
 import { ThemedText } from "@/components/themed-text";
-import { useCoachmarksContext } from "@/providers/CoachmarksProvider";
 import React, { useMemo } from "react";
 import { Dimensions, Modal, Pressable, StyleSheet, View, ViewStyle } from "react-native";
 import { useThemeColors } from "@/utils/theme";
 import { Spacing, BorderRadius } from "@/constants/spacing";
 
-export function CoachmarkOverlay() {
-const { visible, rect, step, next } = useCoachmarksContext();
+export function CoachmarkOverlay({ visible, rect, step, next }: { visible: boolean; rect: { x: number; y: number; width: number; height: number } | null; step: { text: string; align?: "top"|"bottom"|"left"|"right" } | null; next: () => void; }) {
 const { width, height } = Dimensions.get("window");
 const colors = useThemeColors();
 
@@ -73,9 +71,7 @@ function CoachBubble({ hole, text, align = "bottom", onNext }: { hole: { x: numb
   }), [colors.brand.primary]);
 
 return (
-<View style={[bubbleStyle, styles.bubble, base]}
-pointerEvents="box-none"
->
+<View style={[bubbleStyle, styles.bubble, base]}>
 <ThemedText type="subhead" style={{ marginBottom: Spacing.xs }}>{text}</ThemedText>
 <Pressable onPress={onNext} style={[btnStyle, styles.btn]}>
 <ThemedText style={{ fontWeight: "700" }}>Próximo</ThemedText>

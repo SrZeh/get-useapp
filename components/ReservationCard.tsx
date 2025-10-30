@@ -22,13 +22,11 @@ import { Spacing, BorderRadius } from '@/constants/spacing';
 import { ItemCard } from '@/components/features/items/ItemCard';
 import { useReservationData } from '@/hooks/features/reservations';
 import { isExpired } from '@/utils/reservations';
-import {
-  ReservationStatusBadge,
-  ReservationDates,
-  ReservationPrice,
-  ReservationTimestamps,
-  ReservationActions,
-} from '@/components/features/transactions';
+import { ReservationStatusBadge } from '@/components/features/transactions/ReservationStatusBadge';
+import { ReservationDates } from '@/components/features/transactions/ReservationDates';
+import { ReservationPrice } from '@/components/features/transactions/ReservationPrice';
+import { ReservationTimestamps } from '@/components/features/transactions/ReservationTimestamps';
+import { ReservationActions } from '@/components/features/transactions/ReservationActions';
 import type { FirestoreTimestamp } from '@/types/firestore';
 
 type ReservationCardProps = BaseCardProps & {

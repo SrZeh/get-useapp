@@ -82,11 +82,11 @@ export default function ItemDetailScreen() {
       <SeoHead
         meta={buildItemDetailPtBR({
           itemName: item.title ?? 'Item para aluguel',
-          city: item.address?.city ?? 'São Paulo',
+          city: item.city ?? 'Florianópolis',
           dailyRate: item.dailyRate,
           category: item.category,
           path: `/item/${id}`,
-          image: item.images?.[0] ?? undefined,
+          image: item.photos?.[0] ?? undefined,
         })}
       />
       <ThemedView style={{ flex: 1, backgroundColor: palette.background }}>

@@ -8,11 +8,12 @@
 import React, { useMemo } from 'react';
 import { Platform, View } from 'react-native';
 import { Stack } from 'expo-router';
+import Head from 'expo-router/head';
 import { StatusBar } from 'expo-status-bar';
 import { ThemeProvider, DarkTheme, DefaultTheme } from '@react-navigation/native';
 import { useColorScheme } from '@/providers/ThemeProvider';
 import { useThemeColors } from '@/utils';
-import { HeaderLogo } from '@/components/layouts';
+import { HeaderLogo } from '@/components/layouts/HeaderLogo';
 import { OnboardingProvider } from '@/providers/OnboardingProvider';
 import { CoachmarksProvider } from '@/providers/CoachmarksProvider';
 import { GlobalTabBar } from '@/components/GlobalTabBar';
@@ -45,6 +46,11 @@ export function AppContent() {
   const content = (
     <>
       {isWeb && <WebStyles />}
+      {isWeb && (
+        <Head>
+          <title>Precisou? Get&Use | Aluguel de items em geral</title>
+        </Head>
+      )}
       <Stack screenOptions={screenOptions}>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="transaction/[id]/pay" options={{ headerShown: true, title: 'Pagamento' }} />

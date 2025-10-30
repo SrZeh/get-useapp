@@ -3,7 +3,7 @@ import type { SeoMeta } from '@/utils/seo';
 const SITE = 'https://geteuse.com.br';
 
 export const itemsListingPtBR: SeoMeta = {
-  title: 'Aluguel de ferramentas em São Paulo | Get&Use',
+  title: 'Precisou? Get&Use | Aluguel de items em geral',
   description: 'Alugue ferramentas em São Paulo. Seguro, rápido e com ótimos preços. Reserve pelo app.',
   canonical: `${SITE}/items`,
   robots: { index: true, follow: true },
@@ -13,7 +13,7 @@ export const itemsListingPtBR: SeoMeta = {
     { lang: 'x-default', href: `${SITE}/items` },
   ],
   openGraph: {
-    title: 'Aluguel de ferramentas em São Paulo | Get&Use',
+    title: 'Precisou? Get&Use | Aluguel de items em geral',
     description: 'Alugue ferramentas em São Paulo. Seguro, rápido e com ótimos preços. Reserve pelo app.',
     type: 'website',
     url: `${SITE}/items`,
@@ -24,7 +24,7 @@ export const itemsListingPtBR: SeoMeta = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Aluguel de ferramentas em São Paulo | Get&Use',
+    title: 'Precisou? Get&Use | Aluguel de items em geral',
     description: 'Alugue ferramentas em São Paulo. Seguro, rápido e com ótimos preços. Reserve pelo app.',
     image: `${SITE}/og/listing.png`,
   },
@@ -32,7 +32,7 @@ export const itemsListingPtBR: SeoMeta = {
     {
       '@context': 'https://schema.org',
       '@type': 'CollectionPage',
-      name: 'Aluguel de ferramentas em São Paulo | Get&Use',
+      name: 'Precisou? Get&Use | Aluguel de items em geral',
       description: 'Alugue ferramentas em São Paulo. Seguro, rápido e com ótimos preços. Reserve pelo app.',
       url: `${SITE}/items`,
     },

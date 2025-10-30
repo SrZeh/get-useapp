@@ -10,7 +10,7 @@ export function buildItemDetailPtBR(params: {
   path: string; // e.g., `/item/abc123`
   image?: string;
 }): SeoMeta {
-  const city = params.city ?? 'São Paulo';
+  const city = params.city ?? 'Florianópolis';
   const title = `${params.itemName} para alugar em ${city} | Get&Use`;
   const description = `Alugue ${params.itemName} em ${city}. Seguro, rápido e com ótimos preços. Reserve pelo app.`;
   const ogImage = params.image ?? `${SITE}/og/item.png`;

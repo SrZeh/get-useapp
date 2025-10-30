@@ -15,7 +15,8 @@ import { useThemeColors } from '@/utils/theme';
 import { Spacing, BorderRadius } from '@/constants/spacing';
 import { getSpringConfig } from '@/constants/animations';
 import { HapticFeedback } from '@/utils';
-import { OwnerInbox, MyReservations } from './';
+import { OwnerInbox } from './OwnerInbox';
+import { MyReservations } from './MyReservations';
 
 type TransactionsTab = 'owner' | 'renter';
 

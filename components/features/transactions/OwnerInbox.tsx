@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { ScrollView, View } from 'react-native';
+import { ScrollView, View , Alert } from 'react-native';
 import { ThemedText } from '@/components/themed-text';
 import { LiquidGlassView } from '@/components/liquid-glass';
 import { ReservationCard } from '@/components/ReservationCard';
 import { auth } from '@/lib/firebase';
 import { confirmReturn } from '@/services/cloudFunctions';
 import { syncStripeAccount } from '@/services/stripe';
-import { Alert } from 'react-native';
+
 import { handleAsyncError } from '@/utils';
 import type { Reservation } from './types';
 import { useReservationService } from '@/providers/ServicesProvider';

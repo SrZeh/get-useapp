@@ -7,8 +7,8 @@ import { KeyboardAvoidingView, Platform, TouchableOpacity, View, Dimensions, Sty
 import { LiquidGlassView } from '@/components/liquid-glass';
 import { Button } from '@/components/Button';
 import { Input } from '@/components/Input';
-import { useThemeColors, HapticFeedback } from '@/utils';
-import { emailSchema } from '@/utils';
+import { useThemeColors, HapticFeedback , emailSchema } from '@/utils';
+
 import { Ionicons } from '@expo/vector-icons';
 import { useFormKeyboardNavigation } from '@/utils/keyboardNavigation';
 import { useLogin, useResetPassword } from '@/hooks';

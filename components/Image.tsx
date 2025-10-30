@@ -244,7 +244,6 @@ export function Image({
         blurhash={blurhash}
         accessibilityLabel={accessibilityLabel || alt || 'Image'}
         accessibilityRole="image"
-        accessibilityHint={alt ? `Description: ${alt}` : undefined}
       />
     </View>
   );

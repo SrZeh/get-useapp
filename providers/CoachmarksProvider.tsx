@@ -17,7 +17,7 @@ export function CoachmarksProvider({ children }: { children: React.ReactNode }) 
   return (
     <Ctx.Provider value={value}>
       {children}
-      <CoachmarkOverlay />
+      <CoachmarkOverlay visible={!!value.visible} rect={value.rect} step={value.step} next={value.next} />
     </Ctx.Provider>
   );
 }

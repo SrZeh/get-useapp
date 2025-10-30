@@ -39,13 +39,13 @@ type CategoryFilterProps = {
   onCategoryChange: (category: string) => void;
 };
 
-export const CategoryFilter = React.memo(function CategoryFilter({
+function CategoryFilterComponent({
   selectedCategory,
   categories,
   onCategoryChange,
 }: CategoryFilterProps) {
   const renderChip = useMemo(() => {
-    return (label: string, value: string) => {
+    function render(label: string, value: string) {
       const active = selectedCategory === value;
       const icon = value ? CATEGORY_ICONS[value] : undefined;
       return (
@@ -57,7 +57,8 @@ export const CategoryFilter = React.memo(function CategoryFilter({
           icon={icon}
         />
       );
-    };
+    }
+    return render;
   }, [selectedCategory, onCategoryChange]);
 
   return (
@@ -66,5 +67,8 @@ export const CategoryFilter = React.memo(function CategoryFilter({
       {categories.map((c) => renderChip(c, c))}
     </ScrollableCategories>
   );
-});
+}
+
+CategoryFilterComponent.displayName = 'CategoryFilter';
+export const CategoryFilter = React.memo(CategoryFilterComponent);
 

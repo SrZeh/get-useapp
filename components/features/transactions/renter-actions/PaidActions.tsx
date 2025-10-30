@@ -49,7 +49,7 @@ export function PaidActions({
       )}
       {!isRefundable(reservation) && reservation.status === 'paid' && (
         <ThemedText type="caption-1" style={{ opacity: 0.7 }}>
-          Estorno disponível por até 7 dias após o pagamento e antes de marcar "Recebido!".
+          Estorno disponível por até 7 dias após o pagamento e antes de marcar &quot;Recebido!&quot;.
         </ThemedText>
       )}
     </View>

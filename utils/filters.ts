@@ -3,7 +3,7 @@
  */
 
 import type { Item } from '@/types';
-import { PRICE_RANGES, type PriceRange } from '@/components/PriceRangeFilter';
+import { PRICE_RANGES, type PriceRange } from '@/constants/filters';
 
 /**
  * Price range filter (by range ID)

@@ -30,11 +30,11 @@ export const ThemeSelector = React.memo(function ThemeSelector({
   borderOpacity,
   brandOpacity,
 }: ThemeSelectorProps) {
-  const themeOptions: Array<{
+  const themeOptions: {
     mode: ThemeMode;
     label: string;
     icon: keyof typeof Ionicons.glyphMap;
-  }> = [
+  }[] = [
     { mode: 'light', label: 'Claro', icon: 'sunny' },
     { mode: 'dark', label: 'Escuro', icon: 'moon' },
     { mode: 'system', label: 'Automático', icon: 'phone-portrait' },
