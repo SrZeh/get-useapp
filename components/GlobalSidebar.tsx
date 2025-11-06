@@ -12,16 +12,11 @@ import { getSpringConfig } from "@/constants/animations";
 import ArrowsSvg from "@/assets/icons/arrows.svg";
 import HouseSvg from "@/assets/icons/house.svg";
 import ShippingBoxSvg from "@/assets/icons/shippingbox.svg";
-import { MaterialIcons } from "@expo/vector-icons";
+import { ProfileIcon as ProfileIconSvg } from "@/assets/icons/profile-icon";
 import { useTransactionsDot } from "@/hooks/features/transactions";
 import { useAuth } from "@/providers/AuthProvider";
 import { useSidebar } from "@/providers/SidebarProvider";
 import * as Haptics from "expo-haptics";
-
-// Profile Icon component to match SVG icon interface
-const ProfileIcon = ({ color, size = 24, width, height }: { color?: string; size?: number; width?: number; height?: number }) => (
-  <MaterialIcons name="person" size={width || height || size || 24} color={color} />
-);
 
 type TabConfig = {
   name: string;
@@ -40,7 +35,7 @@ const tabs: TabConfig[] = [
   { name: "items", route: "/items", title: "Meus Itens", Icon: ShippingBoxSvg, size: 22 },
   { name: "index", route: "/", title: "Início", Icon: HouseSvg, size: 24 },
   { name: "transactions", route: "/transactions", title: "Transações", Icon: ArrowsSvg, size: 22 },
-  { name: "profile", route: "/profile", title: "Perfil", Icon: ProfileIcon, size: 24 },
+  { name: "profile", route: "/profile", title: "Perfil", Icon: ProfileIconSvg, size: 24 },
 ];
 
 export function GlobalSidebar({ style, opacity }: GlobalSidebarProps = {}) {

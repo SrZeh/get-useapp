@@ -5,6 +5,8 @@
 import React from 'react';
 import { View, TouchableOpacity, ViewStyle, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { LocationIcon } from '@/assets/icons/location-icon';
+import { CheckmarkCircleIcon } from '@/assets/icons/theme-icons';
 import { ThemedText } from '@/components/themed-text';
 import { LiquidGlassView } from '@/components/liquid-glass';
 import { HapticFeedback } from '@/utils';
@@ -19,7 +21,7 @@ type LocationCheckboxFilterProps = {
   selectedValues: string[];
   onSelectionChange: (values: string[]) => void;
   loading?: boolean;
-  icon?: keyof typeof Ionicons.glyphMap;
+  icon?: boolean;
   style?: ViewStyle;
 };
 
@@ -57,10 +59,11 @@ export function LocationCheckboxFilter({
       {/* Title */}
       <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: Spacing['2xs'], gap: Spacing['2xs'] }}>
         {icon && (
-          <Ionicons
-            name={icon}
-            size={18}
+          <LocationIcon
+            width={18}
+            height={18}
             color={colors.text.primary}
+            stroke={colors.text.primary}
           />
         )}
         <ThemedText
@@ -123,11 +126,20 @@ export function LocationCheckboxFilter({
                   accessibilityLabel={`${option}, ${isSelected ? 'selecionado' : 'não selecionado'}`}
                   accessibilityHint="Toque duas vezes para selecionar ou desmarcar"
                 >
-                  <Ionicons
-                    name={isSelected ? 'checkmark-circle' : 'ellipse-outline'}
-                    size={20}
-                    color={isSelected ? colors.semantic.primary : colors.icon.default}
-                  />
+                  {isSelected ? (
+                    <CheckmarkCircleIcon
+                      width={20}
+                      height={20}
+                      color={colors.semantic.primary}
+                      stroke={colors.semantic.primary}
+                    />
+                  ) : (
+                    <Ionicons
+                      name="ellipse-outline"
+                      size={20}
+                      color={colors.icon.default}
+                    />
+                  )}
                   <ThemedText
                     type="caption-1"
                     style={{

@@ -7,11 +7,19 @@ import { View, ViewStyle } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import { LiquidGlassView } from '@/components/liquid-glass';
 import { ThemedText } from '@/components/themed-text';
-import { Ionicons } from '@expo/vector-icons';
+import { LocationIcon } from '@/assets/icons/location-icon';
 import { useThemeColors } from '@/utils/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Colors } from '@/constants/theme';
 import { Spacing, BorderRadius } from '@/constants/spacing';
+
+type IconComponent = React.ComponentType<{ 
+  width?: number; 
+  height?: number; 
+  color?: string; 
+  fill?: string;
+  stroke?: string;
+}>;
 
 type DropdownFilterProps = {
   title: string;
@@ -19,7 +27,7 @@ type DropdownFilterProps = {
   selectedValue: string;
   onValueChange: (value: string) => void;
   placeholder?: string;
-  icon?: keyof typeof Ionicons.glyphMap;
+  icon?: boolean;
   style?: ViewStyle;
   loading?: boolean;
 };
@@ -51,10 +59,11 @@ export function DropdownFilter({
       {/* Title */}
       <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: Spacing['2xs'], gap: Spacing['2xs'] }}>
         {icon && (
-          <Ionicons
-            name={icon}
-            size={18}
+          <LocationIcon
+            width={18}
+            height={18}
             color={colors.text.primary}
+            stroke={colors.text.primary}
           />
         )}
         <ThemedText

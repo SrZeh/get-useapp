@@ -6,11 +6,19 @@ import React from 'react';
 import { View, StyleSheet, TouchableOpacity } from 'react-native';
 import { ThemedText } from '@/components/themed-text';
 import { LiquidGlassView } from '@/components/liquid-glass';
-import { Ionicons } from '@expo/vector-icons';
+import { SunnyIcon, MoonIcon, PhonePortraitIcon, CheckmarkCircleIcon } from '@/assets/icons/theme-icons';
 import { Spacing, BorderRadius } from '@/constants/spacing';
 import type { UseThemeColorsReturn } from '@/utils/theme';
 
 type ThemeMode = 'light' | 'dark' | 'system';
+
+type IconComponent = React.ComponentType<{ 
+  width?: number; 
+  height?: number; 
+  color?: string; 
+  fill?: string;
+  stroke?: string;
+}>;
 
 type ThemeSelectorProps = {
   themeMode: ThemeMode;
@@ -33,11 +41,11 @@ export const ThemeSelector = React.memo(function ThemeSelector({
   const themeOptions: {
     mode: ThemeMode;
     label: string;
-    icon: keyof typeof Ionicons.glyphMap;
+    icon: IconComponent;
   }[] = [
-    { mode: 'light', label: 'Claro', icon: 'sunny' },
-    { mode: 'dark', label: 'Escuro', icon: 'moon' },
-    { mode: 'system', label: 'Automático', icon: 'phone-portrait' },
+    { mode: 'light', label: 'Claro', icon: SunnyIcon },
+    { mode: 'dark', label: 'Escuro', icon: MoonIcon },
+    { mode: 'system', label: 'Automático', icon: PhonePortraitIcon },
   ];
 
   return (
@@ -66,22 +74,31 @@ export const ThemeSelector = React.memo(function ThemeSelector({
               ]}
             >
               <View style={styles.optionContent}>
-                <Ionicons 
-                  name={option.icon} 
-                  size={24} 
-                  color={isSelected
-                    ? (colors.isDark ? colors.brand.primary : colors.brand.dark)
-                    : colors.text.tertiary} 
-                />
+                {(() => {
+                  const Icon = option.icon;
+                  return (
+                    <Icon
+                      width={24}
+                      height={24}
+                      color={isSelected
+                        ? (colors.isDark ? colors.brand.primary : colors.brand.dark)
+                        : colors.text.tertiary}
+                      fill={isSelected
+                        ? (colors.isDark ? colors.brand.primary : colors.brand.dark)
+                        : colors.text.tertiary}
+                    />
+                  );
+                })()}
                 <ThemedText type="body" style={{ fontWeight: isSelected ? '600' : '400' }}>
                   {option.label}
                 </ThemedText>
               </View>
               {isSelected && (
-                <Ionicons 
-                  name="checkmark-circle" 
-                  size={24} 
-                  color={colors.isDark ? colors.brand.primary : colors.brand.dark} 
+                <CheckmarkCircleIcon
+                  width={24}
+                  height={24}
+                  color={colors.isDark ? colors.brand.primary : colors.brand.dark}
+                  stroke={colors.isDark ? colors.brand.primary : colors.brand.dark}
                 />
               )}
             </TouchableOpacity>

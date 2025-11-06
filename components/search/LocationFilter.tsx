@@ -60,7 +60,7 @@ export const LocationFilter = React.memo(function LocationFilter({
               selectedValue={selectedCity}
               onValueChange={onCitySelect}
               placeholder="Todas as cidades"
-              icon="location"
+              icon={true}
               loading={locationsLoading}
             />
           </View>
@@ -74,7 +74,7 @@ export const LocationFilter = React.memo(function LocationFilter({
               selectedValue={selectedNeighborhood}
               onValueChange={onNeighborhoodSelect}
               placeholder="Todos os bairros"
-              icon="location-outline"
+              icon={true}
               loading={locationsLoading}
             />
           </View>

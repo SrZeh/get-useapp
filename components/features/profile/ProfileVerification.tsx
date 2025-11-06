@@ -5,7 +5,7 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { ThemedText } from '@/components/themed-text';
-import { Ionicons } from '@expo/vector-icons';
+import { CheckmarkCircleIcon, CloseCircleIcon } from '@/assets/icons/theme-icons';
 import { Spacing } from '@/constants/spacing';
 import type { UseThemeColorsReturn } from '@/utils/theme';
 import type { UserProfile } from '@/types';
@@ -22,21 +22,41 @@ export const ProfileVerification = React.memo(function ProfileVerification({
   return (
     <View style={styles.container}>
       <View style={styles.row}>
-        <Ionicons 
-          name={user?.emailVerified ? "checkmark-circle" : "close-circle"} 
-          size={20} 
-          color={user?.emailVerified ? colors.brand.dark : colors.semantic.error} 
-        />
+        {user?.emailVerified ? (
+          <CheckmarkCircleIcon 
+            width={20} 
+            height={20} 
+            color={colors.brand.dark} 
+            stroke={colors.brand.dark}
+          />
+        ) : (
+          <CloseCircleIcon 
+            width={20} 
+            height={20} 
+            color={colors.semantic.error} 
+            stroke={colors.semantic.error}
+          />
+        )}
         <ThemedText>
           E-mail: {user?.emailVerified ? "verificado ✅" : "não verificado ❌"}
         </ThemedText>
       </View>
       <View style={styles.row}>
-        <Ionicons 
-          name={user?.cpf ? "checkmark-circle" : "close-circle"} 
-          size={20} 
-          color={user?.cpf ? colors.brand.dark : colors.semantic.error} 
-        />
+        {user?.cpf ? (
+          <CheckmarkCircleIcon 
+            width={20} 
+            height={20} 
+            color={colors.brand.dark} 
+            stroke={colors.brand.dark}
+          />
+        ) : (
+          <CloseCircleIcon 
+            width={20} 
+            height={20} 
+            color={colors.semantic.error} 
+            stroke={colors.semantic.error}
+          />
+        )}
         <ThemedText>
           {user?.cpf ? "CPF verificado" : "CPF não verificado"}
         </ThemedText>
