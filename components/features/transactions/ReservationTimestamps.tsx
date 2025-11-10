@@ -24,9 +24,10 @@ type ReservationTimestampsProps = {
   transferGroup?: string;
   reviewsOpen?: {
     renterCanReviewOwner?: boolean;
-    ownerCanReviewItem?: boolean;
     renterCanReviewItem?: boolean;
+    ownerCanReviewRenter?: boolean;
   };
+  viewerRole: 'owner' | 'renter';
   colors: UseThemeColorsReturn;
 };
 
@@ -42,6 +43,7 @@ export const ReservationTimestamps = React.memo(function ReservationTimestamps({
   stripePaymentIntentId,
   transferGroup,
   reviewsOpen,
+  viewerRole,
   colors,
 }: ReservationTimestampsProps) {
   // Format timestamps
@@ -145,19 +147,19 @@ export const ReservationTimestamps = React.memo(function ReservationTimestamps({
             ⭐
           </ThemedText>
           <View style={{ flex: 1, gap: Spacing['3xs'] }}>
-            {reviewsOpen.renterCanReviewOwner && (
+            {viewerRole === 'renter' && reviewsOpen.renterCanReviewOwner && (
               <ThemedText type="caption-1" className="text-light-text-tertiary dark:text-dark-text-tertiary">
                 Você pode avaliar o dono
               </ThemedText>
             )}
-            {reviewsOpen.renterCanReviewItem && (
+            {viewerRole === 'renter' && reviewsOpen.renterCanReviewItem && (
               <ThemedText type="caption-1" className="text-light-text-tertiary dark:text-dark-text-tertiary">
                 Você pode avaliar o item
               </ThemedText>
             )}
-            {reviewsOpen.ownerCanReviewItem && (
+            {viewerRole === 'owner' && reviewsOpen.ownerCanReviewRenter && (
               <ThemedText type="caption-1" className="text-light-text-tertiary dark:text-dark-text-tertiary">
-                Você pode avaliar o item
+                Você pode avaliar o locatário
               </ThemedText>
             )}
           </View>

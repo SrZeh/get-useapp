@@ -5,13 +5,36 @@ service cloud.firestore {
     function isAuthed() { return request.auth != null; }
     function uid() { return request.auth.uid; }
 
-    // Confere se a reserva é do item, do usuário atual e já foi encerrada (para reviews)
-    function validReviewReservation(itemId, resId) {
+    function isReturnedReservation(res) {
+      return res.status == "returned" || res.status == "closed";
+    }
+
+    function hasLowRatingComment() {
+      return !(request.resource.data.rating <= 2)
+        || (request.resource.data.comment is string && request.resource.data.comment.size() > 0);
+    }
+
+    function validItemReviewReservation(itemId, resId) {
       let p = /databases/$(database)/documents/reservations/$(resId);
       return exists(p)
         && get(p).data.itemId == itemId
         && get(p).data.renterUid == uid()
-        && (get(p).data.status == "returned" || get(p).data.status == "closed");
+        && isReturnedReservation(get(p).data)
+        && get(p).data.itemOwnerUid == request.resource.data.itemOwnerUid;
+    }
+
+    function validUserReviewReservation(resId, reviewerRole, targetUid) {
+      let p = /databases/$(database)/documents/reservations/$(resId);
+      return exists(p)
+        && isReturnedReservation(get(p).data)
+        && (
+          (reviewerRole == "renter"
+            && get(p).data.renterUid == uid()
+            && get(p).data.itemOwnerUid == targetUid) ||
+          (reviewerRole == "owner"
+            && get(p).data.itemOwnerUid == uid()
+            && get(p).data.renterUid == targetUid)
+        );
     }
 
     // -------- USERS (perfil) --------
@@ -19,6 +42,28 @@ service cloud.firestore {
       // cada um só lê/escreve o próprio perfil
       allow read, create, update: if isAuthed() && uid() == u;
       allow delete: if false;
+
+      match /reviewsReceived/{revId} {
+        allow read: if true;
+        allow create: if isAuthed()
+          && request.resource.data.reviewerUid == uid()
+          && request.resource.data.targetUid == u
+          && request.resource.data.rating is number
+          && request.resource.data.rating >= 1
+          && request.resource.data.rating <= 5
+          && request.resource.data.reservationId is string
+          && revId == request.resource.data.reservationId
+          && request.resource.data.reviewerRole in ["owner", "renter"]
+          && request.resource.data.targetRole in ["owner", "renter"]
+          && (!request.resource.data.keys().hasAny(["comment"]) || (request.resource.data.comment is string && request.resource.data.comment.size() <= 500))
+          && hasLowRatingComment()
+          && validUserReviewReservation(
+            request.resource.data.reservationId,
+            request.resource.data.reviewerRole,
+            u
+          );
+        allow update, delete: if false;
+      }
     }
 
     // -------- ITENS (vitrine) + subcoleções --------
@@ -46,7 +91,11 @@ service cloud.firestore {
           && request.resource.data.rating >= 1
           && request.resource.data.rating <= 5
           && request.resource.data.reservationId is string
-          && validReviewReservation(itemId, request.resource.data.reservationId);
+          && request.resource.data.itemOwnerUid is string
+          && request.resource.data.itemId == itemId
+          && (!request.resource.data.keys().hasAny(["comment"]) || (request.resource.data.comment is string && request.resource.data.comment.size() <= 500))
+          && hasLowRatingComment()
+          && validItemReviewReservation(itemId, request.resource.data.reservationId);
         allow update, delete: if false;
       }
     }

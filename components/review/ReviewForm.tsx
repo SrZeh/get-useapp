@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, ScrollView, TextInput, TouchableOpacity } from 'react-native';
+import { Alert, View, ScrollView, TextInput, TouchableOpacity } from 'react-native';
 import { ThemedText } from '@/components/themed-text';
 import { LiquidGlassView } from '@/components/liquid-glass';
 import { Button } from '@/components/Button';
@@ -58,6 +58,10 @@ export function ReviewForm({
   const placeholderColor = colors.input.placeholder;
 
   const handleSubmit = () => {
+    if (rating <= 2 && comment.trim().length === 0) {
+      Alert.alert('Avaliação', 'Para notas 1 ou 2, explique o motivo no comentário.');
+      return;
+    }
     HapticFeedback.medium();
     onSubmit();
   };
@@ -112,6 +116,9 @@ export function ReviewForm({
           <StarInput key={n} n={n} rating={rating} onPress={onRatingChange} />
         ))}
       </View>
+      <ThemedText type="footnote" className="text-light-text-tertiary dark:text-dark-text-tertiary" style={{ marginTop: Spacing['3xs'] }}>
+        Comentário obrigatório para notas 1 ou 2.
+      </ThemedText>
 
       <LiquidGlassView intensity="subtle" cornerRadius={16} style={{ marginTop: 12 }}>
         <TextInput

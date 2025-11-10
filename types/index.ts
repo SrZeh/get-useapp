@@ -68,9 +68,13 @@ export { isUserProfile } from './user';
 export type {
   Review,
   ReviewDocument,
+  UserReview,
+  UserReviewDocument,
   ReviewType,
   ReviewRating,
-  NewReviewInput,
+  ReviewParticipantRole,
+  NewItemReviewInput,
+  NewUserReviewInput,
   EligibleReservation,
 } from './review';
 

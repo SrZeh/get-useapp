@@ -49,7 +49,8 @@ export interface Reservation {
   // Reviews configuration
   reviewsOpen?: {
     renterCanReviewOwner?: boolean;
-    ownerCanReviewItem?: boolean;
+    renterCanReviewItem?: boolean;
+    ownerCanReviewRenter?: boolean;
   };
   
   // Timestamps

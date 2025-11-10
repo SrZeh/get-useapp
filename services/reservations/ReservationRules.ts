@@ -160,7 +160,11 @@ export function canPay(reservation: Reservation): boolean {
  * @returns true if review can be submitted
  */
 export function canReview(reservation: Reservation): boolean {
-  return reservation.status === 'returned' && (reservation.reviewsOpen?.renterCanReviewOwner ?? true);
+  if (reservation.status !== 'returned') return false;
+  const reviews = reservation.reviewsOpen ?? {};
+  const canReviewOwner = reviews.renterCanReviewOwner ?? true;
+  const canReviewItem = reviews.renterCanReviewItem ?? true;
+  return canReviewOwner || canReviewItem;
 }
 
 /**

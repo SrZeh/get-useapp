@@ -13,12 +13,19 @@ import { auth } from '@/lib/firebase';
 import { logger } from '@/utils';
 import { useReservationService, useReviewService } from '@/providers/ServicesProvider';
 
+type EligibleReservationInfo = {
+  id: string;
+  label: string;
+  itemOwnerUid: string;
+  renterUid: string;
+};
+
 type UseItemReviewSubmissionResult = {
   // Form state
   selectedResId: string;
   rating: number;
   comment: string;
-  eligibleRes: Array<{ id: string; label: string }>;
+  eligibleRes: EligibleReservationInfo[];
   // Selected reservation metadata
   selectedOwnerUid?: string;
   
@@ -40,7 +47,7 @@ export function useItemReviewSubmission(itemId: string): UseItemReviewSubmission
   const [selectedResId, setSelectedResId] = useState<string>("");
   const [rating, setRating] = useState<number>(5);
   const [comment, setComment] = useState<string>("");
-  const [eligibleRes, setEligibleRes] = useState<Array<{ id: string; label: string; itemOwnerUid: string }>>([]);
+  const [eligibleRes, setEligibleRes] = useState<EligibleReservationInfo[]>([]);
   const [loading, setLoading] = useState(false);
 
   // Load eligible reservations
@@ -76,13 +83,14 @@ export function useItemReviewSubmission(itemId: string): UseItemReviewSubmission
       return;
     }
 
-    const validation = reviewService.validateReviewInput({
+    const trimmedComment = comment.trim();
+
+    const validation = reviewService.validateItemReviewInput({
       renterUid: uid,
       reservationId: selectedResId,
       rating: rating as 1 | 2 | 3 | 4 | 5,
       itemId,
-      type: 'item',
-      comment,
+      comment: trimmedComment,
       itemOwnerUid: selectedReservation.itemOwnerUid,
     });
 
@@ -98,8 +106,7 @@ export function useItemReviewSubmission(itemId: string): UseItemReviewSubmission
         reservationId: selectedResId,
         rating: rating as 1 | 2 | 3 | 4 | 5,
         itemId,
-        type: 'item',
-        comment,
+        comment: trimmedComment,
         itemOwnerUid: selectedReservation.itemOwnerUid,
       });
 

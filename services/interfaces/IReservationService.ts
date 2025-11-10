@@ -50,6 +50,13 @@ export interface IReservationService {
   listEligibleReservationsForReview(renterUid: string, itemId: string): Promise<EligibleReservation[]>;
 
   /**
+   * List eligible reservations for user-to-user reviews (completed reservations)
+   * @param uid - User ID
+   * @param role - Role of the user (owner or renter)
+   */
+  listEligibleReservationsForUserReview(uid: string, role: 'owner' | 'renter'): Promise<EligibleReservation[]>;
+
+  /**
    * Subscribe to owner reservations with real-time updates
    * @param ownerUid - Owner user ID
    * @param callback - Callback function for updates

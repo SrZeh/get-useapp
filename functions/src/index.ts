@@ -1277,9 +1277,9 @@ export const confirmReturn = onCall(
         status: "returned",
         returnedAt: TS(),
         reviewsOpen: {
-          renterCanReviewOwner: true,
           renterCanReviewItem: true,
-          ownerCanReviewRenter: false, // deixe true se quiser que o dono avalie o locatário
+          renterCanReviewOwner: true,
+          ownerCanReviewRenter: true,
         },
         updatedAt: TS(),
       });
@@ -1306,8 +1306,8 @@ export const onItemReviewCreated = onDocumentCreated(
 
     const rating = Number(rev?.rating) || 0;
     const ownerUid = String(rev?.itemOwnerUid || "");
-    const renterUid = String(rev?.renterUid || "");
     const reservationId = String(rev?.reservationId || revId || "");
+    const comment = typeof rev?.comment === "string" ? String(rev.comment).slice(0, 500) : "";
     if (!itemId || !rating || !ownerUid || !reservationId) return;
 
     await db.runTransaction(async (trx) => {
@@ -1320,35 +1320,52 @@ export const onItemReviewCreated = onDocumentCreated(
       const ia = Math.round((is / ic) * 10) / 10;
       trx.set(
         itemRef,
-        { ratingCount: ic, ratingSum: is, ratingAvg: ia, lastReviewAt: TS() },
+        {
+          ratingCount: ic,
+          ratingSum: is,
+          ratingAvg: ia,
+          lastReviewAt: TS(),
+          lastReviewSnippet: comment,
+        },
         { merge: true }
       );
+    });
+  }
+);
 
-      // ---- DONO (locador): média e contagem (sem comentários)
-      const userRef = db.doc(`users/${ownerUid}`);
+// =====================================================
+// === Trigger: agregação ao criar review de usuário  ===
+// =====================================================
+export const onUserReviewCreated = onDocumentCreated(
+  {
+    region: "southamerica-east1",
+    document: "users/{targetUid}/reviewsReceived/{revId}",
+  },
+  async (event) => {
+    const snap = event.data;
+    if (!snap) return;
+
+    const rev = snap.data() as any;
+    const { targetUid } = event.params as any;
+    const rating = Number(rev?.rating) || 0;
+    if (!targetUid || !rating) return;
+
+    await db.runTransaction(async (trx) => {
+      const userRef = db.doc(`users/${targetUid}`);
       const userSnap = await trx.get(userRef);
-      const u = userSnap.exists ? (userSnap.data() as any) : {};
-      const uc = Number(u.ratingCount || 0) + 1;
-      const us = Number(u.ratingSum || 0) + rating;
-      const ua = Math.round((us / uc) * 10) / 10;
+      const data = userSnap.exists ? (userSnap.data() as any) : {};
+      const count = Number(data.ratingCount || 0) + 1;
+      const sum = Number(data.ratingSum || 0) + rating;
+      const avg = Math.round((sum / count) * 10) / 10;
       trx.set(
         userRef,
-        { ratingCount: uc, ratingSum: us, ratingAvg: ua, updatedAt: TS() },
-        { merge: true }
-      );
-
-      // ---- Registro curto no perfil do dono (sem comentário)
-      const shortRef = db.doc(`users/${ownerUid}/ratingsReceived/${reservationId}`);
-      trx.set(
-        shortRef,
         {
-          rating,
-          reservationId,
-          itemId,
-          renterUid,
-          createdAt: TS(),
+          ratingCount: count,
+          ratingSum: sum,
+          ratingAvg: avg,
+          updatedAt: TS(),
         },
-        { merge: false }
+        { merge: true }
       );
     });
   }

@@ -61,6 +61,13 @@ export class ExpoRouterNavigationService implements INavigationService {
     } as never);
   }
 
+  navigateToOwnerReview(transactionId: string): void {
+    router.push({
+      pathname: '/review/[transactionId]/owner',
+      params: { transactionId },
+    } as never);
+  }
+
   navigateToProfile(): void {
     router.push('/profile');
   }
