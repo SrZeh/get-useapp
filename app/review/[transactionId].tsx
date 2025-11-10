@@ -5,7 +5,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useMemo, useState } from 'react';
 import { Alert, KeyboardAvoidingView, Platform, ScrollView, TextInput, TouchableOpacity, View } from 'react-native';
 import { auth, db } from '@/lib/firebase';
-import { doc, serverTimestamp, setDoc } from 'firebase/firestore';
+import { doc, getDoc, serverTimestamp, setDoc, updateDoc } from 'firebase/firestore';
 import { useTransactionsStore } from '@/stores/transactionsStore';
 import { LiquidGlassView } from '@/components/liquid-glass';
 import { Button } from '@/components/Button';
@@ -66,6 +66,11 @@ export default function ReviewScreen() {
       HapticFeedback.medium();
       // 1 review por reserva: docId = reservationId
       const revRef = doc(db, `items/${res.itemId}/reviews/${res.id}`);
+      const existing = await getDoc(revRef);
+      if (existing.exists()) {
+        throw new Error('Você já avaliou esta reserva.');
+      }
+
       await setDoc(
         revRef,
         {
@@ -79,6 +84,17 @@ export default function ReviewScreen() {
         },
         { merge: false }
       );
+
+      try {
+        await updateDoc(doc(db, `reservations/${res.id}`), {
+          'reviewsOpen.renterCanReviewItem': false,
+          'reviewsOpen.renterCanReviewOwner': false,
+          updatedAt: serverTimestamp(),
+        });
+      } catch (updateError) {
+        // Log silencioso - o locatário ainda enviou a avaliação; não bloquear fluxo
+        console.log('Falha ao atualizar status de reviews da reserva', updateError);
+      }
 
       // Agregações do item e do dono são feitas pela trigger onItemReviewCreated
       HapticFeedback.success();

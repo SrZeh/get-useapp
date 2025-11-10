@@ -7,20 +7,22 @@
 
 import { db } from '@/lib/firebase';
 import {
-  addDoc,
   collection,
+  doc,
+  getDoc,
   getDocs,
   limit,
   onSnapshot,
   orderBy,
   query,
   serverTimestamp,
+  setDoc,
+  updateDoc,
   type Unsubscribe,
 } from 'firebase/firestore';
-import type { Review, NewReviewInput, ReviewRating } from '@/types';
+import type { Review, NewReviewInput } from '@/types';
 import { logger } from '@/utils';
 import { isValidRating } from '@/types/review';
-import { safeBumpRating } from '@/services/items';
 
 /**
  * Create a new review for an item
@@ -33,25 +35,51 @@ export async function createItemReview(itemId: string, input: NewReviewInput): P
     throw new Error('Rating deve ser entre 1 e 5');
   }
 
+  if (!input.itemOwnerUid) {
+    throw new Error('Dono do item é obrigatório');
+  }
+
+  if (!input.reservationId) {
+    throw new Error('Reserva deve ser informada');
+  }
+
+  const reservationReviewRef = doc(db, 'items', itemId, 'reviews', input.reservationId);
+  const existingReview = await getDoc(reservationReviewRef);
+  if (existingReview.exists()) {
+    throw new Error('Você já avaliou esta reserva.');
+  }
+
+  const trimmedComment = input.comment?.trim();
+
   // Create review document
   const reviewData = {
     renterUid: input.renterUid,
     reservationId: input.reservationId,
     itemId: input.itemId ?? itemId,
-    ownerUid: input.ownerUid,
+    itemOwnerUid: input.itemOwnerUid,
     type: 'item' as const,
     rating: input.rating,
-    comment: input.comment?.trim() ?? '',
+    comment: trimmedComment ?? '',
     createdAt: serverTimestamp(),
   };
 
-  const ref = await addDoc(collection(db, 'items', itemId, 'reviews'), reviewData);
+  await setDoc(reservationReviewRef, reviewData, { merge: false });
 
-  // Update item rating aggregates using the item service
-  const lastSnippet = input.comment?.trim() ? input.comment.trim().slice(0, 120) : undefined;
-  await safeBumpRating(itemId, input.rating, lastSnippet);
+  try {
+    await updateDoc(doc(db, 'reservations', input.reservationId), {
+      'reviewsOpen.renterCanReviewItem': false,
+      'reviewsOpen.renterCanReviewOwner': false,
+      updatedAt: serverTimestamp(),
+    });
+  } catch (error) {
+    if (typeof logger.warn === 'function') {
+      logger.warn('Não foi possível atualizar reviewsOpen da reserva após avaliação', error);
+    } else {
+      console.warn('Não foi possível atualizar reviewsOpen da reserva após avaliação', error);
+    }
+  }
 
-  return ref.id;
+  return reservationReviewRef.id;
 }
 
 /**
@@ -122,6 +150,10 @@ export function validateReviewInput(input: Partial<NewReviewInput>): {
 
   if (!input.renterUid) {
     return { valid: false, error: 'Usuário deve estar autenticado.' };
+  }
+
+  if (!input.itemOwnerUid) {
+    return { valid: false, error: 'Não foi possível identificar o dono do item.' };
   }
 
   return { valid: true };

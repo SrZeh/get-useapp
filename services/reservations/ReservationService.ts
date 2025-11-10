@@ -119,7 +119,7 @@ export async function listRenterReservations(renterUid: string): Promise<Reserva
 export async function listEligibleReservationsForReview(
   renterUid: string,
   itemId: string
-): Promise<Array<{ id: string; label: string }>> {
+): Promise<Array<{ id: string; label: string; itemOwnerUid: string }>> {
   const q = query(
     collection(db, RESERVATIONS_PATH),
     where('renterUid', '==', renterUid),
@@ -129,9 +129,9 @@ export async function listEligibleReservationsForReview(
 
   const snap = await getDocs(q);
   return snap.docs.map((d) => {
-    const r = d.data() as { startDate?: string; endDate?: string };
+    const r = d.data() as { startDate?: string; endDate?: string; itemOwnerUid?: string };
     const dateLabel = r.startDate && r.endDate ? `(${r.startDate} → ${r.endDate})` : '';
-    return { id: d.id, label: `#${d.id.slice(0, 6)} ${dateLabel}` };
+    return { id: d.id, label: `#${d.id.slice(0, 6)} ${dateLabel}`, itemOwnerUid: String(r.itemOwnerUid ?? '') };
   });
 }
 

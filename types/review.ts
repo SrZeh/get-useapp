@@ -22,7 +22,9 @@ export interface Review {
   reservationId: string;
   renterUid: string;
   itemId?: string;
+  /** @deprecated use itemOwnerUid */
   ownerUid?: string;
+  itemOwnerUid?: string;
   type: ReviewType;
   rating: ReviewRating;
   comment?: string;
@@ -42,7 +44,9 @@ export interface NewReviewInput {
   reservationId: string;
   renterUid: string;
   itemId?: string;
+  /** @deprecated use itemOwnerUid */
   ownerUid?: string;
+  itemOwnerUid: string;
   type: ReviewType;
   rating: ReviewRating;
   comment?: string;
@@ -81,5 +85,6 @@ export function isValidRating(rating: unknown): rating is ReviewRating {
 export interface EligibleReservation {
   id: string;
   label: string;
+  itemOwnerUid: string;
 }
 

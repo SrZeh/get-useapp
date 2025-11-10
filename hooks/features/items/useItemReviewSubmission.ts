@@ -19,6 +19,8 @@ type UseItemReviewSubmissionResult = {
   rating: number;
   comment: string;
   eligibleRes: Array<{ id: string; label: string }>;
+  // Selected reservation metadata
+  selectedOwnerUid?: string;
   
   // Form actions
   setSelectedResId: (id: string) => void;
@@ -38,7 +40,7 @@ export function useItemReviewSubmission(itemId: string): UseItemReviewSubmission
   const [selectedResId, setSelectedResId] = useState<string>("");
   const [rating, setRating] = useState<number>(5);
   const [comment, setComment] = useState<string>("");
-  const [eligibleRes, setEligibleRes] = useState<Array<{ id: string; label: string }>>([]);
+  const [eligibleRes, setEligibleRes] = useState<Array<{ id: string; label: string; itemOwnerUid: string }>>([]);
   const [loading, setLoading] = useState(false);
 
   // Load eligible reservations
@@ -50,9 +52,10 @@ export function useItemReviewSubmission(itemId: string): UseItemReviewSubmission
       }
       try {
         const list = await reservationService.listEligibleReservationsForReview(uid, itemId);
-        setEligibleRes(list);
-        if (list.length === 1) {
-          setSelectedResId(list[0].id);
+        const filtered = list.filter((entry) => !!entry.itemOwnerUid);
+        setEligibleRes(filtered);
+        if (filtered.length === 1) {
+          setSelectedResId(filtered[0].id);
         }
       } catch (err) {
         logger.error("Error loading eligible reservations", err);
@@ -67,6 +70,12 @@ export function useItemReviewSubmission(itemId: string): UseItemReviewSubmission
       return;
     }
 
+    const selectedReservation = eligibleRes.find((entry) => entry.id === selectedResId);
+    if (!selectedReservation) {
+      Alert.alert("Avaliação", "Selecione a reserva utilizada para avaliar.");
+      return;
+    }
+
     const validation = reviewService.validateReviewInput({
       renterUid: uid,
       reservationId: selectedResId,
@@ -74,6 +83,7 @@ export function useItemReviewSubmission(itemId: string): UseItemReviewSubmission
       itemId,
       type: 'item',
       comment,
+      itemOwnerUid: selectedReservation.itemOwnerUid,
     });
 
     if (!validation.valid) {
@@ -90,6 +100,7 @@ export function useItemReviewSubmission(itemId: string): UseItemReviewSubmission
         itemId,
         type: 'item',
         comment,
+        itemOwnerUid: selectedReservation.itemOwnerUid,
       });
 
       setComment("");
@@ -111,6 +122,7 @@ export function useItemReviewSubmission(itemId: string): UseItemReviewSubmission
     setSelectedResId,
     setRating,
     setComment,
+    selectedOwnerUid: eligibleRes.find((entry) => entry.id === selectedResId)?.itemOwnerUid,
     submitReview,
     loading,
   };

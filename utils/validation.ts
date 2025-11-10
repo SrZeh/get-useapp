@@ -221,6 +221,7 @@ export const newReviewInputSchema = z.object({
   renterUid: z.string().min(1, 'Usuário deve estar autenticado'),
   itemId: z.string().optional(),
   ownerUid: z.string().optional(),
+  itemOwnerUid: z.string().min(1, 'Dono do item é obrigatório'),
   type: z.enum(['item', 'owner'], { errorMap: () => ({ message: 'Tipo de avaliação inválido' }) }),
   rating: reviewRatingSchema,
   comment: reviewCommentSchema,
