@@ -65,8 +65,8 @@ export default function VitrineScreen() {
     [me, grid]
   );
 
-  // Render search header - stable callbacks prevent input focus loss
-  const renderHeader = useCallback(
+  // Header como elemento memoizado para evitar remontagem a cada render
+  const headerElement = React.useMemo(
     () => (
       <SearchHeader
         search={itemList.filters.search}
@@ -93,8 +93,6 @@ export default function VitrineScreen() {
         onMaxPriceChange={itemList.actions.setMaxPrice}
       />
     ),
-    // Only re-render when filter values or cities/neighborhoods actually change
-    // Actions (setters) are stable from useState, so don't need to be in deps
     [
       itemList.filters.search,
       itemList.filters.city,
@@ -130,7 +128,7 @@ export default function VitrineScreen() {
           data={itemList.filteredItems}
           keyExtractor={(it) => it.id}
           renderItem={renderItem}
-          ListHeaderComponent={renderHeader}
+          ListHeaderComponent={headerElement}
           ListFooterComponent={<Footer />}
           removeClippedSubviews={true}
           maxToRenderPerBatch={10}

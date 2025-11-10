@@ -47,8 +47,11 @@ export default function ThreadChatScreen() {
     if (!uid || !id) return;
     try {
       const functions = getFunctions(app, "southamerica-east1");
-      const call = httpsCallable(functions, "markThreadRead");
-      await call({ threadId: id });
+      const markThread = httpsCallable(functions, "markThreadRead");
+      await markThread({ threadId: id });
+      // zera contador de mensagens (dot global de mensagens)
+      const markAsSeen = httpsCallable(functions, "markAsSeen");
+      await markAsSeen({ type: "messages" });
     } catch {
       /* silencioso */
     }

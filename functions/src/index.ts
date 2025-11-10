@@ -12,6 +12,7 @@ import Stripe from "stripe";
 
 
 import { computeFees } from "./fees";
+import { createNotification, dispatchExternalNotify, markAsSeenCallable, saveWebPushTokenCallable } from "./notifications";
 
 
 
@@ -297,6 +298,32 @@ export const acceptReservation = onCall(async ({ auth, data }) => {
       return { ok: true, prevStatus: r.status, newStatus: "accepted", isFree: false };
     });
 
+    // notifica locatário que foi aceita
+    try {
+      const resRef = db.doc(`reservations/${reservationId!}`);
+      const rs = await resRef.get();
+      if (rs.exists) {
+        const r = rs.data() as any;
+        await createNotification({
+          recipientId: String(r.renterUid),
+          type: "reservation_status",
+          entityType: "reservation",
+          entityId: String(reservationId),
+          title: "Reserva aceita",
+          body: "Sua reserva foi aceita. Continue o processo no app.",
+          metadata: { reservationId },
+        });
+        await dispatchExternalNotify(String(r.renterUid), {
+          type: "reservation_status",
+          title: "Reserva aceita",
+          body: "Sua reserva foi aceita. Continue o processo no app.",
+          deepLink: `/reservation/${reservationId}`,
+        });
+      }
+    } catch (e) {
+      console.warn("notify(acceptReservation) failed", e);
+    }
+
     return result;
   } catch (err: any) {
     if (err instanceof HttpsError) throw err;
@@ -331,6 +358,32 @@ export const rejectReservation = onCall(async ({ auth, data }) => {
 
       return { ok: true, prevStatus: r.status, newStatus: "rejected" };
     });
+
+    // notifica locatário que foi rejeitada
+    try {
+      const resRef = db.doc(`reservations/${reservationId!}`);
+      const rs = await resRef.get();
+      if (rs.exists) {
+        const r = rs.data() as any;
+        await createNotification({
+          recipientId: String(r.renterUid),
+          type: "reservation_status",
+          entityType: "reservation",
+          entityId: String(reservationId),
+          title: "Reserva rejeitada",
+          body: "Sua reserva foi rejeitada.",
+          metadata: { reservationId, reason: reason ?? null },
+        });
+        await dispatchExternalNotify(String(r.renterUid), {
+          type: "reservation_status",
+          title: "Reserva rejeitada",
+          body: "Sua reserva foi rejeitada.",
+          deepLink: `/reservation/${reservationId}`,
+        });
+      }
+    } catch (e) {
+      console.warn("notify(rejectReservation) failed", e);
+    }
 
     return result;
   } catch (err: any) {
@@ -551,6 +604,31 @@ export const onMessageCreated = onDocumentCreated(
       );
     }
     await batch.commit();
+
+    // cria notificação + envia e-mail / web push
+    await Promise.all(
+      others.map(async (recipientId) => {
+        try {
+          await createNotification({
+            recipientId,
+            type: "message",
+            entityType: "thread",
+            entityId: threadId,
+            title: "Nova mensagem",
+            body: typeof msg?.text === "string" ? String(msg.text).slice(0, 120) : "Você recebeu uma nova mensagem",
+            metadata: { threadId, fromUid, preview: msg?.text ?? null },
+          });
+          await dispatchExternalNotify(recipientId, {
+            type: "message",
+            title: "Nova mensagem",
+            body: "Você recebeu uma nova mensagem",
+            deepLink: `/messages/${threadId}`,
+          });
+        } catch (e) {
+          console.warn("notify(message) failed", e);
+        }
+      })
+    );
   }
 );
 
@@ -784,10 +862,55 @@ export const confirmCheckoutSession = onCall(
       trx.update(resRef, { status: "paid", paidAt: TS(), stripePaymentIntentId: paymentIntentId ?? null, updatedAt: TS() });
     });
 
+    // notificar dono e locatário que foi pago
+    try {
+      await Promise.all([
+        createNotification({
+          recipientId: String(r.itemOwnerUid),
+          type: "payment_update",
+          entityType: "reservation",
+          entityId: String(reservationId),
+          title: "Pagamento confirmado",
+          body: "Uma reserva sua foi paga. Prepare-se para a entrega/retirada.",
+          metadata: { reservationId },
+        }).then(() =>
+          dispatchExternalNotify(String(r.itemOwnerUid), {
+            type: "payment_update",
+            title: "Pagamento confirmado",
+            body: "Uma reserva sua foi paga.",
+            deepLink: `/reservation/${reservationId}`,
+          })
+        ),
+        createNotification({
+          recipientId: String(r.renterUid),
+          type: "payment_update",
+          entityType: "reservation",
+          entityId: String(reservationId),
+          title: "Pagamento aprovado",
+          body: "Seu pagamento foi aprovado. Confira os próximos passos.",
+          metadata: { reservationId },
+        }).then(() =>
+          dispatchExternalNotify(String(r.renterUid), {
+            type: "payment_update",
+            title: "Pagamento aprovado",
+            body: "Seu pagamento foi aprovado.",
+            deepLink: `/reservation/${reservationId}`,
+          })
+        ),
+      ]);
+    } catch (e) {
+      console.warn("notify(paid manual confirm) failed", e);
+    }
+
     return { ok: true, marked: "paid" };
   }
 );
 
+// ==== Callable: markAsSeen (counters + lastSeenAt) ====
+export const markAsSeen = markAsSeenCallable;
+
+// ==== Callable: save web push token (FCM) ==============
+export const saveWebPushToken = saveWebPushTokenCallable;
 // =====================================================
 // === Webhook Stripe: marca paid e bloqueia datas    ===
 // =====================================================
@@ -888,6 +1011,46 @@ export const stripeWebhook = onRequest(
             updatedAt: TS(),
           });
         });
+
+        // notificar dono e locatário que foi pago
+        try {
+          await Promise.all([
+            createNotification({
+              recipientId: String(r.itemOwnerUid),
+              type: "payment_update",
+              entityType: "reservation",
+              entityId: String(reservationId),
+              title: "Pagamento confirmado",
+              body: "Uma reserva sua foi paga. Prepare-se para a entrega/retirada.",
+              metadata: { reservationId },
+            }).then(() =>
+              dispatchExternalNotify(String(r.itemOwnerUid), {
+                type: "payment_update",
+                title: "Pagamento confirmado",
+                body: "Uma reserva sua foi paga.",
+                deepLink: `/reservation/${reservationId}`,
+              })
+            ),
+            createNotification({
+              recipientId: String(r.renterUid),
+              type: "payment_update",
+              entityType: "reservation",
+              entityId: String(reservationId),
+              title: "Pagamento aprovado",
+              body: "Seu pagamento foi aprovado. Confira os próximos passos.",
+              metadata: { reservationId },
+            }).then(() =>
+              dispatchExternalNotify(String(r.renterUid), {
+                type: "payment_update",
+                title: "Pagamento aprovado",
+                body: "Seu pagamento foi aprovado.",
+                deepLink: `/reservation/${reservationId}`,
+              })
+            ),
+          ]);
+        } catch (e) {
+          console.warn("notify(paid webhook) failed", e);
+        }
       }
 
       res.json({ received: true }); return;

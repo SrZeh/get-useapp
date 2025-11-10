@@ -100,7 +100,7 @@ export const ItemCard = React.memo(function ItemCard({
             height: imageHeight,
             backgroundColor: colors.bg.tertiary,
           }}
-          contentFit="cover"
+          contentFit="contain"
           transition={200}
           cachePolicy="memory-disk"
           recyclingKey={item.photos[0]}

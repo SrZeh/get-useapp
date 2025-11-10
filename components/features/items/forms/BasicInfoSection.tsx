@@ -8,18 +8,18 @@
  * - Condition input
  */
 
-import React from 'react';
-import { View, StyleSheet } from 'react-native';
-import { Picker } from '@react-native-picker/picker';
-import { ThemedText } from '@/components/themed-text';
-import { LiquidGlassView } from '@/components/liquid-glass';
 import { Input } from '@/components/Input';
-import { Ionicons } from '@expo/vector-icons';
-import { itemTitleSchema, itemDescriptionSchema } from '@/utils';
-import { Spacing, BorderRadius } from '@/constants/spacing';
+import { LiquidGlassView } from '@/components/liquid-glass';
+import { ThemedText } from '@/components/themed-text';
 import { ITEM_CATEGORIES } from '@/constants/categories';
+import { BorderRadius, Spacing } from '@/constants/spacing';
+import { itemDescriptionSchema, itemTitleSchema } from '@/utils';
+import type { ThemeColors } from '@/utils/theme';
+import { Ionicons } from '@expo/vector-icons';
+import { Picker } from '@react-native-picker/picker';
+import React from 'react';
+import { StyleSheet, View } from 'react-native';
 import { z } from 'zod';
-import type { UseThemeColorsReturn } from '@/utils/theme';
 
 const conditionStringSchema = z
   .string()
@@ -40,7 +40,7 @@ type BasicInfoSectionProps = {
     description?: string;
     category?: string;
   };
-  colors: UseThemeColorsReturn;
+  colors: ThemeColors;
 };
 
 export function BasicInfoSection({

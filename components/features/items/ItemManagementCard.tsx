@@ -87,7 +87,7 @@ export function ItemManagementCard({
           <ExpoImage
             source={{ uri: item.photos[0] }}
             style={{ width: '100%', height: 200 }}
-            contentFit="cover"
+            contentFit="contain"
             transition={200}
             cachePolicy="memory-disk"
             recyclingKey={item.photos[0]}
