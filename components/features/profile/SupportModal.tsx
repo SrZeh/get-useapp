@@ -14,16 +14,13 @@ import { HapticFeedback } from '@/utils';
 import { Spacing, BorderRadius } from '@/constants/spacing';
 import { TERMS_URL } from '@/constants/terms';
 
-import type { UseThemeColorsReturn } from '@/utils/theme';
+import type { UseThemeColorsReturn, BrandColorsWithOpacity } from '@/utils/theme';
 
 type SupportModalProps = {
   visible: boolean;
   onClose: () => void;
   colors: UseThemeColorsReturn;
-  brandOpacity: {
-    primary: { low: string };
-    dark: { low: string };
-  };
+  brandOpacity: BrandColorsWithOpacity;
 };
 
 export const SupportModal = React.memo(function SupportModal({
@@ -100,7 +97,7 @@ export const SupportModal = React.memo(function SupportModal({
 
               {/* Contact Info */}
               <View style={[styles.contactInfo, {
-                backgroundColor: colors.isDark ? brandOpacity.primary.low : brandOpacity.dark.low,
+                backgroundColor: colors.isDark ? brandOpacity.primary.subtle : brandOpacity.dark.subtle,
               }]}>
                 <View style={styles.contactRow}>
                   <Ionicons 

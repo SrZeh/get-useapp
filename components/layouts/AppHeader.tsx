@@ -19,6 +19,7 @@ import { HeaderLogo } from './HeaderLogo';
 import { HeaderMenu } from '@/components/HeaderMenu';
 import { AuthHeaderRight } from '@/components/features/auth';
 import { LiquidGlassView } from '@/components/liquid-glass';
+import { useAuth } from '@/providers/AuthProvider';
 
 /**
  * Header configuration options
@@ -120,11 +121,20 @@ export function getAppHeaderOptions(
  */
 export function useAppHeaderOptions(options: AppHeaderOptions = {}) {
   const colors = useThemeColors();
+  const { user } = useAuth();
 
   return useMemo(
-    () => getAppHeaderOptions(colors, options),
+    () => {
+      const authAwareOptions: AppHeaderOptions = { ...options };
+
+      if (!user) {
+        authAwareOptions.headerLeft = null;
+      }
+
+      return getAppHeaderOptions(colors, authAwareOptions);
+    },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [colors, options.headerShown, options.title, options.headerLeft, options.headerRight, options.showBackground]
+    [colors, user, options.headerShown, options.title, options.headerLeft, options.headerRight, options.showBackground]
   );
 }
 
