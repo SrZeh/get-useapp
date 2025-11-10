@@ -1,0 +1,25 @@
+import React from 'react';
+import { Svg, Path } from 'react-native-svg';
+
+type BookIconProps = React.ComponentProps<typeof Svg> & {
+  size?: number;
+};
+
+export function BookIcon({ size = 96, ...rest }: BookIconProps) {
+  const width = rest.width ?? size;
+  const height = rest.height ?? size;
+  const strokeColor = rest.stroke ?? '#96FF9A';
+
+  return (
+    <Svg viewBox="0 0 53 51" width={width} height={height} fill="none" {...rest}>
+      <Path
+        d="M29.9638 20.3026C34.7538 16.4117 41.135 17.369 51.0763 24.7363C51.2352 24.8542 51.369 25.0026 51.4699 25.173C51.5709 25.3433 51.6371 25.5323 51.6647 25.7289C51.6922 25.9256 51.6807 26.126 51.6306 26.3187C51.5806 26.5114 51.493 26.6926 51.373 26.8517L35.0255 48.7038C34.7846 49.0258 34.4267 49.2396 34.0304 49.2982C33.6341 49.3569 33.232 49.2555 32.9124 49.0164C23.2734 41.8055 18.0846 40.978 13.6163 42.1547M29.9638 20.3026C32.344 14.6089 29.6239 8.75762 19.7496 1.3008C19.5916 1.1817 19.4115 1.09528 19.2195 1.04651C19.0276 0.99775 18.8277 0.987607 18.6312 1.01667C18.4348 1.04573 18.2458 1.11342 18.0751 1.21585C17.9043 1.31827 17.7553 1.45339 17.6365 1.61343L1.39851 23.3191C0.837703 24.0687 0.841633 25.0243 1.58564 25.5809C11.2247 32.7918 13.4862 37.5605 13.6163 42.1547M29.9638 20.3026L13.6163 42.1547"
+        stroke={strokeColor}
+        strokeWidth={2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+

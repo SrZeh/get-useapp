@@ -1,0 +1,27 @@
+export { BikeIcon } from './BikeIcon';
+export { BookIcon } from './BookIcon';
+export { CameraIcon } from './CameraIcon';
+export { CestaIcon } from './CestaIcon';
+export { ChaveRodaIcon } from './ChaveRodaIcon';
+export { ControleIcon } from './ControleIcon';
+export { DressIcon } from './DressIcon';
+export { DroneIcon } from './DroneIcon';
+export { GuitarIcon } from './GuitarIcon';
+export { HatIcon } from './HatIcon';
+export { LaptopIcon } from './LaptopIcon';
+export { LawnMowerIcon } from './LawnMowerIcon';
+export { GravataIcon } from './GravataIcon';
+export { LivroIcon } from './LivroIcon';
+export { LunetaIcon } from './LunetaIcon';
+export { PaIcon } from './PaIcon';
+export { PanelaIcon } from './PanelaIcon';
+export { PincelIcon } from './PincelIcon';
+export { SpeakerIcon } from './SpeakerIcon';
+export { SuitcaseIcon } from './SuitcaseIcon';
+export { SurfIcon } from './SurfIcon';
+export { TableIcon } from './TableIcon';
+export { TacaIcon } from './TacaIcon';
+export { TenisIcon } from './TenisIcon';
+export { TentIcon } from './TentIcon';
+export { ToolboxIcon } from './ToolboxIcon';
+
