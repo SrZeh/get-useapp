@@ -484,9 +484,9 @@ export const createCheckoutSession = onCall(
         throw new HttpsError("failed-precondition", "Valor base inválido.");
       }
 
-      // breakdown: 5% serviço + sobretaxa Stripe (3,99% + R$0,39 gross-up)
+      // breakdown: 7% de serviço + taxa fixa de R$0,39
       const { serviceFee, surcharge, appFeeFromBase, ownerPayout, totalToCustomer } =
-        computeFees(baseCents, { stripePct: 0.0399, stripeFixedCents: 39 });
+        computeFees(baseCents);
 
       // garantir que temos o accountId do dono salvo (para etapas futuras/payout)
       let ownerStripeAccountId: string | undefined = r.ownerStripeAccountId;
@@ -519,7 +519,7 @@ export const createCheckoutSession = onCall(
             quantity: 1,
             price_data: {
               currency: "brl",
-              product_data: { name: "Taxa de serviço Get & Use (5%)" },
+              product_data: { name: "Taxa de serviço Get & Use (7%)" },
               unit_amount: serviceFee,
             },
           },
@@ -527,7 +527,7 @@ export const createCheckoutSession = onCall(
             quantity: 1,
             price_data: {
               currency: "brl",
-              product_data: { name: "Taxa de processamento" },
+              product_data: { name: "Taxa fixa de processamento (R$0,39)" },
               unit_amount: surcharge,
             },
           },
