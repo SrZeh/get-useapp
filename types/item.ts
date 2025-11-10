@@ -53,6 +53,11 @@ export interface Item {
   city?: string;
   neighborhood?: string;
 
+  // Termos de uso do item
+  termsAccepted?: boolean;
+  termsAcceptedAt?: FirestoreTimestamp | null;
+  termsAcceptedVersion?: string | null;
+
   // Rating fields (product ratings)
   ratingAvg?: number;
   ratingCount?: number;
@@ -95,6 +100,8 @@ export interface NewItemInput {
   neighborhood?: string;
   published?: boolean;
   isFree?: boolean;
+  termsAccepted?: boolean;
+  termsAcceptedVersion?: string;
 }
 
 /**
