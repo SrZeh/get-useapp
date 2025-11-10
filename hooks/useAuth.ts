@@ -44,11 +44,22 @@ export function useRegister() {
       
       if (result.success) {
         HapticFeedback.success();
-        notify(
-          'Conta criada com sucesso!',
-          'Enviamos um e-mail de verificação. Confirme seu e-mail para continuar usando o app.'
-        );
-        router.replace('/(auth)/verify-email');
+        
+        // If phone was provided, offer to verify it after email verification
+        if (result.hasPhone) {
+          notify(
+            'Conta criada com sucesso!',
+            'Enviamos um e-mail de verificação. Você também pode verificar seu telefone para maior segurança.'
+          );
+          // Navigate to email verification first, user can verify phone later
+          router.replace('/(auth)/verify-email');
+        } else {
+          notify(
+            'Conta criada com sucesso!',
+            'Enviamos um e-mail de verificação. Confirme seu e-mail para continuar usando o app.'
+          );
+          router.replace('/(auth)/verify-email');
+        }
         return { success: true } as const;
       } else {
         HapticFeedback.error();

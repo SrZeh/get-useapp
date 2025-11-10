@@ -3,7 +3,7 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { auth, db } from '@/lib/firebase';
 import { Link, router } from 'expo-router';
-import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, updateDoc, serverTimestamp, getDoc } from 'firebase/firestore';
 import React, { useEffect, useState } from 'react';
 import { Alert, TouchableOpacity, View } from 'react-native';
 import { sendEmailVerification } from 'firebase/auth';
@@ -14,7 +14,29 @@ import { Spacing } from '@/constants/spacing';
 export default function VerifyEmailScreen() {
   const user = auth.currentUser;
   const [checking, setChecking] = useState(false);
+  const [hasPhone, setHasPhone] = useState(false);
+  const [phoneVerified, setPhoneVerified] = useState(false);
   const colors = useThemeColors();
+
+  // Check if user has phone number
+  useEffect(() => {
+    async function checkPhone() {
+      if (!user) return;
+      
+      try {
+        const userDoc = await getDoc(doc(db, 'users', user.uid));
+        if (userDoc.exists()) {
+          const data = userDoc.data();
+          setHasPhone(!!data.phone);
+          setPhoneVerified(!!data.phoneVerified);
+        }
+      } catch (error) {
+        logger.error('Error checking phone', error);
+      }
+    }
+
+    checkPhone();
+  }, [user]);
 
   // ✅ checa se já confirmou o e-mail e força refresh do ID token
   const checkNow = async () => {
@@ -79,6 +101,25 @@ export default function VerifyEmailScreen() {
         >
           Reenviar e-mail
         </Button>
+        
+        {hasPhone && !phoneVerified && (
+          <View style={{ marginTop: Spacing.xs, paddingTop: Spacing.sm, borderTopWidth: 1, borderTopColor: colors.border.default }}>
+            <ThemedText 
+              type="body" 
+              style={{ marginBottom: Spacing.sm, textAlign: 'center', color: colors.text.secondary }}
+            >
+              Para maior segurança, verifique também seu telefone
+            </ThemedText>
+            <Button 
+              variant="outline" 
+              fullWidth
+              onPress={() => router.push('/(auth)/verify-phone')}
+            >
+              Verificar telefone
+            </Button>
+          </View>
+        )}
+        
         <Link href="/(auth)/login" asChild>
           <TouchableOpacity>
             <ThemedText style={{ textAlign: 'center', color: colors.brand.primary }}>
