@@ -41,11 +41,11 @@ export function ItemHeader({ item }: ItemHeaderProps) {
         <ExpoImage
           source={{ uri: item.photos[0] }}
           style={[styles.image, { height: IMAGE_HEIGHT }]}
-          contentFit="cover"
+          contentFit="contain"
           transition={300}
           cachePolicy="memory-disk"
           recyclingKey={item.photos[0]}
-          placeholderContentFit="cover"
+          placeholderContentFit="contain"
         />
       )}
       <View style={styles.content}>

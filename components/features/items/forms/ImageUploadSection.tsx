@@ -71,7 +71,7 @@ export const ImageUploadSection = React.memo(function ImageUploadSection({
             <ExpoImage
               source={{ uri: imageUri }}
               style={styles.previewImage}
-              contentFit="cover"
+              contentFit="contain"
             />
             {onRemoveImage && (
               <TouchableOpacity
