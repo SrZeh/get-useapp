@@ -16,12 +16,12 @@ import {
   onSnapshot,
   query,
   where,
-  setDoc,
-  serverTimestamp,
   type DocumentData,
   type QuerySnapshot,
   type Timestamp,
 } from "firebase/firestore";
+import { getFunctions, httpsCallable } from "firebase/functions";
+import { app } from "@/lib/firebase";
 import { logger } from "@/utils";
 
 /**
@@ -140,12 +140,14 @@ export async function markTransactionsSeen(): Promise<void> {
   if (!uid) return;
 
   try {
-    await setDoc(
-      doc(db, "users", uid),
-      { lastTransactionsSeenAt: serverTimestamp() },
-      { merge: true }
-    );
-    logger.debug('Marked transactions as seen', { uid });
+    const fns = getFunctions(app, "southamerica-east1");
+    const markAsSeen = httpsCallable<{ type: "messages" | "reservations" | "payments" | "interactions" }, { ok: true }>(fns, "markAsSeen");
+    // Zera reservas e pagamentos ao focar a tela de transações
+    await Promise.all([
+      markAsSeen({ type: "reservations" }),
+      markAsSeen({ type: "payments" }),
+    ]);
+    logger.debug('Marked transactions counters as seen', { uid });
   } catch (error) {
     logger.error('Failed to mark transactions as seen', error, { uid });
   }
