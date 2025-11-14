@@ -1129,7 +1129,7 @@ export const confirmReturn = onCall(
 // =====================================================
 // === Trigger: agregação ao criar review de item     ===
 // =====================================================
-export const onItemReviewCreatedV2 = onDocumentCreated(
+export const onItemReviewCreatedV3 = onDocumentCreated(
   {
     region: "southamerica-east1",
     document: "items/{itemId}/reviews/{revId}",
