@@ -14,6 +14,7 @@ import HouseSvg from "@/assets/icons/house.svg";
 import ShippingBoxSvg from "@/assets/icons/shippingbox.svg";
 import { ProfileIcon as ProfileIconSvg } from "@/assets/icons/profile-icon";
 import { useTransactionsDot } from "@/hooks/features/transactions";
+import { useNotificationCounters } from "@/hooks/features/notifications";
 import { useAuth } from "@/providers/AuthProvider";
 import { useSidebar } from "@/providers/SidebarProvider";
 import * as Haptics from "expo-haptics";
@@ -43,7 +44,9 @@ export function GlobalSidebar({ style, opacity }: GlobalSidebarProps = {}) {
   const pathname = usePathname();
   const segments = useSegments();
   const insets = useSafeAreaInsets();
-  const showTxDot = useTransactionsDot();
+  const showTxDotLegacy = useTransactionsDot();
+  const counters = useNotificationCounters();
+  const showTxDot = (counters.reservations + counters.payments) > 0 || showTxDotLegacy;
   const { user } = useAuth();
   const { isOpen, close } = useSidebar();
 

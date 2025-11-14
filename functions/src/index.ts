@@ -1,7 +1,7 @@
 /* eslint-disable import/namespace */
 // functions/src/index.ts
 import * as admin from "firebase-admin";
-import { App as AdminApp, initializeApp } from "firebase-admin/app";
+import { App as AdminApp, getApp, getApps, initializeApp } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
 import { setGlobalOptions } from "firebase-functions/v2";
 import { onDocumentCreated } from "firebase-functions/v2/firestore";
@@ -15,7 +15,7 @@ import { computeFees } from "./fees";
 
 
 
-const adminApp: AdminApp = initializeApp();
+const adminApp: AdminApp = getApps().length ? getApp() : initializeApp();
 setGlobalOptions({ region: "southamerica-east1", maxInstances: 10 });
 
 // Firestore (usar o DB "appdb")
@@ -1129,7 +1129,7 @@ export const confirmReturn = onCall(
 // =====================================================
 // === Trigger: agregação ao criar review de item     ===
 // =====================================================
-export const onItemReviewCreated = onDocumentCreated(
+export const onItemReviewCreatedV2 = onDocumentCreated(
   {
     region: "southamerica-east1",
     document: "items/{itemId}/reviews/{revId}",

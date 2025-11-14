@@ -71,6 +71,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
+  // Web Push: registrar token após login (somente web)
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (!user) return;
+    // Lazy import para não pesar no native
+    (async () => {
+      try {
+        const mod = await import("@/lib/messaging"); // resolve .web.ts no web
+        if (mod?.registerWebPushToken) {
+          await mod.registerWebPushToken();
+        }
+      } catch (e) {
+        logger.warn("Falha ao registrar Web Push token (ignorado)", e);
+      }
+    })();
+  }, [user?.uid]);
+
   // Memoize context value to prevent unnecessary re-renders
   const value = useMemo<AuthContextType>(
     () => ({
