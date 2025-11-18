@@ -7,13 +7,13 @@
 
 import React, { useMemo } from 'react';
 import { Platform, View } from 'react-native';
-import { Stack } from 'expo-router';
+import { Stack, usePathname } from 'expo-router';
 import Head from 'expo-router/head';
 import { StatusBar } from 'expo-status-bar';
 import { ThemeProvider, DarkTheme, DefaultTheme } from '@react-navigation/native';
 import { useColorScheme } from '@/providers/ThemeProvider';
 import { useThemeColors } from '@/utils';
-import { useAppHeaderOptions } from '@/components/layouts';
+import { AnimatedItemsBackground, ScreenTransitionLayer, useAppHeaderOptions } from '@/components/layouts';
 import { OnboardingProvider } from '@/providers/OnboardingProvider';
 import { CoachmarksProvider } from '@/providers/CoachmarksProvider';
 import { GlobalSidebar } from '@/components/GlobalSidebar';
@@ -27,6 +27,12 @@ export function AppContent() {
   const scheme = useColorScheme();
   const colors = useThemeColors();
   const isWeb = Platform.OS === 'web';
+  const pathname = usePathname();
+
+  const transitionAccent = useMemo(
+    () => (colors.isDark ? 'rgba(14, 18, 28, 0.7)' : 'rgba(150, 255, 154, 0.22)'),
+    [colors.isDark]
+  );
 
   // Get memoized header options from reusable component
   const screenOptions = useAppHeaderOptions();
@@ -37,7 +43,19 @@ export function AppContent() {
     [scheme]
   );
 
-  const content = (
+  const stackContent = (
+    <Stack screenOptions={screenOptions}>
+      <Stack.Screen name="index" />
+      <Stack.Screen name="items" />
+      <Stack.Screen name="transactions" />
+      <Stack.Screen name="profile" options={{ headerShown: false }} />
+      <Stack.Screen name="transaction/[id]/pay" options={{ headerShown: true, title: 'Pagamento' }} />
+      <Stack.Screen name="transaction/[id]/chat" options={{ headerShown: true, title: 'Chat' }} />
+      <Stack.Screen name="transaction/[id]/return" options={{ headerShown: true, title: 'Devolução' }} />
+    </Stack>
+  );
+
+  const layeredContent = (
     <>
       {isWeb && <WebStyles />}
       {isWeb && (
@@ -45,15 +63,10 @@ export function AppContent() {
           <title>Precisou? Get&Use | Aluguel de items em geral</title>
         </Head>
       )}
-      <Stack screenOptions={screenOptions}>
-        <Stack.Screen name="index" />
-        <Stack.Screen name="items" />
-        <Stack.Screen name="transactions" />
-        <Stack.Screen name="profile" options={{ headerShown: false }} />
-        <Stack.Screen name="transaction/[id]/pay" options={{ headerShown: true, title: 'Pagamento' }} />
-        <Stack.Screen name="transaction/[id]/chat" options={{ headerShown: true, title: 'Chat' }} />
-        <Stack.Screen name="transaction/[id]/return" options={{ headerShown: true, title: 'Devolução' }} />
-      </Stack>
+      <AnimatedItemsBackground seed={pathname} accentColor={transitionAccent} duration={8200} />
+      <ScreenTransitionLayer transitionKey={pathname} backgroundColor={colors.bg.primary} delay={500}>
+        {stackContent}
+      </ScreenTransitionLayer>
     </>
   );
 
@@ -73,8 +86,8 @@ export function AppContent() {
           <View style={{ flex: 1, position: 'relative' }}>
             <OnboardingProvider>
               <CoachmarksProvider>
-                <View style={{ flex: 1 }}>
-                  {content}
+                <View style={{ flex: 1, position: 'relative' }}>
+                  {layeredContent}
                   <GlobalSidebar />
                 </View>
               </CoachmarksProvider>
@@ -101,7 +114,7 @@ export function AppContent() {
           <OnboardingProvider>
             <CoachmarksProvider>
               <View style={{ flex: 1 }}>
-                {content}
+                {layeredContent}
                 <GlobalSidebar />
               </View>
             </CoachmarksProvider>
@@ -112,4 +125,3 @@ export function AppContent() {
     </ThemeProvider>
   );
 }
-

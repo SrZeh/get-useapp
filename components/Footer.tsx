@@ -1,15 +1,15 @@
-import React, { useState } from 'react';
-import { View, StyleSheet, TouchableOpacity, Linking } from 'react-native';
-import { Link } from 'expo-router';
-import { Image } from 'expo-image';
-import { ThemedText } from './themed-text';
-import { LiquidGlassView } from './liquid-glass/LiquidGlassView';
+import { SupportModal } from '@/components/features/profile';
 import { Spacing } from '@/constants/spacing';
+import { useResponsive } from '@/hooks/useResponsive';
 import { useThemeColors } from '@/utils';
 import { useBrandColorsWithOpacity } from '@/utils/theme';
+import { Image } from 'expo-image';
+import { Link } from 'expo-router';
+import React, { useState } from 'react';
+import { Linking, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useResponsive } from '@/hooks/useResponsive';
-import { SupportModal } from '@/components/features/profile';
+import { LiquidGlassView } from './liquid-glass/LiquidGlassView';
+import { ThemedText } from './themed-text';
 
 /**
  * Footer component with responsive 3-column grid layout
@@ -71,7 +71,7 @@ export function Footer() {
           {/* Responsive Grid Layout */}
           <View style={[styles.grid, isMobile && styles.gridMobile]}>
             {/* Section 1: Logo */}
-            <View style={[styles.gridItem, styles.logoSection]}>
+            <View style={[styles.gridItem, styles.logoSection, isMobile && styles.gridItemMobile]}>
               <Link href="/" asChild>
                 <TouchableOpacity style={styles.logoContainer} accessibilityRole="link" accessibilityLabel="Get & Use">
                   <Image
@@ -80,7 +80,7 @@ export function Footer() {
                     contentFit="contain"
                     transition={200}
                   />
-                  <ThemedText type="title" style={[styles.appName, { color: colors.text.primary }]}>
+                  <ThemedText type="title" style={[styles.appName, { color: colors.text.primary }, isMobile && styles.centeredText]}>
                     Get & Use
                   </ThemedText>
                 </TouchableOpacity>
@@ -91,7 +91,8 @@ export function Footer() {
             <View style={[
               styles.gridItem,
               styles.linksSection,
-              { alignItems: 'center' }
+              { alignItems: 'center' },
+              isMobile && styles.gridItemMobile
             ]}>
               <View style={[
                 styles.linksContainer,
@@ -99,20 +100,20 @@ export function Footer() {
               ]}>
                 <Link href="/termosdeuso" asChild>
                   <TouchableOpacity style={{ alignSelf: 'center' }}>
-                    <ThemedText style={[styles.link, { color: colors.text.primary, opacity: 0.9 }]}>
+                    <ThemedText style={[styles.link, { color: colors.text.primary, opacity: 0.9 }, isMobile && styles.centeredText]}>
                       Termos de Uso
                     </ThemedText>
                   </TouchableOpacity>
                 </Link>
                 <Link href="/politica-de-privacidade" asChild>
                   <TouchableOpacity style={{ alignSelf: 'center' }}>
-                    <ThemedText style={[styles.link, { color: colors.text.primary, opacity: 0.9 }]}>
+                    <ThemedText style={[styles.link, { color: colors.text.primary, opacity: 0.9 }, isMobile && styles.centeredText]}>
                       Política de Privacidade
                     </ThemedText>
                   </TouchableOpacity>
                 </Link>
                 <TouchableOpacity onPress={handleSupportPress} style={{ alignSelf: 'center' }}>
-                  <ThemedText style={[styles.link, { color: colors.text.primary, opacity: 0.9 }]}>
+                  <ThemedText style={[styles.link, { color: colors.text.primary, opacity: 0.9 }, isMobile && styles.centeredText]}>
                     Central de Ajuda
                   </ThemedText>
                 </TouchableOpacity>
@@ -123,10 +124,11 @@ export function Footer() {
             <View style={[
               styles.gridItem,
               styles.emailSection,
-              { alignItems: isMobile ? 'center' : 'flex-end' }
+              { alignItems: isMobile ? 'center' : 'flex-end' },
+              isMobile && styles.gridItemMobile
             ]}>
               <TouchableOpacity onPress={handleEmailPress} style={{ alignSelf: isMobile ? 'center' : 'flex-end' }}>
-                <ThemedText style={[styles.contactText, { color: colors.text.primary, opacity: 0.85 }]}>
+                <ThemedText style={[styles.contactText, { color: colors.text.primary, opacity: 0.85 }, isMobile && styles.centeredText]}>
                   contato@getuseapp.com
                 </ThemedText>
               </TouchableOpacity>
@@ -176,10 +178,18 @@ const styles = StyleSheet.create({
   gridMobile: {
     flexDirection: 'column',
     gap: Spacing.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   gridItem: {
     flex: 1,
     minWidth: 200, // Minimum width for desktop columns
+  },
+  gridItemMobile: {
+    width: '100%',
+    minWidth: 0,
+    alignItems: 'center',
+    alignSelf: 'center',
   },
   logoSection: {
     flexShrink: 0,
@@ -217,6 +227,9 @@ const styles = StyleSheet.create({
   },
   contactText: {
     fontSize: 14,
+  },
+  centeredText: {
+    textAlign: 'center',
   },
   copyrightRow: {
     width: '100%',

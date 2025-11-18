@@ -58,6 +58,13 @@ export {
   displayPhone,
 } from "./phoneFormatter";
 
+// Phone E.164 utilities
+export {
+  phoneToE164,
+  isValidE164Phone,
+  e164ToBrazilian,
+} from "./phoneE164";
+
 // Address utilities
 export {
   parseAddress,

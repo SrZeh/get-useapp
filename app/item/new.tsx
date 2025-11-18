@@ -14,11 +14,14 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
+  Pressable,
   ScrollView,
   TouchableOpacity,
   View,
   StyleSheet,
 } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { router } from "expo-router";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { useItemService, useNavigationService } from "@/providers/ServicesProvider";
@@ -37,6 +40,7 @@ import {
   LocationSection,
   ImageUploadSection,
 } from "@/components/features/items/forms";
+import { TERMS_URL, TERMS_VERSION } from "@/constants/terms";
 
 export default function NewItemScreen() {
   const colors = useThemeColors();
@@ -55,6 +59,9 @@ export default function NewItemScreen() {
   const [city, setCity] = useState("");
   const [neighborhood, setNeighborhood] = useState("");
   const [cepFetched, setCepFetched] = useState(false);
+
+  // Terms acceptance
+  const [termsAccepted, setTermsAccepted] = useState(false);
 
   // Image picker
   const { imageUri, pickFromGallery, pickFromCamera, clearImage } = useImagePicker();
@@ -75,6 +82,8 @@ export default function NewItemScreen() {
     neighborhood?: string;
     photos?: string[];
     published?: boolean;
+    termsAccepted: boolean;
+    termsAcceptedVersion?: string;
   }) => {
     // 1) Upload da imagem (opcional) usando ImageUploadService
     let photoUrl: string | null = null;
@@ -90,7 +99,7 @@ export default function NewItemScreen() {
     // isFree is automatically calculated from dailyRate === 0 in buildItemDoc
     const result = await itemService.createItem({
       ...data,
-      photos: photoUrl ? [photoUrl] : [],
+      photos: photoUrl ? [photoUrl] : data.photos ?? [],
     });
 
     Alert.alert("Sucesso", `Item cadastrado! (id: ${result.data.id})`);
@@ -130,6 +139,8 @@ export default function NewItemScreen() {
       city,
       neighborhood,
       photos: [],
+      termsAccepted,
+      termsAcceptedVersion: TERMS_VERSION,
     });
   };
 
@@ -218,30 +229,87 @@ export default function NewItemScreen() {
             </View>
           </View>
 
-          {/* Submit Button */}
-          <Animated.View entering={FadeInDown.duration(300).delay(400)}>
-          <TouchableOpacity
-            style={[
-              styles.submitButton,
-              {
-                backgroundColor: colors.brand.dark,
-                opacity: saving ? 0.6 : 1,
-              },
-            ]}
-            onPress={handleSave}
-            disabled={saving}
-          >
-            {saving ? (
-              <ActivityIndicator size="small" color={colors.isDark ? colors.text.primary : '#ffffff'} />
-            ) : (
-              <ThemedText 
-                type="defaultSemiBold" 
-                style={{ color: colors.isDark ? colors.text.primary : '#ffffff' }}
+          {/* Terms Acceptance */}
+          <Animated.View entering={FadeInDown.duration(300).delay(350)}>
+            <View
+              style={[
+                styles.termsContainer,
+                {
+                  backgroundColor: colors.bg.secondary,
+                  borderColor: colors.border.default,
+                },
+              ]}
+            >
+              <Pressable
+                onPress={() => setTermsAccepted((value) => !value)}
+                style={[
+                  styles.checkbox,
+                  {
+                    borderColor: termsAccepted ? colors.brand.primary : colors.border.default,
+                    backgroundColor: colors.isDark ? colors.bg.tertiary : colors.bg.primary,
+                  },
+                ]}
+                accessibilityRole="checkbox"
+                accessibilityState={{ checked: termsAccepted }}
+                accessibilityLabel="Aceitar os termos de uso para cadastrar o item"
               >
-                Salvar Item
+                {termsAccepted && (
+                  <Ionicons
+                    name="checkmark"
+                    size={16}
+                    color={colors.isDark ? colors.text.primary : colors.brand.dark}
+                  />
+                )}
+              </Pressable>
+
+              <ThemedText style={[styles.termsText, { color: colors.text.primary }]}>
+                Concordo com os{" "}
+                <ThemedText
+                  onPress={() => router.push(TERMS_URL)}
+                  accessibilityRole="link"
+                  accessibilityHint="Abrir os termos de uso em uma nova tela"
+                  style={[styles.termsLink, { color: colors.brand.primary }]}
+                >
+                  Termos de Uso
+                </ThemedText>{" "}
+                para publicar este item.
+              </ThemedText>
+            </View>
+
+            {errors.termsAccepted && (
+              <ThemedText style={[styles.errorText, { color: colors.semantic.error }]}>
+                {errors.termsAccepted}
               </ThemedText>
             )}
-          </TouchableOpacity>
+          </Animated.View>
+
+          {/* Submit Button */}
+          <Animated.View entering={FadeInDown.duration(300).delay(400)}>
+            <TouchableOpacity
+              style={[
+                styles.submitButton,
+                {
+                  backgroundColor: colors.brand.dark,
+                  opacity: saving ? 0.6 : 1,
+                },
+              ]}
+              onPress={handleSave}
+              disabled={saving}
+            >
+              {saving ? (
+                <ActivityIndicator
+                  size="small"
+                  color={colors.isDark ? colors.text.primary : "#ffffff"}
+                />
+              ) : (
+                <ThemedText
+                  type="defaultSemiBold"
+                  style={{ color: colors.isDark ? colors.text.primary : "#ffffff" }}
+                >
+                  Salvar Item
+                </ThemedText>
+              )}
+            </TouchableOpacity>
           </Animated.View>
         </ScrollView>
       </ThemedView>
@@ -283,6 +351,34 @@ const styles = StyleSheet.create({
     width: '100%',
     gap: Spacing.md,
     flexShrink: 0,
+  },
+  termsContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    padding: Spacing.sm,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+  },
+  checkbox: {
+    width: 24,
+    height: 24,
+    borderRadius: BorderRadius['2xs'],
+    borderWidth: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  termsText: {
+    flex: 1,
+    fontSize: 14,
+  },
+  termsLink: {
+    textDecorationLine: 'underline',
+    fontWeight: '600',
+  },
+  errorText: {
+    marginTop: Spacing['3xs'],
+    fontSize: 12,
   },
   submitButton: {
     marginTop: Spacing.lg,

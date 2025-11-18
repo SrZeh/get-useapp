@@ -1,10 +1,8 @@
 import * as admin from "firebase-admin";
-import { getApp, getApps, initializeApp } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
 import { HttpsError, onCall } from "firebase-functions/v2/https";
 
-const adminApp = getApps().length ? getApp() : initializeApp();
-const db = getFirestore(adminApp, "appdb");
+const db = getFirestore(undefined as any, "appdb");
 const TS = () => admin.firestore.FieldValue.serverTimestamp();
 
 type NotificationType =

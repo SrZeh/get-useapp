@@ -55,7 +55,7 @@ export const LocationFilter = React.memo(function LocationFilter({
         {cities.length > 0 && onCitySelect && (
           <View style={{ flex: 1 }}>
             <DropdownFilter
-              title="Filtrar por Cidade"
+              title="Cidade"
               options={cities}
               selectedValue={selectedCity}
               onValueChange={onCitySelect}
@@ -69,7 +69,7 @@ export const LocationFilter = React.memo(function LocationFilter({
         {neighborhoods.length > 0 && onNeighborhoodSelect && (
           <View style={{ flex: 1 }}>
             <DropdownFilter
-              title="Filtrar por Bairro"
+              title="Bairro"
               options={neighborhoods}
               selectedValue={selectedNeighborhood}
               onValueChange={onNeighborhoodSelect}

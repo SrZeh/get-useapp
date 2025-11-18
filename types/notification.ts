@@ -58,4 +58,3 @@ export interface LastSeenAt {
 export type CounterKey = keyof Pick<UserCounters, "messages" | "reservations" | "payments" | "interactions">;
 
 
-

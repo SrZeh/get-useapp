@@ -73,6 +73,7 @@ export type RegistrationResult =
       success: true;
       uid: string;
       email: string;
+      hasPhone?: boolean;
     }
   | {
       success: false;
@@ -198,6 +199,7 @@ export async function registerUser(input: RegistrationInput, options?: { strictC
       success: true,
       uid: cred.user.uid,
       email: cred.user.email!,
+      hasPhone: !!phoneClean,
     };
   } catch (error: unknown) {
     logger.error('Registration failed', error);

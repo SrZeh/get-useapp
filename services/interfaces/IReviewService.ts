@@ -5,7 +5,12 @@
  * Allows for easy swapping of implementations and mocking in tests.
  */
 
-import type { Review, NewReviewInput } from '@/types';
+import type {
+  Review,
+  UserReview,
+  NewItemReviewInput,
+  NewUserReviewInput,
+} from '@/types';
 import type { Unsubscribe } from 'firebase/firestore';
 
 /**
@@ -26,7 +31,7 @@ export interface IReviewService {
    * @param input - Review input data
    * @returns Created review ID
    */
-  createItemReview(itemId: string, input: NewReviewInput): Promise<string>;
+  createItemReview(itemId: string, input: NewItemReviewInput): Promise<string>;
 
   /**
    * List reviews for an item
@@ -50,10 +55,43 @@ export interface IReviewService {
   ): Unsubscribe;
 
   /**
-   * Validate review input before submission
+   * Create a new review for a user (owner ⇄ renter)
+   * @param input - Review input data
+   * @returns Created review ID (reservationId)
+   */
+  createUserReview(input: NewUserReviewInput): Promise<string>;
+
+  /**
+   * List reviews received by a user
+   * @param targetUid - User ID
+   * @param limitCount - Maximum number of reviews to return
+   */
+  listUserReviews(targetUid: string, limitCount?: number): Promise<UserReview[]>;
+
+  /**
+   * Subscribe to user reviews with real-time updates
+   * @param targetUid - User ID
+   * @param callback - Callback function for updates
+   * @param limitCount - Maximum number of reviews to return
+   */
+  subscribeToUserReviews(
+    targetUid: string,
+    callback: (reviews: UserReview[]) => void,
+    limitCount?: number
+  ): Unsubscribe;
+
+  /**
+   * Validate item review input before submission
    * @param input - Review input data
    * @returns Validation result with error message if invalid
    */
-  validateReviewInput(input: Partial<NewReviewInput>): ReviewValidationResult;
+  validateItemReviewInput(input: Partial<NewItemReviewInput>): ReviewValidationResult;
+
+  /**
+   * Validate user review input before submission
+   * @param input - Review input data
+   * @returns Validation result with error message if invalid
+   */
+  validateUserReviewInput(input: Partial<NewUserReviewInput>): ReviewValidationResult;
 }
 

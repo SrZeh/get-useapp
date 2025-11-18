@@ -36,6 +36,11 @@ type ReservationCardProps = BaseCardProps & {
   reservation: Reservation;
 
   /**
+   * Perspective of the current viewer
+   */
+  viewerRole?: 'owner' | 'renter';
+
+  /**
    * Custom actions to render in the card
    */
   actions?: React.ReactNode;
@@ -43,6 +48,7 @@ type ReservationCardProps = BaseCardProps & {
 
 export const ReservationCard = React.memo(function ReservationCard({
   reservation: r,
+  viewerRole = 'renter',
   actions,
 }: ReservationCardProps) {
   const colors = useThemeColors();
@@ -58,8 +64,8 @@ export const ReservationCard = React.memo(function ReservationCard({
   const transferGroup = reservation.transferGroup as string | undefined;
   const reviewsOpen = reservation.reviewsOpen as {
     renterCanReviewOwner?: boolean;
-    ownerCanReviewItem?: boolean;
     renterCanReviewItem?: boolean;
+    ownerCanReviewRenter?: boolean;
   } | undefined;
 
   const styles = useMemo(
@@ -152,6 +158,7 @@ export const ReservationCard = React.memo(function ReservationCard({
               stripePaymentIntentId={stripePaymentIntentId}
               transferGroup={transferGroup}
               reviewsOpen={reviewsOpen}
+              viewerRole={viewerRole}
               colors={colors}
             />
 
@@ -216,7 +223,8 @@ export const ReservationCard = React.memo(function ReservationCard({
     prevRes.reviewsOpen === nextRes.reviewsOpen &&
     prevRes.updatedAt === nextRes.updatedAt &&
     prevProps.reservation.itemOwnerUid === nextProps.reservation.itemOwnerUid &&
-    prevProps.actions === nextProps.actions
+    prevProps.actions === nextProps.actions &&
+    prevProps.viewerRole === nextProps.viewerRole
   );
 });
 

@@ -216,12 +216,21 @@ export const reviewCommentSchema = z
   .trim()
   .optional();
 
-export const newReviewInputSchema = z.object({
+export const newItemReviewInputSchema = z.object({
   reservationId: z.string().min(1, 'Reserva é obrigatória'),
   renterUid: z.string().min(1, 'Usuário deve estar autenticado'),
-  itemId: z.string().optional(),
-  ownerUid: z.string().optional(),
-  type: z.enum(['item', 'owner'], { errorMap: () => ({ message: 'Tipo de avaliação inválido' }) }),
+  itemId: z.string().min(1, 'Item é obrigatório'),
+  itemOwnerUid: z.string().min(1, 'Dono do item é obrigatório'),
+  rating: reviewRatingSchema,
+  comment: reviewCommentSchema,
+});
+
+export const newUserReviewInputSchema = z.object({
+  reservationId: z.string().min(1, 'Reserva é obrigatória'),
+  reviewerUid: z.string().min(1, 'Usuário avaliador é obrigatório'),
+  reviewerRole: z.enum(['owner', 'renter']),
+  targetUid: z.string().min(1, 'Usuário avaliado é obrigatório'),
+  targetRole: z.enum(['owner', 'renter']),
   rating: reviewRatingSchema,
   comment: reviewCommentSchema,
 });
@@ -426,6 +435,8 @@ export function validateReviewInput(input: {
   rating?: number;
   reservationId?: string;
   renterUid?: string;
+  comment?: string;
+  requireCommentForLowRating?: boolean;
 }): { valid: boolean; error?: string } {
   if (!input.rating || !(input.rating >= 1 && input.rating <= 5 && Number.isInteger(input.rating))) {
     return { valid: false, error: 'Rating deve ser de 1 a 5.' };
@@ -437,6 +448,13 @@ export function validateReviewInput(input: {
 
   if (!input.renterUid) {
     return { valid: false, error: 'Usuário deve estar autenticado.' };
+  }
+
+  if ((input.requireCommentForLowRating ?? true) && input.rating <= 2) {
+    const trimmed = input.comment?.trim();
+    if (!trimmed) {
+      return { valid: false, error: 'Para notas 1 ou 2, explique o motivo no comentário.' };
+    }
   }
 
   return { valid: true };
@@ -477,6 +495,7 @@ export function validateReservationInput(input: {
  */
 export type NewItemInput = z.infer<typeof newItemInputSchema>;
 export type UserProfileInput = z.infer<typeof userProfileSchema>;
-export type NewReviewInput = z.infer<typeof newReviewInputSchema>;
+export type NewItemReviewInput = z.infer<typeof newItemReviewInputSchema>;
+export type NewUserReviewInput = z.infer<typeof newUserReviewInputSchema>;
 export type NewReservationInput = z.infer<typeof newReservationInputSchema>;
 

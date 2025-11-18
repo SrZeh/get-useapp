@@ -15,7 +15,11 @@ export class FirebaseReviewService implements IReviewService {
   createItemReview = ReviewService.createItemReview;
   listItemReviews = ReviewService.listItemReviews;
   subscribeToItemReviews = ReviewService.subscribeToItemReviews;
-  validateReviewInput = ReviewService.validateReviewInput;
+  createUserReview = ReviewService.createUserReview;
+  listUserReviews = ReviewService.listUserReviews;
+  subscribeToUserReviews = ReviewService.subscribeToUserReviews;
+  validateItemReviewInput = ReviewService.validateItemReviewInput;
+  validateUserReviewInput = ReviewService.validateUserReviewInput;
 }
 
 // Export singleton instance

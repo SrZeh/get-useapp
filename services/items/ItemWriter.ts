@@ -68,6 +68,18 @@ export async function safeUpdateItem(
   if ("description" in patch) data.description = normalize(patch.description);
   if ("category" in patch) data.category = normalize(patch.category);
   if ("condition" in patch) data.condition = normalize(patch.condition);
+  if ("termsAccepted" in patch) {
+    const termsAccepted = Boolean(patch.termsAccepted);
+    data.termsAccepted = termsAccepted;
+    data.termsAcceptedAt = termsAccepted ? serverTimestamp() : null;
+    if (!termsAccepted) {
+      data.termsAcceptedVersion = null;
+    }
+  }
+  if ("termsAcceptedVersion" in patch) {
+    const version = patch.termsAcceptedVersion?.trim();
+    data.termsAcceptedVersion = version && version.length > 0 ? version : null;
+  }
 
   try {
     await updateDoc(doc(db, ITEMS_PATH, itemId), data);

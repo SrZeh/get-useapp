@@ -30,6 +30,8 @@ export interface ItemFormInput {
   city?: string;
   neighborhood?: string;
   photos?: string[];
+  termsAccepted: boolean;
+  termsAcceptedVersion?: string;
 }
 
 /**
@@ -47,6 +49,8 @@ export function useItemForm(
     neighborhood?: string;
     photos?: string[];
     published?: boolean;
+    termsAccepted: boolean;
+    termsAcceptedVersion?: string;
   }) => Promise<void>
 ) {
   const [loading, setLoading] = useState(false);
@@ -122,6 +126,12 @@ export function useItemForm(
       return { valid: false, error: itemValidation.error };
     }
 
+    if (!input.termsAccepted) {
+      const errorMsg = 'Você precisa aceitar os termos de uso para cadastrar o item.';
+      setErrors({ termsAccepted: errorMsg });
+      return { valid: false, error: errorMsg };
+    }
+
     return {
       valid: true,
       data: {
@@ -135,6 +145,8 @@ export function useItemForm(
         city: input.city?.trim(),
         neighborhood: input.neighborhood?.trim(),
         photos: input.photos || [],
+        termsAccepted: input.termsAccepted,
+        termsAcceptedVersion: input.termsAcceptedVersion,
       },
     };
   }, []);

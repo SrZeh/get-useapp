@@ -77,6 +77,12 @@ export interface INavigationService {
   navigateToReview(transactionId: string): void;
 
   /**
+   * Navigate to owner review screen (avaliar locatário)
+   * @param transactionId - Transaction/reservation ID
+   */
+  navigateToOwnerReview(transactionId: string): void;
+
+  /**
    * Navigate to profile screen
    */
   navigateToProfile(): void;

@@ -92,17 +92,6 @@ export const SearchFilters = React.memo(function SearchFilters({
 
   return (
     <View style={style}>
-      {/* Location Filters - Text Inputs (Legacy) */}
-      {(onCityChange || onNeighborhoodChange) && (
-        <LocationFilter
-          city={city}
-          neighborhood={neighborhood}
-          onCityChange={onCityChange}
-          onNeighborhoodChange={onNeighborhoodChange}
-          style={{ marginBottom: 12 }}
-        />
-      )}
-
       {/* Dropdown Filters for Cities, Neighborhoods, and Price */}
       {((cities.length > 0 || neighborhoods.length > 0) && (onCitySelect || onNeighborhoodSelect)) || (onMinPriceChange || onMaxPriceChange) ? (
         <View style={{ marginBottom: 12 }}>

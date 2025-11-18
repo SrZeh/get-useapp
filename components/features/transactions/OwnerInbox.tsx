@@ -9,7 +9,7 @@ import { syncStripeAccount } from '@/services/stripe';
 
 import { handleAsyncError } from '@/utils';
 import type { Reservation } from './types';
-import { useReservationService } from '@/providers/ServicesProvider';
+import { useReservationService, useNavigationService } from '@/providers/ServicesProvider';
 import { Spacing, BorderRadius } from '@/constants/spacing';
 import { OwnerReservationActions } from './owner-actions';
 import { Footer } from '@/components/Footer';
@@ -25,6 +25,7 @@ import { Footer } from '@/components/Footer';
  */
 export function OwnerInbox() {
   const reservationService = useReservationService();
+  const navigation = useNavigationService();
   const uid = auth.currentUser?.uid ?? '';
   const [rows, setRows] = useState<Reservation[]>([]);
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -122,6 +123,7 @@ export function OwnerInbox() {
             <ReservationCard
               key={r.id}
               reservation={r}
+              viewerRole="owner"
               actions={
                 <OwnerReservationActions
                   reservation={r}
@@ -130,6 +132,7 @@ export function OwnerInbox() {
                   onDelete={removeReq}
                   onSyncStripe={syncStripe}
                   onConfirmReturn={confirmReturnLocal}
+                  onReviewRenter={(id) => navigation.navigateToOwnerReview(id)}
                   isBusy={busyId === r.id}
                   isSyncing={busyAction === 'sync'}
                   isConfirming={busyAction === `return:${r.id}`}

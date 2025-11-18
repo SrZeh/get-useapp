@@ -315,6 +315,8 @@ export function useBrandColorsWithOpacity() {
   };
 }
 
+export type BrandColorsWithOpacity = ReturnType<typeof useBrandColorsWithOpacity>;
+
 /**
  * Get border colors with opacity based on theme
  */

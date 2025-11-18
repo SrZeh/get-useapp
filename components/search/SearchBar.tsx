@@ -50,6 +50,7 @@ export const SearchBar = React.memo(function SearchBar({
           value={value}
           onChangeText={onChangeText}
           onSubmitEditing={onSubmit}
+          blurOnSubmit={false}
           returnKeyType="search"
           style={{
             flex: 1,

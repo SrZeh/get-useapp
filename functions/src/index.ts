@@ -12,6 +12,7 @@ import Stripe from "stripe";
 
 
 import { computeFees } from "./fees";
+import { createNotification, dispatchExternalNotify, markAsSeenCallable, saveWebPushTokenCallable } from "./notifications";
 
 
 
@@ -297,6 +298,32 @@ export const acceptReservation = onCall(async ({ auth, data }) => {
       return { ok: true, prevStatus: r.status, newStatus: "accepted", isFree: false };
     });
 
+    // notifica locatário que foi aceita
+    try {
+      const resRef = db.doc(`reservations/${reservationId!}`);
+      const rs = await resRef.get();
+      if (rs.exists) {
+        const r = rs.data() as any;
+        await createNotification({
+          recipientId: String(r.renterUid),
+          type: "reservation_status",
+          entityType: "reservation",
+          entityId: String(reservationId),
+          title: "Reserva aceita",
+          body: "Sua reserva foi aceita. Continue o processo no app.",
+          metadata: { reservationId },
+        });
+        await dispatchExternalNotify(String(r.renterUid), {
+          type: "reservation_status",
+          title: "Reserva aceita",
+          body: "Sua reserva foi aceita. Continue o processo no app.",
+          deepLink: `/reservation/${reservationId}`,
+        });
+      }
+    } catch (e) {
+      console.warn("notify(acceptReservation) failed", e);
+    }
+
     return result;
   } catch (err: any) {
     if (err instanceof HttpsError) throw err;
@@ -331,6 +358,32 @@ export const rejectReservation = onCall(async ({ auth, data }) => {
 
       return { ok: true, prevStatus: r.status, newStatus: "rejected" };
     });
+
+    // notifica locatário que foi rejeitada
+    try {
+      const resRef = db.doc(`reservations/${reservationId!}`);
+      const rs = await resRef.get();
+      if (rs.exists) {
+        const r = rs.data() as any;
+        await createNotification({
+          recipientId: String(r.renterUid),
+          type: "reservation_status",
+          entityType: "reservation",
+          entityId: String(reservationId),
+          title: "Reserva rejeitada",
+          body: "Sua reserva foi rejeitada.",
+          metadata: { reservationId, reason: reason ?? null },
+        });
+        await dispatchExternalNotify(String(r.renterUid), {
+          type: "reservation_status",
+          title: "Reserva rejeitada",
+          body: "Sua reserva foi rejeitada.",
+          deepLink: `/reservation/${reservationId}`,
+        });
+      }
+    } catch (e) {
+      console.warn("notify(rejectReservation) failed", e);
+    }
 
     return result;
   } catch (err: any) {
@@ -431,9 +484,9 @@ export const createCheckoutSession = onCall(
         throw new HttpsError("failed-precondition", "Valor base inválido.");
       }
 
-      // breakdown: 5% serviço + sobretaxa Stripe (3,99% + R$0,39 gross-up)
+      // breakdown: 7% de serviço + taxa fixa de R$0,39
       const { serviceFee, surcharge, appFeeFromBase, ownerPayout, totalToCustomer } =
-        computeFees(baseCents, { stripePct: 0.0399, stripeFixedCents: 39 });
+        computeFees(baseCents);
 
       // garantir que temos o accountId do dono salvo (para etapas futuras/payout)
       let ownerStripeAccountId: string | undefined = r.ownerStripeAccountId;
@@ -466,7 +519,7 @@ export const createCheckoutSession = onCall(
             quantity: 1,
             price_data: {
               currency: "brl",
-              product_data: { name: "Taxa de serviço Get & Use (5%)" },
+              product_data: { name: "Taxa de serviço Get & Use (7%)" },
               unit_amount: serviceFee,
             },
           },
@@ -474,7 +527,7 @@ export const createCheckoutSession = onCall(
             quantity: 1,
             price_data: {
               currency: "brl",
-              product_data: { name: "Taxa de processamento" },
+              product_data: { name: "Taxa fixa de processamento (R$0,39)" },
               unit_amount: surcharge,
             },
           },
@@ -551,6 +604,31 @@ export const onMessageCreated = onDocumentCreated(
       );
     }
     await batch.commit();
+
+    // cria notificação + envia e-mail / web push
+    await Promise.all(
+      others.map(async (recipientId) => {
+        try {
+          await createNotification({
+            recipientId,
+            type: "message",
+            entityType: "thread",
+            entityId: threadId,
+            title: "Nova mensagem",
+            body: typeof msg?.text === "string" ? String(msg.text).slice(0, 120) : "Você recebeu uma nova mensagem",
+            metadata: { threadId, fromUid, preview: msg?.text ?? null },
+          });
+          await dispatchExternalNotify(recipientId, {
+            type: "message",
+            title: "Nova mensagem",
+            body: "Você recebeu uma nova mensagem",
+            deepLink: `/messages/${threadId}`,
+          });
+        } catch (e) {
+          console.warn("notify(message) failed", e);
+        }
+      })
+    );
   }
 );
 
@@ -784,10 +862,55 @@ export const confirmCheckoutSession = onCall(
       trx.update(resRef, { status: "paid", paidAt: TS(), stripePaymentIntentId: paymentIntentId ?? null, updatedAt: TS() });
     });
 
+    // notificar dono e locatário que foi pago
+    try {
+      await Promise.all([
+        createNotification({
+          recipientId: String(r.itemOwnerUid),
+          type: "payment_update",
+          entityType: "reservation",
+          entityId: String(reservationId),
+          title: "Pagamento confirmado",
+          body: "Uma reserva sua foi paga. Prepare-se para a entrega/retirada.",
+          metadata: { reservationId },
+        }).then(() =>
+          dispatchExternalNotify(String(r.itemOwnerUid), {
+            type: "payment_update",
+            title: "Pagamento confirmado",
+            body: "Uma reserva sua foi paga.",
+            deepLink: `/reservation/${reservationId}`,
+          })
+        ),
+        createNotification({
+          recipientId: String(r.renterUid),
+          type: "payment_update",
+          entityType: "reservation",
+          entityId: String(reservationId),
+          title: "Pagamento aprovado",
+          body: "Seu pagamento foi aprovado. Confira os próximos passos.",
+          metadata: { reservationId },
+        }).then(() =>
+          dispatchExternalNotify(String(r.renterUid), {
+            type: "payment_update",
+            title: "Pagamento aprovado",
+            body: "Seu pagamento foi aprovado.",
+            deepLink: `/reservation/${reservationId}`,
+          })
+        ),
+      ]);
+    } catch (e) {
+      console.warn("notify(paid manual confirm) failed", e);
+    }
+
     return { ok: true, marked: "paid" };
   }
 );
 
+// ==== Callable: markAsSeen (counters + lastSeenAt) ====
+export const markAsSeen = markAsSeenCallable;
+
+// ==== Callable: save web push token (FCM) ==============
+export const saveWebPushToken = saveWebPushTokenCallable;
 // =====================================================
 // === Webhook Stripe: marca paid e bloqueia datas    ===
 // =====================================================
@@ -888,6 +1011,46 @@ export const stripeWebhook = onRequest(
             updatedAt: TS(),
           });
         });
+
+        // notificar dono e locatário que foi pago
+        try {
+          await Promise.all([
+            createNotification({
+              recipientId: String(r.itemOwnerUid),
+              type: "payment_update",
+              entityType: "reservation",
+              entityId: String(reservationId),
+              title: "Pagamento confirmado",
+              body: "Uma reserva sua foi paga. Prepare-se para a entrega/retirada.",
+              metadata: { reservationId },
+            }).then(() =>
+              dispatchExternalNotify(String(r.itemOwnerUid), {
+                type: "payment_update",
+                title: "Pagamento confirmado",
+                body: "Uma reserva sua foi paga.",
+                deepLink: `/reservation/${reservationId}`,
+              })
+            ),
+            createNotification({
+              recipientId: String(r.renterUid),
+              type: "payment_update",
+              entityType: "reservation",
+              entityId: String(reservationId),
+              title: "Pagamento aprovado",
+              body: "Seu pagamento foi aprovado. Confira os próximos passos.",
+              metadata: { reservationId },
+            }).then(() =>
+              dispatchExternalNotify(String(r.renterUid), {
+                type: "payment_update",
+                title: "Pagamento aprovado",
+                body: "Seu pagamento foi aprovado.",
+                deepLink: `/reservation/${reservationId}`,
+              })
+            ),
+          ]);
+        } catch (e) {
+          console.warn("notify(paid webhook) failed", e);
+        }
       }
 
       res.json({ received: true }); return;
@@ -1114,9 +1277,9 @@ export const confirmReturn = onCall(
         status: "returned",
         returnedAt: TS(),
         reviewsOpen: {
-          renterCanReviewOwner: true,
           renterCanReviewItem: true,
-          ownerCanReviewRenter: false, // deixe true se quiser que o dono avalie o locatário
+          renterCanReviewOwner: true,
+          ownerCanReviewRenter: true,
         },
         updatedAt: TS(),
       });
@@ -1143,8 +1306,8 @@ export const onItemReviewCreatedV2 = onDocumentCreated(
 
     const rating = Number(rev?.rating) || 0;
     const ownerUid = String(rev?.itemOwnerUid || "");
-    const renterUid = String(rev?.renterUid || "");
     const reservationId = String(rev?.reservationId || revId || "");
+    const comment = typeof rev?.comment === "string" ? String(rev.comment).slice(0, 500) : "";
     if (!itemId || !rating || !ownerUid || !reservationId) return;
 
     await db.runTransaction(async (trx) => {
@@ -1157,35 +1320,52 @@ export const onItemReviewCreatedV2 = onDocumentCreated(
       const ia = Math.round((is / ic) * 10) / 10;
       trx.set(
         itemRef,
-        { ratingCount: ic, ratingSum: is, ratingAvg: ia, lastReviewAt: TS() },
+        {
+          ratingCount: ic,
+          ratingSum: is,
+          ratingAvg: ia,
+          lastReviewAt: TS(),
+          lastReviewSnippet: comment,
+        },
         { merge: true }
       );
+    });
+  }
+);
 
-      // ---- DONO (locador): média e contagem (sem comentários)
-      const userRef = db.doc(`users/${ownerUid}`);
+// =====================================================
+// === Trigger: agregação ao criar review de usuário  ===
+// =====================================================
+export const onUserReviewCreated = onDocumentCreated(
+  {
+    region: "southamerica-east1",
+    document: "users/{targetUid}/reviewsReceived/{revId}",
+  },
+  async (event) => {
+    const snap = event.data;
+    if (!snap) return;
+
+    const rev = snap.data() as any;
+    const { targetUid } = event.params as any;
+    const rating = Number(rev?.rating) || 0;
+    if (!targetUid || !rating) return;
+
+    await db.runTransaction(async (trx) => {
+      const userRef = db.doc(`users/${targetUid}`);
       const userSnap = await trx.get(userRef);
-      const u = userSnap.exists ? (userSnap.data() as any) : {};
-      const uc = Number(u.ratingCount || 0) + 1;
-      const us = Number(u.ratingSum || 0) + rating;
-      const ua = Math.round((us / uc) * 10) / 10;
+      const data = userSnap.exists ? (userSnap.data() as any) : {};
+      const count = Number(data.ratingCount || 0) + 1;
+      const sum = Number(data.ratingSum || 0) + rating;
+      const avg = Math.round((sum / count) * 10) / 10;
       trx.set(
         userRef,
-        { ratingCount: uc, ratingSum: us, ratingAvg: ua, updatedAt: TS() },
-        { merge: true }
-      );
-
-      // ---- Registro curto no perfil do dono (sem comentário)
-      const shortRef = db.doc(`users/${ownerUid}/ratingsReceived/${reservationId}`);
-      trx.set(
-        shortRef,
         {
-          rating,
-          reservationId,
-          itemId,
-          renterUid,
-          createdAt: TS(),
+          ratingCount: count,
+          ratingSum: sum,
+          ratingAvg: avg,
+          updatedAt: TS(),
         },
-        { merge: false }
+        { merge: true }
       );
     });
   }

@@ -13,12 +13,21 @@ import { auth } from '@/lib/firebase';
 import { logger } from '@/utils';
 import { useReservationService, useReviewService } from '@/providers/ServicesProvider';
 
+type EligibleReservationInfo = {
+  id: string;
+  label: string;
+  itemOwnerUid: string;
+  renterUid: string;
+};
+
 type UseItemReviewSubmissionResult = {
   // Form state
   selectedResId: string;
   rating: number;
   comment: string;
-  eligibleRes: Array<{ id: string; label: string }>;
+  eligibleRes: EligibleReservationInfo[];
+  // Selected reservation metadata
+  selectedOwnerUid?: string;
   
   // Form actions
   setSelectedResId: (id: string) => void;
@@ -38,7 +47,7 @@ export function useItemReviewSubmission(itemId: string): UseItemReviewSubmission
   const [selectedResId, setSelectedResId] = useState<string>("");
   const [rating, setRating] = useState<number>(5);
   const [comment, setComment] = useState<string>("");
-  const [eligibleRes, setEligibleRes] = useState<Array<{ id: string; label: string }>>([]);
+  const [eligibleRes, setEligibleRes] = useState<EligibleReservationInfo[]>([]);
   const [loading, setLoading] = useState(false);
 
   // Load eligible reservations
@@ -50,9 +59,10 @@ export function useItemReviewSubmission(itemId: string): UseItemReviewSubmission
       }
       try {
         const list = await reservationService.listEligibleReservationsForReview(uid, itemId);
-        setEligibleRes(list);
-        if (list.length === 1) {
-          setSelectedResId(list[0].id);
+        const filtered = list.filter((entry) => !!entry.itemOwnerUid);
+        setEligibleRes(filtered);
+        if (filtered.length === 1) {
+          setSelectedResId(filtered[0].id);
         }
       } catch (err) {
         logger.error("Error loading eligible reservations", err);
@@ -67,13 +77,21 @@ export function useItemReviewSubmission(itemId: string): UseItemReviewSubmission
       return;
     }
 
-    const validation = reviewService.validateReviewInput({
+    const selectedReservation = eligibleRes.find((entry) => entry.id === selectedResId);
+    if (!selectedReservation) {
+      Alert.alert("Avaliação", "Selecione a reserva utilizada para avaliar.");
+      return;
+    }
+
+    const trimmedComment = comment.trim();
+
+    const validation = reviewService.validateItemReviewInput({
       renterUid: uid,
       reservationId: selectedResId,
       rating: rating as 1 | 2 | 3 | 4 | 5,
       itemId,
-      type: 'item',
-      comment,
+      comment: trimmedComment,
+      itemOwnerUid: selectedReservation.itemOwnerUid,
     });
 
     if (!validation.valid) {
@@ -88,8 +106,8 @@ export function useItemReviewSubmission(itemId: string): UseItemReviewSubmission
         reservationId: selectedResId,
         rating: rating as 1 | 2 | 3 | 4 | 5,
         itemId,
-        type: 'item',
-        comment,
+        comment: trimmedComment,
+        itemOwnerUid: selectedReservation.itemOwnerUid,
       });
 
       setComment("");
@@ -111,6 +129,7 @@ export function useItemReviewSubmission(itemId: string): UseItemReviewSubmission
     setSelectedResId,
     setRating,
     setComment,
+    selectedOwnerUid: eligibleRes.find((entry) => entry.id === selectedResId)?.itemOwnerUid,
     submitReview,
     loading,
   };

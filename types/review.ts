@@ -10,20 +10,22 @@ import type { FirestoreTimestamp, FirestoreDocument } from './firestore';
 export type ReviewRating = 1 | 2 | 3 | 4 | 5;
 
 /**
- * Review type - can be for item or owner
+ * Review type - defines what is being reviewed
  */
-export type ReviewType = 'item' | 'owner';
+export type ReviewType = 'item' | 'owner' | 'renter';
+
+export type ReviewParticipantRole = 'owner' | 'renter';
 
 /**
- * Base Review interface
+ * Item review interface
  */
 export interface Review {
   id: string;
   reservationId: string;
   renterUid: string;
-  itemId?: string;
-  ownerUid?: string;
-  type: ReviewType;
+  itemId: string;
+  itemOwnerUid: string;
+  type: Extract<ReviewType, 'item'>;
   rating: ReviewRating;
   comment?: string;
   createdAt?: FirestoreTimestamp;
@@ -36,20 +38,50 @@ export interface Review {
 export type ReviewDocument = FirestoreDocument<Omit<Review, 'id' | 'createdAt' | 'updatedAt'>>;
 
 /**
- * Input type for creating a new review
+ * User review interface (owner ⇄ renter)
  */
-export interface NewReviewInput {
+export interface UserReview {
+  id: string;
+  reservationId: string;
+  reviewerUid: string;
+  reviewerRole: ReviewParticipantRole;
+  targetUid: string;
+  targetRole: ReviewParticipantRole;
+  rating: ReviewRating;
+  comment?: string;
+  createdAt?: FirestoreTimestamp;
+  updatedAt?: FirestoreTimestamp;
+}
+
+export type UserReviewDocument = FirestoreDocument<Omit<UserReview, 'id' | 'createdAt' | 'updatedAt'>>;
+
+/**
+ * Input type for creating a new item review
+ */
+export interface NewItemReviewInput {
   reservationId: string;
   renterUid: string;
-  itemId?: string;
-  ownerUid?: string;
-  type: ReviewType;
+  itemId: string;
+  itemOwnerUid: string;
   rating: ReviewRating;
   comment?: string;
 }
 
 /**
- * Type guard to check if an object is a valid Review
+ * Input type for creating a new user review
+ */
+export interface NewUserReviewInput {
+  reservationId: string;
+  reviewerUid: string;
+  reviewerRole: ReviewParticipantRole;
+  targetUid: string;
+  targetRole: ReviewParticipantRole;
+  rating: ReviewRating;
+  comment?: string;
+}
+
+/**
+ * Type guard to check if an object is a valid Review (item review)
  */
 export function isReview(obj: unknown): obj is Review {
   return (
@@ -57,13 +89,13 @@ export function isReview(obj: unknown): obj is Review {
     obj !== null &&
     'id' in obj &&
     'rating' in obj &&
-    'type' in obj &&
     'reservationId' in obj &&
     'renterUid' in obj &&
+    'itemId' in obj &&
+    'itemOwnerUid' in obj &&
     typeof (obj as { id: unknown }).id === 'string' &&
     typeof (obj as { rating: unknown }).rating === 'number' &&
-    ((obj as { rating: number }).rating >= 1 && (obj as { rating: number }).rating <= 5) &&
-    typeof (obj as { type: unknown }).type === 'string'
+    ((obj as { rating: number }).rating >= 1 && (obj as { rating: number }).rating <= 5)
   );
 }
 
@@ -81,5 +113,7 @@ export function isValidRating(rating: unknown): rating is ReviewRating {
 export interface EligibleReservation {
   id: string;
   label: string;
+  itemOwnerUid: string;
+  renterUid: string;
 }
 

@@ -19,6 +19,7 @@ interface OwnerReservationActionsProps {
   onDelete: (id: string) => void;
   onSyncStripe: () => void;
   onConfirmReturn: (id: string) => void;
+  onReviewRenter: (id: string) => void;
   isBusy: boolean;
   isSyncing: boolean;
   isConfirming: boolean;
@@ -35,6 +36,7 @@ export function OwnerReservationActions({
   onDelete,
   onSyncStripe,
   onConfirmReturn,
+  onReviewRenter,
   isBusy,
   isSyncing,
   isConfirming,
@@ -82,7 +84,14 @@ export function OwnerReservationActions({
 
   // Returned status
   if (reservation.status === 'returned') {
-    return <ReturnedActions />;
+    const reviewsOpen = reservation.reviewsOpen as { ownerCanReviewRenter?: boolean } | undefined;
+    return (
+      <ReturnedActions
+        reservationId={reservation.id}
+        canReviewRenter={reviewsOpen?.ownerCanReviewRenter ?? true}
+        onReviewRenter={onReviewRenter}
+      />
+    );
   }
 
   // No actions available
