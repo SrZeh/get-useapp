@@ -1,8 +1,12 @@
 import * as admin from "firebase-admin";
+import { getApp, getApps, initializeApp } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
 import { HttpsError, onCall } from "firebase-functions/v2/https";
 
-const db = getFirestore(undefined as any, "appdb");
+// Initialize Firebase Admin if not already initialized
+const adminApp = getApps().length ? getApp() : initializeApp();
+
+const db = getFirestore(adminApp, "appdb");
 const TS = () => admin.firestore.FieldValue.serverTimestamp();
 
 type NotificationType =
@@ -183,7 +187,18 @@ async function sendEmail(recipientEmail: string, subject: string, text: string, 
 async function sendWebPushFCM(tokens: string[], title: string, body: string, deepLink?: string) {
   if (!tokens.length) return;
   try {
-    await admin.messaging().sendMulticast({
+    const messaging = admin.messaging();
+    // sendMulticast exists in Firebase Admin SDK but TypeScript types may not include it
+    // Using type assertion to access the method
+    interface MessagingWithMulticast {
+      sendMulticast(message: {
+        tokens: string[];
+        notification?: { title: string; body: string };
+        webpush?: { fcmOptions?: { link?: string } };
+        data?: { link?: string };
+      }): Promise<{ successCount: number; failureCount: number }>;
+    }
+    await (messaging as unknown as MessagingWithMulticast).sendMulticast({
       tokens,
       notification: { title, body },
       webpush: {

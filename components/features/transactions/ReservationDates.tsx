@@ -71,19 +71,22 @@ export const ReservationDates = React.memo(function ReservationDates({
 const styles = StyleSheet.create({
   container: {
     gap: Spacing['3xs'],
+    alignItems: 'center',
   },
   dateRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing['3xs'],
+    justifyContent: 'center',
   },
   dateContent: {
-    flex: 1,
+    alignItems: 'center',
   },
   infoRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing['3xs'],
+    justifyContent: 'center',
   },
 });
 

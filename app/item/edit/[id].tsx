@@ -3,6 +3,7 @@ import { ThemedView } from "@/components/themed-view";
 import { auth } from "@/lib/firebase";
 import { Picker } from "@react-native-picker/picker";
 import { useLocalSearchParams } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useImagePicker } from "@/hooks/useImagePicker";
 import React, { useEffect, useState } from "react";
 import type { Item } from "@/types";
@@ -35,6 +36,7 @@ export default function EditItemScreen() {
   const isDark = colorScheme === "dark";
   const palette = Colors[colorScheme];
   const colors = useThemeColors();
+  const insets = useSafeAreaInsets();
 
   const [saving, setSaving] = useState(false);
 
@@ -62,6 +64,8 @@ export default function EditItemScreen() {
   // Validation errors
   const [titleError, setTitleError] = useState<string | undefined>();
   const [descriptionError, setDescriptionError] = useState<string | undefined>();
+  const [cityError, setCityError] = useState<string | undefined>();
+  const [neighborhoodError, setNeighborhoodError] = useState<string | undefined>();
 
   // Populate form from cached item (no duplicate query!)
   useEffect(() => {
@@ -93,6 +97,8 @@ export default function EditItemScreen() {
     // Validate input
     setTitleError(undefined);
     setDescriptionError(undefined);
+    setCityError(undefined);
+    setNeighborhoodError(undefined);
 
     if (!title.trim()) {
       setTitleError("Título é obrigatório");
@@ -114,6 +120,20 @@ export default function EditItemScreen() {
 
     if (!category) {
       Alert.alert("Categoria obrigatória", "Selecione uma categoria para o item.");
+      return;
+    }
+
+    // Validate city (required)
+    if (!city || !city.trim()) {
+      setCityError("Cidade é obrigatória");
+      Alert.alert("Cidade obrigatória", "Digite a cidade onde o item está localizado.");
+      return;
+    }
+
+    // Validate neighborhood (required)
+    if (!neighborhood || !neighborhood.trim()) {
+      setNeighborhoodError("Bairro é obrigatório");
+      Alert.alert("Bairro obrigatório", "Digite o bairro onde o item está localizado.");
       return;
     }
 
@@ -227,7 +247,13 @@ export default function EditItemScreen() {
       keyboardVerticalOffset={Platform.select({ ios: 80, android: 0 })}
     >
       <ThemedView style={{ flex: 1 }}>
-        <ScrollView contentContainerStyle={{ padding: Spacing.sm, paddingBottom: Spacing.lg }}>
+        <ScrollView 
+          contentContainerStyle={{ 
+            padding: Spacing.sm, 
+            paddingBottom: Spacing.lg,
+            paddingTop: Math.max(insets.top + 80, Spacing.lg), // Account for transparent header
+          }}
+        >
           <ThemedText type="title">Editar Item</ThemedText>
 
           <View style={{ marginTop: Spacing.sm, gap: Spacing.sm }}>
@@ -328,22 +354,27 @@ export default function EditItemScreen() {
             />
 
             {/* Cidade / Bairro */}
+            <ThemedText type="subhead" style={{ marginTop: Spacing.sm, marginBottom: Spacing.xs, fontWeight: '600' }}>
+              Localização do item
+            </ThemedText>
             <Input
-              label="Cidade"
+              label="Cidade *"
               placeholder="Ex: São Paulo, Rio de Janeiro..."
               value={city}
               onChangeText={setCity}
               autoCapitalize="words"
-              helperText="Opcional - ajuda outros usuários a encontrarem seu item"
+              error={cityError}
+              helperText={cityError ? undefined : "Campo obrigatório - ajuda outros usuários a encontrarem seu item"}
               leftElement={<Ionicons name="location" size={20} color={colors.icon.default} />}
             />
             <Input
-              label="Bairro"
+              label="Bairro *"
               placeholder="Ex: Centro, Vila Madalena..."
               value={neighborhood}
               onChangeText={setNeighborhood}
               autoCapitalize="words"
-              helperText="Opcional - localização mais específica"
+              error={neighborhoodError}
+              helperText={neighborhoodError ? undefined : "Campo obrigatório - localização mais específica"}
               leftElement={<Ionicons name="location" size={20} color={colors.icon.default} />}
             />
 

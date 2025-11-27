@@ -19,7 +19,6 @@ import type { Reservation } from '@/types';
 import type { BaseCardProps } from '@/components/types';
 import { useNavigationService } from '@/providers/ServicesProvider';
 import { Spacing, BorderRadius } from '@/constants/spacing';
-import { ItemCard } from '@/components/features/items/ItemCard';
 import { useReservationData } from '@/hooks/features/reservations';
 import { isExpired } from '@/utils/reservations';
 import { ReservationStatusBadge } from '@/components/features/transactions/ReservationStatusBadge';
@@ -53,9 +52,13 @@ export const ReservationCard = React.memo(function ReservationCard({
 }: ReservationCardProps) {
   const colors = useThemeColors();
   const navigation = useNavigationService();
-  const { ownerName, item } = useReservationData(r);
+  const { ownerName, renterName, item } = useReservationData(r);
   
   const expired = isExpired(r);
+
+  // Show renter name when viewing as owner, owner name when viewing as renter
+  const displayName = viewerRole === 'owner' ? renterName : ownerName;
+  const displayLabel = viewerRole === 'owner' ? 'Solicitante' : 'Dono';
 
   // Additional fields (accessed dynamically as they might not be in type)
   const reservation = r as unknown as Record<string, unknown>;
@@ -72,53 +75,43 @@ export const ReservationCard = React.memo(function ReservationCard({
     () =>
       StyleSheet.create({
         container: {
-          flexDirection: 'row',
           width: '100%',
-          gap: Spacing.sm,
           padding: Spacing.sm,
         },
-        leftSide: {
-          flex: 1,
+        content: {
           gap: Spacing.xs,
+          alignItems: 'center',
+        },
+        header: {
+          alignItems: 'center',
+          marginBottom: Spacing.xs,
         },
         headerTitle: {
           fontWeight: '600',
           marginBottom: Spacing['3xs'],
+          textAlign: 'center',
         },
-        rightSide: {
-          flex: 1,
-        },
-        itemCardWrapper: {
-          position: 'relative',
-        },
-        loadingItemContainer: {
-          width: '100%',
-          minHeight: Spacing['3xl'] * 2 + Spacing.md,
-          backgroundColor: colors.bg.tertiary,
-          borderRadius: BorderRadius.lg,
-          borderWidth: 1,
-          borderColor: colors.border.default,
-          justifyContent: 'center',
-          alignItems: 'center',
+        ownerName: {
+          textAlign: 'center',
         },
       }),
-    [colors]
+    []
   );
 
   return (
     <AnimatedCard>
       <LiquidGlassView intensity="standard" cornerRadius={BorderRadius.lg} style={{ overflow: 'hidden' }}>
         <View style={styles.container}>
-          {/* Left Side: Reservation Info */}
-          <View style={styles.leftSide}>
+          {/* Reservation Info */}
+          <View style={styles.content}>
             {/* Header */}
-            <View>
+            <View style={styles.header}>
               <ThemedText type="title-3" style={styles.headerTitle}>
-                Reserva #{r.id.substring(0, 8)}
+                {item?.title ?? 'Carregando item...'}
               </ThemedText>
-              {ownerName && (
-                <ThemedText type="caption-1" className="text-light-text-tertiary dark:text-dark-text-tertiary">
-                  👤 Dono: {ownerName}
+              {displayName && (
+                <ThemedText type="caption-1" style={styles.ownerName} className="text-light-text-tertiary dark:text-dark-text-tertiary">
+                  👤 {displayLabel}: {displayName}
                 </ThemedText>
               )}
             </View>
@@ -169,30 +162,6 @@ export const ReservationCard = React.memo(function ReservationCard({
               actions={actions}
               colors={colors}
             />
-          </View>
-
-          {/* Right Side: Item Card */}
-          <View style={styles.rightSide}>
-            {item ? (
-              <View style={styles.itemCardWrapper}>
-                <ItemCard
-                  item={item}
-                  width="100%"
-                  cardSpacing={0}
-                  isMine={false}
-                  onPress={() => {
-                    HapticFeedback.light();
-                    navigation.navigateToItem(item.id);
-                  }}
-                />
-              </View>
-            ) : (
-              <View style={styles.loadingItemContainer}>
-                <ThemedText type="body" className="text-light-text-tertiary dark:text-dark-text-tertiary">
-                  Carregando item...
-                </ThemedText>
-              </View>
-            )}
           </View>
         </View>
       </LiquidGlassView>

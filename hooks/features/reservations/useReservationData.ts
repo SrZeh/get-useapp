@@ -11,6 +11,7 @@ import type { Reservation, Item } from '@/types';
 
 type UseReservationDataReturn = {
   ownerName: string | null;
+  renterName: string | null;
   item: Item | null;
   isLoading: boolean;
 };
@@ -24,6 +25,7 @@ type UseReservationDataReturn = {
  */
 export function useReservationData(reservation: Reservation): UseReservationDataReturn {
   const [ownerName, setOwnerName] = useState<string | null>(null);
+  const [renterName, setRenterName] = useState<string | null>(null);
   const [item, setItem] = useState<Item | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -51,6 +53,24 @@ export function useReservationData(reservation: Reservation): UseReservationData
               console.error('Error fetching owner name:', error);
               if (isMounted) {
                 setOwnerName(null);
+              }
+            })
+        );
+      }
+
+      // Fetch renter name from cache (or Firestore if not cached)
+      if (reservation.renterUid) {
+        promises.push(
+          getProfile(reservation.renterUid)
+            .then((profile) => {
+              if (isMounted) {
+                setRenterName(profile?.name ?? null);
+              }
+            })
+            .catch((error) => {
+              console.error('Error fetching renter name:', error);
+              if (isMounted) {
+                setRenterName(null);
               }
             })
         );
@@ -87,7 +107,7 @@ export function useReservationData(reservation: Reservation): UseReservationData
     return () => {
       isMounted = false;
     };
-  }, [reservation.itemOwnerUid, reservation.itemId, getProfile, getItem]);
+  }, [reservation.itemOwnerUid, reservation.renterUid, reservation.itemId, getProfile, getItem]);
 
-  return { ownerName, item, isLoading };
+  return { ownerName, renterName, item, isLoading };
 }

@@ -70,15 +70,16 @@ export const ReservationPrice = React.memo(function ReservationPrice({
 const styles = StyleSheet.create({
   container: {
     gap: Spacing['3xs'],
+    alignItems: 'center',
   },
   infoRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing['3xs'],
+    justifyContent: 'center',
   },
   priceText: {
     fontWeight: '600',
-    flex: 1,
   },
 });
 

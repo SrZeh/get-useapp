@@ -3,7 +3,8 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Link } from 'expo-router';
 import { useState, useEffect } from 'react';
-import { KeyboardAvoidingView, Platform, TouchableOpacity, View, Dimensions, StyleSheet, Pressable } from 'react-native';
+import { KeyboardAvoidingView, Platform, TouchableOpacity, View, Dimensions, StyleSheet, Pressable, ScrollView } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LiquidGlassView } from '@/components/liquid-glass';
 import { Button } from '@/components/Button';
 import { Input } from '@/components/Input';
@@ -35,6 +36,7 @@ export default function LoginScreen() {
   const colors = useThemeColors();
   const { login, loading: loadingLogin, errors: loginErrors, generalError } = useLogin();
   const { reset: resetPassword, loading: loadingReset } = useResetPassword();
+  const insets = useSafeAreaInsets();
 
   // Entrance animations
   const cardOpacity = useSharedValue(0);
@@ -138,22 +140,34 @@ export default function LoginScreen() {
       behavior={Platform.select({ ios: 'padding', android: undefined })}
       keyboardVerticalOffset={Platform.select({ ios: 80, android: 0 })}
     >
-      <ThemedView style={[styles.content, { padding: Spacing.sm }]}>
-        <AnimatedView
-          style={[
-            { maxWidth, width: '100%', alignSelf: 'center' },
-            cardAnimatedStyle,
+      <ThemedView style={[styles.content, { backgroundColor: colors.bg.secondary }]}>
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          contentContainerStyle={[
+            styles.scrollContent,
+            {
+              paddingTop: Math.max(insets.top + 80, Spacing.lg), // Account for transparent header
+              paddingBottom: Math.max(insets.bottom + Spacing.lg, Spacing.xl),
+              paddingHorizontal: Spacing.sm,
+            }
           ]}
-          entering={FadeInDown.duration(300).springify()}
         >
-          <LiquidGlassView 
-            intensity="standard" 
-            cornerRadius={BorderRadius.xl} 
-            style={styles.card}
+          <AnimatedView
+            style={[
+              { maxWidth, width: '100%', alignSelf: 'center' },
+              cardAnimatedStyle,
+            ]}
+            entering={FadeInDown.duration(300).springify()}
           >
-            <View
-              accessibilityLabel="Formulário de login"
+            <LiquidGlassView 
+              intensity="standard" 
+              cornerRadius={BorderRadius.xl} 
+              style={styles.card}
             >
+              <View
+                accessibilityLabel="Formulário de login"
+              >
               {/* Header Section */}
               <AnimatedView style={titleAnimatedStyle}>
                 <ThemedText 
@@ -364,6 +378,7 @@ export default function LoginScreen() {
             </View>
           </LiquidGlassView>
         </AnimatedView>
+        </ScrollView>
       </ThemedView>
     </KeyboardAvoidingView>
   );
@@ -375,6 +390,9 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
     justifyContent: 'center',
   },
   card: {

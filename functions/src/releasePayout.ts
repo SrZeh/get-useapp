@@ -1,7 +1,13 @@
 import { onRequest } from "firebase-functions/v2/https";
+import { getApps, initializeApp } from "firebase-admin/app";
 import { getAuth } from "firebase-admin/auth";
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
 import Stripe from "stripe";
+
+// Initialize Firebase Admin if not already initialized
+if (!getApps().length) {
+  initializeApp();
+}
 
 const stripe = new Stripe(process.env.STRIPE_SECRET as string);
 

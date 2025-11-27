@@ -96,6 +96,20 @@ export async function markPickup(reservationId: string): Promise<{ ok: boolean }
   >("markPickup", { reservationId });
 }
 
+export async function acceptReservation(reservationId: string): Promise<{ ok: boolean; prevStatus: string; newStatus: string; isFree?: boolean; blockedDays?: number }> {
+  return callCloudFunction<
+    { reservationId: string },
+    { ok: boolean; prevStatus: string; newStatus: string; isFree?: boolean; blockedDays?: number }
+  >("acceptReservation", { reservationId });
+}
+
+export async function rejectReservation(reservationId: string, reason?: string): Promise<{ ok: boolean; prevStatus: string; newStatus: string }> {
+  return callCloudFunction<
+    { reservationId: string; reason?: string },
+    { ok: boolean; prevStatus: string; newStatus: string }
+  >("rejectReservation", { reservationId, reason });
+}
+
 export async function getAccountStatus(): Promise<{ hasAccount: boolean; charges_enabled: boolean; payouts_enabled: boolean }> {
   return callCloudFunction<
     {},

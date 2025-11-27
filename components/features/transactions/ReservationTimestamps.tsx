@@ -212,14 +212,16 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     gap: Spacing['3xs'],
     opacity: 0.8,
+    alignItems: 'center',
   },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing['3xs'],
+    justifyContent: 'center',
   },
   text: {
-    flex: 1,
+    textAlign: 'center',
   },
 });
 

@@ -24,4 +24,8 @@ export { TacaIcon } from './TacaIcon';
 export { TenisIcon } from './TenisIcon';
 export { TentIcon } from './TentIcon';
 export { ToolboxIcon } from './ToolboxIcon';
+export { CaixaTransporteIcon } from './CaixaTransporteIcon';
+export { XadrezIcon } from './XadrezIcon';
+export { CadeiraRodasIcon } from './CadeiraRodasIcon';
+export { MuletaIcon } from './MuletaIcon';
 

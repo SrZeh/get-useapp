@@ -17,7 +17,14 @@
         { "fieldPath": "createdAt", "order": "DESCENDING" }
       ]
     },
-
+    {
+      "collectionGroup": "reservations",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "itemOwnerUid", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
     
     {
       "collectionGroup": "items",

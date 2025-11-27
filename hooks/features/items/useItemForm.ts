@@ -126,6 +126,20 @@ export function useItemForm(
       return { valid: false, error: itemValidation.error };
     }
 
+    // Validate city (required)
+    if (!input.city || !input.city.trim()) {
+      const errorMsg = 'Cidade é obrigatória.';
+      setErrors({ city: errorMsg });
+      return { valid: false, error: errorMsg };
+    }
+
+    // Validate neighborhood (required)
+    if (!input.neighborhood || !input.neighborhood.trim()) {
+      const errorMsg = 'Bairro é obrigatório.';
+      setErrors({ neighborhood: errorMsg });
+      return { valid: false, error: errorMsg };
+    }
+
     if (!input.termsAccepted) {
       const errorMsg = 'Você precisa aceitar os termos de uso para cadastrar o item.';
       setErrors({ termsAccepted: errorMsg });
@@ -142,8 +156,8 @@ export function useItemForm(
         minRentalDays: days,
         dailyRate: rate,
         isFree: isFree,
-        city: input.city?.trim(),
-        neighborhood: input.neighborhood?.trim(),
+        city: input.city.trim(),
+        neighborhood: input.neighborhood.trim(),
         photos: input.photos || [],
         termsAccepted: input.termsAccepted,
         termsAcceptedVersion: input.termsAcceptedVersion,

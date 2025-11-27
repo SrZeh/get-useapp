@@ -22,6 +22,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { useItemService, useNavigationService } from "@/providers/ServicesProvider";
@@ -45,6 +46,7 @@ import { TERMS_URL, TERMS_VERSION } from "@/constants/terms";
 export default function NewItemScreen() {
   const colors = useThemeColors();
   const { isTablet, isDesktop } = useResponsive();
+  const insets = useSafeAreaInsets();
 
   // Form state
   const [title, setTitle] = useState("");
@@ -155,6 +157,9 @@ export default function NewItemScreen() {
           contentContainerStyle={[
             styles.scrollContent,
             useTwoColumns && styles.scrollContentTwoColumns,
+            {
+              paddingTop: Math.max(insets.top + 80, Spacing.lg), // Account for transparent header
+            },
           ]}
           keyboardShouldPersistTaps="handled"
         >
@@ -212,6 +217,8 @@ export default function NewItemScreen() {
                   cepFetched={cepFetched}
                   saving={saving}
                   colors={colors}
+                  cityError={errors.city}
+                  neighborhoodError={errors.neighborhood}
                 />
               </Animated.View>
 

@@ -15,6 +15,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { confirmReturn } from "@/services/cloudFunctions";
 import { useThemeColors } from "@/utils";
 import { Spacing } from "@/constants/spacing";
@@ -23,6 +24,7 @@ export default function ReturnScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const uid = auth.currentUser?.uid ?? null;
   const colors = useThemeColors();
+  const insets = useSafeAreaInsets();
   const [imgUri, setImgUri] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -74,7 +76,12 @@ export default function ReturnScreen() {
 
   return (
     <ThemedView style={{ flex: 1 }}>
-      <ScrollView contentContainerStyle={{ padding: Spacing.sm }}>
+      <ScrollView 
+        contentContainerStyle={{ 
+          padding: Spacing.sm,
+          paddingTop: Math.max(insets.top + 80, Spacing.lg), // Account for transparent header
+        }}
+      >
         <ThemedText type="title">Confirmar devolução</ThemedText>
         <ThemedText style={{ marginTop: 6, opacity: 0.8 }}>
           Tire uma foto do item devolvido. Ela será usada como nova capa na vitrine.

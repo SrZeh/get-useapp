@@ -20,7 +20,8 @@ export function calculateReservationTotal(
   dailyRate: number,
   isFree: boolean
 ): number {
-  if (isFree || days <= 0) return 0;
+  // If item is marked as free, dailyRate is 0, or days <= 0, return 0
+  if (isFree || dailyRate === 0 || days <= 0) return 0;
   return dailyRate * days;
 }
 

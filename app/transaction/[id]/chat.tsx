@@ -22,6 +22,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import type { FirestoreTimestamp } from "@/types";
 import { Spacing } from "@/constants/spacing";
@@ -34,6 +35,7 @@ export default function ReservationChatScreen() {
   const id = Array.isArray(rawId) ? rawId[0] : rawId; // garante string
   const uid = auth.currentUser?.uid ?? null;
   const colors = useThemeColors();
+  const insets = useSafeAreaInsets();
 
   const [msgs, setMsgs] = useState<Msg[]>([]);
   const [text, setText] = useState("");
@@ -114,7 +116,13 @@ export default function ReservationChatScreen() {
       keyboardVerticalOffset={Platform.select({ ios: 80, android: 0 })}
     >
       <ThemedView style={{ flex: 1 }}>
-        <ThemedText type="title" style={{ padding: Spacing.sm }}>
+        <ThemedText 
+          type="title" 
+          style={{ 
+            padding: Spacing.sm,
+            paddingTop: Math.max(insets.top + 80, Spacing.lg), // Account for transparent header
+          }}
+        >
           Mensagens
         </ThemedText>
 

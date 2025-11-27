@@ -8,6 +8,8 @@ import { Picker } from '@react-native-picker/picker';
 import { LiquidGlassView } from '@/components/liquid-glass';
 import { ThemedText } from '@/components/themed-text';
 import { LocationIcon } from '@/assets/icons/location-icon';
+import { CidadeIcon } from '@/assets/icons/cidade-icon';
+import { BairroIcon } from '@/assets/icons/bairro-icon';
 import { useThemeColors } from '@/utils/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Colors } from '@/constants/theme';
@@ -54,18 +56,43 @@ export function DropdownFilter({
     return null;
   }
 
+  // Determine which icon to use based on title
+  const getIcon = () => {
+    if (!icon) return null;
+    
+    const titleLower = title.toLowerCase();
+    if (titleLower.includes('cidade')) {
+      return (
+        <CidadeIcon
+          width={18}
+          height={18}
+        />
+      );
+    }
+    if (titleLower.includes('bairro')) {
+      return (
+        <BairroIcon
+          width={18}
+          height={18}
+        />
+      );
+    }
+    // Fallback to LocationIcon for other cases
+    return (
+      <LocationIcon
+        width={18}
+        height={18}
+        color={colors.text.primary}
+        stroke={colors.text.primary}
+      />
+    );
+  };
+
   return (
     <View style={[{ marginBottom: Spacing.xs }, style]}>
       {/* Title */}
       <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: Spacing['2xs'], gap: Spacing['2xs'] }}>
-        {icon && (
-          <LocationIcon
-            width={18}
-            height={18}
-            color={colors.text.primary}
-            stroke={colors.text.primary}
-          />
-        )}
+        {getIcon()}
         <ThemedText
           type="caption-1"
           style={{ fontWeight: '600', color: colors.text.primary }}

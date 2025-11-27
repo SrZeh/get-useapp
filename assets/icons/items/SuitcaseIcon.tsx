@@ -1,5 +1,5 @@
 import React from 'react';
-import { Circle, Path, Rect, Svg } from 'react-native-svg';
+import { Path, Rect, Svg, G } from 'react-native-svg';
 
 type SuitcaseIconProps = React.ComponentProps<typeof Svg> & {
   size?: number;
@@ -8,20 +8,21 @@ type SuitcaseIconProps = React.ComponentProps<typeof Svg> & {
 export function SuitcaseIcon({ size = 96, ...rest }: SuitcaseIconProps) {
   const width = rest.width ?? size;
   const height = rest.height ?? size;
-  const strokeColor = rest.stroke ?? '#96FF9A';
-  const fillAccent = rest.fill ?? 'rgba(150, 255, 154, 0.2)';
 
   return (
-    <Svg viewBox="0 0 96 96" width={width} height={height} fill="none" {...rest}>
-      <Rect x="26" y="32" width="44" height="40" rx={10} fill="rgba(17, 17, 23, 0.45)" stroke={strokeColor} strokeWidth={3} />
-      <Rect x="38" y="24" width="20" height="10" rx={3} fill="#161622" stroke={strokeColor} strokeWidth={3} />
-      <Path d="M30 44H66" stroke={strokeColor} strokeWidth={3} strokeLinecap="round" />
-      <Path d="M46 32V28M50 32V28" stroke={strokeColor} strokeWidth={2.5} strokeLinecap="round" />
-      <Circle cx="34" cy="50" r="3" fill={fillAccent} stroke={strokeColor} strokeWidth={2} />
-      <Circle cx="62" cy="50" r="3" fill={fillAccent} stroke={strokeColor} strokeWidth={2} />
-      <Rect x="32" y="56" width="6" height="12" rx={2} fill="#161622" stroke={strokeColor} strokeWidth={2} />
-      <Rect x="58" y="56" width="6" height="12" rx={2} fill="#161622" stroke={strokeColor} strokeWidth={2} />
+    <Svg viewBox="0 0 1024 1024" width={width} height={height} fill="none" {...rest}>
+      <G>
+        <Path d="M429.4 379.1c-4.8 0-8.8-3.9-8.8-8.8V170.9c0-4.8 3.9-8.8 8.8-8.8 4.8 0 8.8 3.9 8.8 8.8v199.4c0 4.8-3.9 8.8-8.8 8.8zM595.5 379.1c-4.8 0-8.8-3.9-8.8-8.8V170.9c0-4.8 3.9-8.8 8.8-8.8 4.8 0 8.8 3.9 8.8 8.8v199.4c0 4.8-3.9 8.8-8.8 8.8z" fill="#4aff81" />
+        <Path d="M277.4 906.3h-92.6c-4.8 0-8.8-3.9-8.8-8.8v-42.7c0-4.8 3.9-8.8 8.8-8.8h92.6c4.8 0 8.8 3.9 8.8 8.8v42.7c0 4.9-4 8.8-8.8 8.8z" fill="#4C4C4C" />
+        <Path d="M277.4 918.6h-92.6c-11.6 0-21.1-9.4-21.1-21.1v-42.7c0-11.6 9.4-21.1 21.1-21.1h92.6c11.6 0 21.1 9.4 21.1 21.1v42.7c-0.1 11.7-9.5 21.1-21.1 21.1zM188.3 894h85.6v-35.7h-85.6V894z" fill="#3F3F3F" />
+        <Path d="M836.5 906.3h-92.6c-4.8 0-8.8-3.9-8.8-8.8v-42.7c0-4.8 3.9-8.8 8.8-8.8h92.6c4.8 0 8.8 3.9 8.8 8.8v42.7c0 4.9-4 8.8-8.8 8.8z" fill="#4C4C4C" />
+        <Path d="M836.5 918.6h-92.6c-11.6 0-21.1-9.4-21.1-21.1v-42.7c0-11.6 9.4-21.1 21.1-21.1h92.6c11.6 0 21.1 9.4 21.1 21.1v42.7c-0.1 11.7-9.5 21.1-21.1 21.1zM747.3 894H833v-35.7h-85.6V894z" fill="#3F3F3F" />
+        <Path d="M917.3 882H106.7c-23.2 0-42.1-18.9-42.1-42.1V324.1c0-23.2 18.9-42.1 42.1-42.1h810.6c23.2 0 42.1 18.9 42.1 42.1v515.8c0 23.2-19 42.1-42.1 42.1z" fill="#4aff81" />
+        <Path d="M154.168 532.046l213.226-84.36 50.77 128.327-213.225 84.36z" fill="#259FC7" />
+        <Path d="M399.6 588.5m-85.4 0a85.4 85.4 0 1 0 170.8 0 85.4 85.4 0 1 0-170.8 0Z" fill="#F5B23A" />
+        <Path d="M885.7 814.2c-7.7 0-14-6.3-14-14V452.3c0-7.7 6.3-14 14-14s14 6.3 14 14v347.9c0 7.7-6.3 14-14 14zM885.7 411.8c-7.7 0-14-6.3-14-14v-40.3c0-7.7 6.3-14 14-14s14 6.3 14 14v40.3c0 7.7-6.3 14-14 14z" fill="#F5DFD7" />
+        <Path d="M606.4 105.4H417.6c-20.3 0-36.8 16.6-36.8 36.8 0 20.3 16.6 36.8 36.8 36.8h188.9c20.3 0 36.8-16.6 36.8-36.8 0-20.2-16.6-36.8-36.9-36.8z m5 36.8c0 10.9-8.9 19.9-19.9 19.9h-159c-10.9 0-19.9-8.9-19.9-19.9 0-10.9 8.9-19.9 19.9-19.9h159.1c10.9 0.1 19.8 9 19.8 19.9z" fill="#4aff81" />
+      </G>
     </Svg>
   );
 }
-

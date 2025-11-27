@@ -1,5 +1,5 @@
 import React from 'react';
-import { Circle, Path, Rect, Svg } from 'react-native-svg';
+import { Path, Rect, Polygon, Svg, G } from 'react-native-svg';
 
 type ToolboxIconProps = React.ComponentProps<typeof Svg> & {
   size?: number;
@@ -8,19 +8,59 @@ type ToolboxIconProps = React.ComponentProps<typeof Svg> & {
 export function ToolboxIcon({ size = 96, ...rest }: ToolboxIconProps) {
   const width = rest.width ?? size;
   const height = rest.height ?? size;
-  const strokeColor = rest.stroke ?? '#96FF9A';
-  const fillAccent = rest.fill ?? 'rgba(150, 255, 154, 0.2)';
 
   return (
-    <Svg viewBox="0 0 96 96" width={width} height={height} fill="none" {...rest}>
-      <Rect x="20" y="38" width="56" height="32" rx={8} fill="rgba(17, 17, 23, 0.45)" stroke={strokeColor} strokeWidth={3} />
-      <Path d="M20 48H76" stroke={strokeColor} strokeWidth={3} strokeLinecap="round" />
-      <Rect x="36" y="30" width="24" height="10" rx={4} fill="#161622" stroke={strokeColor} strokeWidth={3} />
-      <Path d="M40 48V66M56 48V66" stroke={strokeColor} strokeWidth={3} strokeLinecap="round" />
-      <Path d="M28 54H36M60 54H68" stroke={strokeColor} strokeWidth={3} strokeLinecap="round" />
-      <Circle cx="30" cy="44" r="3" fill={fillAccent} stroke={strokeColor} strokeWidth={2} />
-      <Circle cx="66" cy="44" r="3" fill={fillAccent} stroke={strokeColor} strokeWidth={2} />
+    <Svg viewBox="0 0 512 512" width={width} height={height} fill="none" {...rest}>
+      <Path
+        fill="#717272"
+        d="M332.8,85.333V153.6h-17.067v-42.667c0-4.693-3.84-8.533-8.533-8.533H204.8
+        c-4.779,0-8.533,3.84-8.533,8.533V153.6H179.2V85.333H332.8z"
+      />
+      <Path
+        fill="#00796B"
+        d="M494.933,170.667v51.2h-76.8V204.8c0-4.693-3.84-8.533-8.533-8.533h-68.267
+        c-4.779,0-8.533,3.84-8.533,8.533v17.067H179.2V204.8c0-4.693-3.84-8.533-8.533-8.533H102.4c-4.779,0-8.533,3.84-8.533,8.533v17.067
+        h-76.8v-51.2H494.933z"
+      />
+      <G>
+        <Rect x="110.933" y="213.333" fill="#717272" width="51.2" height="34.133" />
+        <Rect x="349.867" y="213.333" fill="#717272" width="51.2" height="34.133" />
+      </G>
+      <Path
+        fill="#00796B"
+        d="M443.733,238.933v187.733H68.267V238.933h25.6V256c0,4.693,3.755,8.533,8.533,8.533h68.267
+        c4.693,0,8.533-3.84,8.533-8.533v-17.067h153.6V256c0,4.693,3.755,8.533,8.533,8.533H409.6c4.693,0,8.533-3.84,8.533-8.533v-17.067
+        H443.733z"
+      />
+      <Path
+        d="M503.467,153.6h-153.6V76.8c0-4.693-3.84-8.533-8.533-8.533H170.667c-4.779,0-8.533,3.84-8.533,8.533v76.8H8.533
+        C3.755,153.6,0,157.44,0,162.133V230.4c0,4.693,3.755,8.533,8.533,8.533H51.2V435.2c0,4.693,3.755,8.533,8.533,8.533h392.533
+        c4.693,0,8.533-3.84,8.533-8.533V238.933h42.667c4.693,0,8.533-3.84,8.533-8.533v-68.267C512,157.44,508.16,153.6,503.467,153.6z
+         M179.2,85.333h153.6V153.6h-17.067v-42.667c0-4.693-3.84-8.533-8.533-8.533H204.8c-4.779,0-8.533,3.84-8.533,8.533V153.6H179.2
+        V85.333z M298.667,119.467V153.6h-85.333v-34.133H298.667z M443.733,426.667H68.267V238.933h25.6V256
+        c0,4.693,3.755,8.533,8.533,8.533h68.267c4.693,0,8.533-3.84,8.533-8.533v-17.067h153.6V256c0,4.693,3.755,8.533,8.533,8.533H409.6
+        c4.693,0,8.533-3.84,8.533-8.533v-17.067h25.6V426.667z M110.933,247.467v-34.133h51.2v34.133H110.933z M349.867,247.467v-34.133
+        h51.2v34.133H349.867z M494.933,221.867h-76.8V204.8c0-4.693-3.84-8.533-8.533-8.533h-68.267c-4.779,0-8.533,3.84-8.533,8.533
+        v17.067H179.2V204.8c0-4.693-3.84-8.533-8.533-8.533H102.4c-4.779,0-8.533,3.84-8.533,8.533v17.067h-76.8v-51.2h477.867V221.867z"
+      />
+      <Polygon fill="#004D40" points="426.667,238.933 426.667,409.6 68.267,409.6 68.267,426.667 443.733,426.667 
+        443.733,238.933" />
+      <G>
+        <Polygon fill="#555656" points="153.6,213.333 153.6,238.933 110.933,238.933 110.933,247.467 162.133,247.467 
+          162.133,213.333" />
+        <Polygon fill="#555656" points="392.533,213.333 392.533,238.933 349.867,238.933 349.867,247.467 401.067,247.467 
+          401.067,213.333" />
+      </G>
+      <G>
+        <Rect x="17.067" y="204.8" fill="#004D40" width="76.8" height="17.067" />
+        <Polygon fill="#004D40" points="477.867,170.667 477.867,204.8 418.133,204.8 418.133,221.867 494.933,221.867 
+          494.933,170.667" />
+        <Rect x="179.2" y="204.8" fill="#004D40" width="153.6" height="17.067" />
+      </G>
+      <G>
+        <Rect x="179.2" y="145.067" fill="#555656" width="17.067" height="8.533" />
+        <Rect x="315.733" y="145.067" fill="#555656" width="17.067" height="8.533" />
+      </G>
     </Svg>
   );
 }
-

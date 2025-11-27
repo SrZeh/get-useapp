@@ -26,6 +26,7 @@ import {
   View,
   Alert,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Spacing } from "@/constants/spacing";
 
 type Msg = { id: string; text: string; fromUid: string; createdAt?: FirestoreTimestamp };
@@ -36,6 +37,7 @@ export default function ThreadChatScreen() {
   const id = Array.isArray(rawId) ? rawId[0] : rawId;
   const uid = auth.currentUser?.uid ?? null;
   const colors = useThemeColors();
+  const insets = useSafeAreaInsets();
 
   const [msgs, setMsgs] = useState<Msg[]>([]);
   const [text, setText] = useState("");
@@ -142,7 +144,13 @@ export default function ThreadChatScreen() {
       keyboardVerticalOffset={Platform.select({ ios: 80, android: 0 })}
     >
       <ThemedView style={{ flex: 1 }}>
-        <ThemedText type="title" style={{ padding: Spacing.sm }}>
+        <ThemedText 
+          type="title" 
+          style={{ 
+            padding: Spacing.sm,
+            paddingTop: Math.max(insets.top + 80, Spacing.lg), // Account for transparent header
+          }}
+        >
           Conversa
         </ThemedText>
 

@@ -11,17 +11,18 @@
  * - Loading states for operations
  */
 
-import React from 'react';
-import { View, TouchableOpacity, Alert, Platform, Share } from 'react-native';
+import { AnimatedCard } from '@/components/AnimatedCard';
+import { Button } from '@/components/Button';
+import { LiquidGlassView } from '@/components/liquid-glass';
+import { ThemedText } from '@/components/themed-text';
+import { BorderRadius, Spacing } from '@/constants/spacing';
+import type { Item } from '@/types';
+import { formatBRL, GradientTypes, HapticFeedback, logger, useThemeColors } from '@/utils';
+import { Ionicons } from '@expo/vector-icons';
 import { Image as ExpoImage } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
-import { ThemedText } from '@/components/themed-text';
-import { LiquidGlassView } from '@/components/liquid-glass';
-import { AnimatedCard } from '@/components/AnimatedCard';
-import { Spacing, BorderRadius } from '@/constants/spacing';
-import { Button } from '@/components/Button';
-import { GradientTypes, HapticFeedback, useThemeColors, calcAvg, renderStars, formatBRL, logger } from '@/utils';
-import type { Item } from '@/types';
+import React from 'react';
+import { Alert, Platform, Share, TouchableOpacity, View } from 'react-native';
 
 const SHARE_BASE_URL = (() => {
   const envUrl =
@@ -127,9 +128,6 @@ export function ItemManagementCard({
     }
   };
 
-  const productRating = calcAvg(item.ratingSum, item.ratingCount);
-  const ownerRating = calcAvg(item.ownerRatingSum, item.ownerRatingCount);
-
   return (
     <AnimatedCard>
       <LiquidGlassView intensity="standard" cornerRadius={20} style={{ overflow: 'hidden' }}>
@@ -155,7 +153,7 @@ export function ItemManagementCard({
               marginBottom: 12,
             }}
           >
-            <ThemedText type="title-small" style={{ flexShrink: 1, fontWeight: '600' }} numberOfLines={2}>
+            <ThemedText type="title-2" style={{ flexShrink: 1, fontWeight: '600' }} numberOfLines={2}>
               {item.title}
             </ThemedText>
 
@@ -179,35 +177,6 @@ export function ItemManagementCard({
             </LinearGradient>
           </View>
 
-          {/* Ratings */}
-          <View style={{ marginTop: 8, gap: 6 }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-              <ThemedText type="caption" style={{ fontWeight: '600' }}>
-                Produto:
-              </ThemedText>
-              {productRating ? (
-                <ThemedText type="caption">
-                  {renderStars(productRating)} {productRating.toFixed(1)} ({item.ratingCount})
-                </ThemedText>
-              ) : (
-                <ThemedText type="caption">—</ThemedText>
-              )}
-            </View>
-
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-              <ThemedText type="caption" style={{ fontWeight: '600' }}>
-                Dono:
-              </ThemedText>
-              {ownerRating ? (
-                <ThemedText type="caption">
-                  {renderStars(ownerRating)} {ownerRating.toFixed(1)} ({item.ownerRatingCount})
-                </ThemedText>
-              ) : (
-                <ThemedText type="caption">—</ThemedText>
-              )}
-            </View>
-          </View>
-
           {/* Description */}
           {!!item.description && (
             <ThemedText
@@ -224,20 +193,18 @@ export function ItemManagementCard({
             <Button
               variant="primary"
               onPress={handleShare}
-              textStyle={{ fontSize: 14 }}
               accessibilityLabel="Compartilhar item"
               accessibilityHint="Abre opções para compartilhar o link do item"
-              fullWidth
+              style={{ width: '100%', maxWidth: '100%' }}
             >
               Compartilhar
             </Button>
 
-            <View style={{ flexDirection: 'row', gap: 10 }}>
+            <View style={{ flexDirection: 'row', gap: 10, flexWrap: 'wrap' }}>
               <Button
                 variant="secondary"
                 onPress={handleEdit}
-                style={{ flex: 1 }}
-                textStyle={{ fontSize: 14 }}
+                style={{ flex: 1, minWidth: 100, maxWidth: '100%' }}
               >
                 Editar
               </Button>
@@ -247,20 +214,23 @@ export function ItemManagementCard({
                 onPress={handleToggle}
                 disabled={isUpdating}
                 loading={isUpdating}
-                style={{ flex: 1 }}
-                textStyle={{ fontSize: 14 }}
+                style={{ flex: 1, minWidth: 100, maxWidth: '100%' }}
               >
                 {item.available ? 'Marcar Alugado' : 'Marcar Disponível'}
               </Button>
+            </View>
 
+            <View style={{ alignItems: 'center' }}>
               <TouchableOpacity
                 onPress={handleDelete}
                 disabled={isUpdating}
                 style={{
-                  width: 48,
-                  minHeight: 48,
-                  justifyContent: 'center',
+                  flexDirection: 'row',
                   alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 6,
+                  paddingHorizontal: 12,
+                  minHeight: 48,
                   borderRadius: BorderRadius.sm,
                   backgroundColor: colors.semantic.error,
                   opacity: isUpdating ? 0.6 : 1,
@@ -270,14 +240,19 @@ export function ItemManagementCard({
                 accessibilityRole="button"
                 accessibilityState={{ disabled: isUpdating }}
               >
+                <Ionicons
+                  name="trash"
+                  size={18}
+                  color={colors.isDark ? colors.text.primary : '#ffffff'}
+                />
                 <ThemedText
                   style={{
                     color: colors.isDark ? colors.text.primary : '#ffffff',
-                    fontSize: 18,
-                    fontWeight: '700',
+                    fontSize: 14,
+                    fontWeight: '600',
                   }}
                 >
-                  ×
+                  Excluir
                 </ThemedText>
               </TouchableOpacity>
             </View>

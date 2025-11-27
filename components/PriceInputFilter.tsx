@@ -2,15 +2,16 @@
  * Price min/max dropdown filter component
  */
 
+import { ValorMinIcon } from '@/assets/icons/valormim-icon';
+import { ValorMaxIcon } from '@/assets/icons/valormax-icon';
+import { LiquidGlassView } from '@/components/liquid-glass';
+import { ThemedText } from '@/components/themed-text';
+import { BorderRadius, Spacing } from '@/constants/spacing';
+import { useThemeColors } from '@/utils/theme';
+import { Picker } from '@react-native-picker/picker';
 import React, { memo } from 'react';
 import { View, ViewStyle } from 'react-native';
-import { ThemedText } from '@/components/themed-text';
-import { LiquidGlassView } from '@/components/liquid-glass';
-import { useThemeColors } from '@/utils/theme';
-import { DollarIcon } from '@/assets/icons/category-icons';
-import { Picker } from '@react-native-picker/picker';
 import { PRICE_OPTIONS } from './PriceRangeFilter';
-import { Spacing, BorderRadius } from '@/constants/spacing';
 
 type PriceInputFilterProps = {
   minPrice?: number | null;
@@ -72,17 +73,15 @@ export const PriceInputFilter = memo(function PriceInputFilter({
         {onMinPriceChange && (
           <View style={{ flex: 1 }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8, gap: 6 }}>
-              <DollarIcon
+              <ValorMinIcon
                 width={18}
                 height={18}
-                color={colors.text.primary}
-                stroke={colors.text.primary}
               />
               <ThemedText
                 type="caption-1"
                 style={{ fontWeight: '600', color: colors.text.primary }}
               >
-                Preço Mín
+                Mín
               </ThemedText>
             </View>
             <LiquidGlassView intensity="subtle" cornerRadius={BorderRadius.md}>
@@ -105,7 +104,7 @@ export const PriceInputFilter = memo(function PriceInputFilter({
                     paddingVertical: Spacing.xs,
                     borderRadius: BorderRadius.md,
                   }}
-                  accessibilityLabel="Preço mínimo"
+                  accessibilityLabel="Min"
                   accessibilityHint="Selecione o preço mínimo"
                 >
                   {PRICE_OPTIONS.map((option) => (
@@ -126,17 +125,15 @@ export const PriceInputFilter = memo(function PriceInputFilter({
         {onMaxPriceChange && (
           <View style={{ flex: 1 }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8, gap: 6 }}>
-              <DollarIcon
+              <ValorMaxIcon
                 width={18}
                 height={18}
-                color={colors.text.primary}
-                stroke={colors.text.primary}
               />
               <ThemedText
                 type="caption-1"
                 style={{ fontWeight: '600', color: colors.text.primary }}
               >
-                Preço Máx
+                Máx
               </ThemedText>
             </View>
             <LiquidGlassView intensity="subtle" cornerRadius={BorderRadius.md}>
@@ -159,7 +156,7 @@ export const PriceInputFilter = memo(function PriceInputFilter({
                     paddingVertical: Spacing.xs,
                     borderRadius: BorderRadius.md,
                   }}
-                  accessibilityLabel="Preço máximo"
+                  accessibilityLabel="Máx"
                   accessibilityHint="Selecione o preço máximo"
                 >
                   {PRICE_OPTIONS.map((option) => (

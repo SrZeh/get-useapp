@@ -55,6 +55,9 @@ export function AppContent() {
     </Stack>
   );
 
+  // Verificar se está na home para mostrar animação de ícones
+  const isHome = pathname === '/' || pathname === '' || pathname === '/index';
+
   const layeredContent = (
     <>
       {isWeb && <WebStyles />}
@@ -63,8 +66,17 @@ export function AppContent() {
           <title>Precisou? Get&Use | Aluguel de items em geral</title>
         </Head>
       )}
-      <AnimatedItemsBackground seed={pathname} accentColor={transitionAccent} duration={8200} />
-      <ScreenTransitionLayer transitionKey={pathname} backgroundColor={colors.bg.primary} delay={500}>
+      {/* Animação de ícones apenas na home - único diferencial */}
+      {isHome && (
+        <AnimatedItemsBackground seed={pathname} accentColor={transitionAccent} duration={8200} />
+      )}
+      {/* Todas as telas entram normalmente, sem transição especial */}
+      <ScreenTransitionLayer 
+        transitionKey={pathname} 
+        backgroundColor={colors.bg.primary} 
+        delay={0}
+        enabled={false}
+      >
         {stackContent}
       </ScreenTransitionLayer>
     </>

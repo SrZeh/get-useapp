@@ -40,7 +40,7 @@ export const ReservationStatusBadge = React.memo(function ReservationStatusBadge
 
 const styles = StyleSheet.create({
   container: {
-    alignSelf: 'flex-start',
+    alignSelf: 'center',
     marginBottom: Spacing.xs,
   },
   badge: {

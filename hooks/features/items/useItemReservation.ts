@@ -79,8 +79,12 @@ export function useItemReservation({
       
       await u.getIdToken(true); // Force refresh token for Security Rules
 
-      // Calculate isFree from total (price equals zero)
-      const isFree = total === 0;
+      // Calculate isFree: consider item.isFree, dailyRate === 0, or total === 0
+      // This ensures free items skip Stripe payment flow
+      const isFree = 
+        item.isFree === true || 
+        (item.dailyRate ?? 0) === 0 || 
+        total === 0;
 
       await reservationService.createReservation({
         itemId: item.id,

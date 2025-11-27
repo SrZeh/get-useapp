@@ -86,7 +86,8 @@ export function AnimatedItemsBackground({
     const gridRows = Math.max(4, Math.ceil(iconCount / (gridCols / goldenRatio)));
     const cellWidth = width / gridCols;
     const cellHeight = height / gridRows;
-    const safePadding = Math.min(width, height) * 0.05;
+    // Reduzir padding para ícones aproveitarem mais espaço da tela
+    const safePadding = Math.min(width, height) * 0.02;
 
     const createdStates = selectedIcons.map((Component, index) => {
       const random = Math.sin(hashSeed(seed, index)) * 10000;
@@ -102,8 +103,9 @@ export function AnimatedItemsBackground({
       const fromRotation = baseRotation - (12 + ((normalized * 431) % 18));
       const exitRotation = baseRotation + (18 + ((normalized * 619) % 28));
 
-      const jitterX = ((normalized * 1987) % (cellWidth * 0.3)) - cellWidth * 0.15;
-      const jitterY = (((normalized * 2711) + index * 0.31) % (cellHeight * 0.3)) - cellHeight * 0.15;
+      // Aumentar jitter para melhor distribuição em toda a tela
+      const jitterX = ((normalized * 1987) % (cellWidth * 0.5)) - cellWidth * 0.25;
+      const jitterY = (((normalized * 2711) + index * 0.31) % (cellHeight * 0.7)) - cellHeight * 0.35;
 
       const cellCenterX = col * cellWidth + cellWidth / 2;
       const cellCenterY = row * cellHeight + cellHeight / 2;
@@ -111,11 +113,12 @@ export function AnimatedItemsBackground({
       const targetX = clampToBounds(cellCenterX + jitterX, safePadding, width - safePadding) - iconSize / 2;
       const targetY = clampToBounds(cellCenterY + jitterY, safePadding, height - safePadding) - iconSize / 2;
 
-      const fromOffsetX = ((normalized * 3313) % (width * 0.7)) - width * 0.35;
-      const fromOffsetY = ((normalized * 4111) % (height * 0.7)) - height * 0.35;
+      // Offsets maiores para melhor distribuição em toda a tela
+      const fromOffsetX = ((normalized * 3313) % (width * 0.8)) - width * 0.4;
+      const fromOffsetY = ((normalized * 4111) % (height * 0.9)) - height * 0.45;
 
-      const exitOffsetX = ((normalized * 4999) % (width * 0.55)) - width * 0.275;
-      const exitOffsetY = ((normalized * 5333) % (height * 0.55)) - height * 0.275;
+      const exitOffsetX = ((normalized * 4999) % (width * 0.7)) - width * 0.35;
+      const exitOffsetY = ((normalized * 5333) % (height * 0.85)) - height * 0.425;
 
       const fromX = targetX + fromOffsetX;
       const fromY = targetY + fromOffsetY;
@@ -127,7 +130,8 @@ export function AnimatedItemsBackground({
       const exitScale = 0.25 + ((normalized * 599) % 0.15);
 
       const peakOpacity = colorsByTheme(normalized);
-      const delayFraction = ((normalized * 1571) % 0.22) + index * 0.006;
+      // Delay quase zero para animação começar imediatamente
+      const delayFraction = ((normalized * 1571) % 0.02) + index * 0.001;
 
       return {
         key: `${Component.name}-${index}`,
@@ -146,7 +150,7 @@ export function AnimatedItemsBackground({
         toScale,
         exitScale,
         peakOpacity,
-        delayFraction: Math.min(delayFraction, 0.7),
+        delayFraction: Math.min(delayFraction, 0.05),
       };
     });
 

@@ -30,20 +30,36 @@ export function OwnerInbox() {
   const [rows, setRows] = useState<Reservation[]>([]);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [busyAction, setBusyAction] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!uid) return;
+    if (!uid) {
+      setLoading(false);
+      return;
+    }
+    
+    setLoading(true);
+    setError(null);
+    
     const unsub = reservationService.subscribeToOwnerReservations(
       uid,
       (reservations) => {
+        console.log('[OwnerInbox] Received reservations:', reservations.length);
         const keep: Reservation[] = reservations.filter((r) =>
           ['requested', 'accepted', 'paid', 'picked_up', 'paid_out', 'returned'].includes(r.status)
         );
+        console.log('[OwnerInbox] Filtered reservations:', keep.length);
         setRows(keep);
+        setLoading(false);
       },
       ['requested', 'accepted', 'paid', 'picked_up', 'paid_out', 'returned']
     );
-    return () => unsub();
+    
+    return () => {
+      unsub();
+      setLoading(false);
+    };
   }, [uid, reservationService]);
 
   const accept = async (id: string): Promise<void> => {
@@ -108,6 +124,32 @@ export function OwnerInbox() {
     }
   }
 
+
+  if (loading) {
+    return (
+      <ScrollView style={{ padding: Spacing.sm }} contentContainerStyle={{ paddingBottom: 0 }}>
+        <LiquidGlassView intensity="standard" cornerRadius={BorderRadius.xl} style={{ padding: Spacing.lg, alignItems: 'center' }}>
+          <ThemedText type="title" style={{ textAlign: 'center' }}>
+            Carregando reservas...
+          </ThemedText>
+        </LiquidGlassView>
+        <Footer />
+      </ScrollView>
+    );
+  }
+
+  if (error) {
+    return (
+      <ScrollView style={{ padding: Spacing.sm }} contentContainerStyle={{ paddingBottom: 0 }}>
+        <LiquidGlassView intensity="standard" cornerRadius={BorderRadius.xl} style={{ padding: Spacing.lg, alignItems: 'center' }}>
+          <ThemedText type="title" style={{ textAlign: 'center', color: 'red' }}>
+            Erro ao carregar reservas: {error}
+          </ThemedText>
+        </LiquidGlassView>
+        <Footer />
+      </ScrollView>
+    );
+  }
 
   return (
     <ScrollView style={{ padding: Spacing.sm }} contentContainerStyle={{ paddingBottom: 0 }}>

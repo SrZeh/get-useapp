@@ -18,6 +18,7 @@ type CalendarSectionProps = {
   onDateRangeChange: (start: string | null, end: string | null) => void;
   onRequestReservation: () => void;
   disabled?: boolean;
+  submitting?: boolean;
 };
 
 /**
@@ -37,6 +38,7 @@ export function CalendarSection({
   onDateRangeChange,
   onRequestReservation,
   disabled = false,
+  submitting = false,
 }: CalendarSectionProps) {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
@@ -138,6 +140,7 @@ export function CalendarSection({
 
   const isRequestDisabled =
     disabled ||
+    submitting ||
     !startISO ||
     !summary.endExclusive ||
     summary.daysCount < summary.minDays;
@@ -330,10 +333,11 @@ export function CalendarSection({
         variant="primary"
         onPress={handleRequestPress}
         disabled={isRequestDisabled}
+        loading={submitting}
         fullWidth
         style={{ marginTop: 16 }}
       >
-        Solicitar reserva
+        {submitting ? 'Enviando...' : 'Solicitar reserva'}
       </Button>
     </LiquidGlassView>
   );

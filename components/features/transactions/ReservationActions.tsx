@@ -46,9 +46,10 @@ const styles = StyleSheet.create({
   container: {
     marginTop: Spacing.xs,
     gap: Spacing.xs,
+    alignItems: 'center',
   },
   actionButton: {
-    alignSelf: 'flex-start',
+    alignSelf: 'center',
   },
 });
 

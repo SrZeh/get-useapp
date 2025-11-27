@@ -1,5 +1,5 @@
 import React from 'react';
-import { Circle, Path, Rect, Svg } from 'react-native-svg';
+import { Circle, G, Path, Svg } from 'react-native-svg';
 
 type SpeakerIconProps = React.ComponentProps<typeof Svg> & {
   size?: number;
@@ -12,15 +12,50 @@ export function SpeakerIcon({ size = 96, ...rest }: SpeakerIconProps) {
   const fillAccent = rest.fill ?? 'rgba(150, 255, 154, 0.2)';
 
   return (
-    <Svg viewBox="0 0 96 96" width={width} height={height} fill="none" {...rest}>
-      <Rect x="34" y="20" width="28" height="56" rx={8} fill="rgba(17, 17, 23, 0.45)" stroke={strokeColor} strokeWidth={3} />
-      <Circle cx="48" cy="56" r="12" fill={fillAccent} stroke={strokeColor} strokeWidth={3} />
-      <Circle cx="48" cy="32" r="6" fill={fillAccent} stroke={strokeColor} strokeWidth={3} />
-      <Circle cx="48" cy="56" r="6" stroke={strokeColor} strokeWidth={2} />
-      <Path d="M66 34C70 38 70 44 66 48" stroke={strokeColor} strokeWidth={2.5} strokeLinecap="round" />
-      <Path d="M70 30C76 36 76 46 70 52" stroke={strokeColor} strokeWidth={2} strokeLinecap="round" />
-      <Path d="M30 34C26 38 26 44 30 48" stroke={strokeColor} strokeWidth={2.5} strokeLinecap="round" />
-      <Path d="M26 30C20 36 20 46 26 52" stroke={strokeColor} strokeWidth={2} strokeLinecap="round" />
+    <Svg viewBox="0 0 512 512" width={width} height={height} fill="none" {...rest}>
+      <G>
+        <Path
+          d="M382.724,35.639v440.697c0,19.647-16.062,35.639-35.639,35.639H35.639
+			c-1.723,0-3.447-0.138-5.17-0.414c-0.827-0.138-1.654-0.276-2.482-0.483c-0.827-0.138-1.654-0.345-2.482-0.62
+			c-0.827-0.276-1.654-0.552-2.413-0.827c-0.62-0.207-1.172-0.414-1.792-0.69c-0.896-0.414-1.723-0.827-2.619-1.31
+			c-1.861-1.034-3.723-2.205-5.377-3.584c-0.138-0.138-0.276-0.207-0.414-0.345c-0.827-0.69-1.654-1.448-2.413-2.206
+			c-0.759-0.759-1.517-1.586-2.206-2.413c-0.759-0.896-1.517-1.861-2.137-2.826c-0.69-0.965-1.241-1.93-1.792-2.964
+			c-0.483-0.827-0.896-1.723-1.31-2.62c-0.276-0.552-0.483-1.172-0.69-1.792c-0.62-1.585-1.103-3.24-1.447-4.895
+			c-0.207-0.689-0.345-1.447-0.414-2.206c-0.138-0.551-0.207-1.172-0.276-1.792C0.069,478.818,0,477.577,0,476.336V35.639
+			C0,16.061,16.062,0,35.639,0h311.445c2.827,0,5.584,0.345,8.272,1.034c12.96,3.102,23.231,13.373,26.333,26.333
+			C382.379,30.055,382.724,32.813,382.724,35.639z"
+          fill="#8E6A54"
+          stroke={strokeColor}
+        />
+        <G>
+          <Path
+            d="M320.515,309.077c14.69-23.426,23.193-51.127,23.193-80.818c0-29.32-8.29-56.7-22.644-79.939
+				c4.99-3.576,8.251-9.42,8.251-16.014c0-10.86-8.835-19.696-19.695-19.696c-5.134,0-9.814,1.976-13.324,5.206
+				C268.974,91.85,232.03,75.913,191.362,75.913c-40.367,0-77.061,15.707-104.321,41.333c-3.428-2.89-7.85-4.636-12.674-4.636
+				c-10.86,0-19.695,8.835-19.695,19.696c0,6.209,2.891,11.752,7.393,15.365c-14.601,23.377-23.049,50.994-23.049,80.588
+				c0,29.951,8.649,57.879,23.578,81.435c-4.806,3.595-7.922,9.33-7.922,15.78c0,10.86,8.835,19.695,19.695,19.695
+				c5.157,0,9.855-1.995,13.37-5.25c27.187,25.243,63.6,40.686,103.625,40.686c40.341,0,77.013-15.686,104.267-41.284
+				c3.572,3.608,8.523,5.848,13.99,5.848c10.86,0,19.695-8.835,19.695-19.695C329.315,318.64,325.815,312.61,320.515,309.077z"
+            fill="#9F8980"
+            stroke={strokeColor}
+          />
+          <Circle cx="191.362" cy="228.259" r="101.844" fill="#DFC881" stroke={strokeColor} />
+          <Circle cx="191.362" cy="228.259" r="42.926" fill="#9F8980" stroke={strokeColor} />
+          <Circle cx="191.362" cy="228.259" r="34.509" fill="#A1927E" stroke={strokeColor} />
+          <G>
+            <Circle cx="74.367" cy="132.306" r="12.474" fill="#CBCBCB" stroke={strokeColor} />
+            <Circle cx="309.619" cy="132.306" r="12.474" fill="#CBCBCB" stroke={strokeColor} />
+            <Circle cx="74.367" cy="325.474" r="12.474" fill="#CBCBCB" stroke={strokeColor} />
+            <Circle cx="309.619" cy="325.474" r="12.474" fill="#CBCBCB" stroke={strokeColor} />
+          </G>
+          <G>
+            <Circle cx="74.367" cy="132.306" r="4.99" fill="#FDF3DC" stroke={strokeColor} />
+            <Circle cx="309.619" cy="132.306" r="4.99" fill="#FDF3DC" stroke={strokeColor} />
+            <Circle cx="74.367" cy="325.474" r="4.99" fill="#FDF3DC" stroke={strokeColor} />
+            <Circle cx="309.619" cy="325.474" r="4.99" fill="#FDF3DC" stroke={strokeColor} />
+          </G>
+        </G>
+      </G>
     </Svg>
   );
 }

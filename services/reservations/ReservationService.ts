@@ -24,6 +24,7 @@ import {
 import type { Reservation, ReservationStatus, NewReservationInput } from '@/types';
 import { logger } from '@/utils';
 import { FIRESTORE_COLLECTIONS } from '@/constants/api';
+import { acceptReservation as acceptReservationCF, rejectReservation as rejectReservationCF } from '@/services/cloudFunctions';
 
 const RESERVATIONS_PATH = FIRESTORE_COLLECTIONS.RESERVATIONS || 'reservations';
 
@@ -180,27 +181,101 @@ export function subscribeToOwnerReservations(
   callback: (reservations: Reservation[]) => void,
   statusFilter?: ReservationStatus[]
 ): Unsubscribe {
+  console.log('[ReservationService] subscribeToOwnerReservations called', { 
+    ownerUid, 
+    statusFilter,
+    collection: RESERVATIONS_PATH,
+    dbName: 'appdb'
+  });
+  
+  if (!ownerUid) {
+    console.warn('[ReservationService] No ownerUid provided, returning empty array');
+    callback([]);
+    return () => {}; // Return no-op unsubscribe
+  }
+
+  // Start with query without orderBy to avoid index issues
+  // We'll sort in memory instead
   const q = query(
     collection(db, RESERVATIONS_PATH),
-    where('itemOwnerUid', '==', ownerUid),
-    orderBy('createdAt', 'desc')
+    where('itemOwnerUid', '==', ownerUid)
   );
+
+  console.log('[ReservationService] Query created (without orderBy for now)');
 
   return onSnapshot(
     q,
     (snap) => {
+      console.log('[ReservationService] Snapshot received', { 
+        size: snap.size, 
+        empty: snap.empty,
+        hasPendingWrites: snap.metadata.hasPendingWrites,
+        fromCache: snap.metadata.fromCache
+      });
+      
+      if (snap.empty) {
+        console.log('[ReservationService] Snapshot is empty - no reservations found');
+        callback([]);
+        return;
+      }
+      
       const all = snap.docs.map(
-        (d) => ({ id: d.id, ...(d.data() as Partial<Reservation>) } as Reservation)
+        (d) => {
+          const data = d.data();
+          const reservation = { id: d.id, ...(data as Partial<Reservation>) } as Reservation;
+          console.log('[ReservationService] Document:', { 
+            id: d.id, 
+            status: reservation.status, 
+            itemOwnerUid: reservation.itemOwnerUid,
+            renterUid: reservation.renterUid,
+            createdAt: reservation.createdAt 
+          });
+          return reservation;
+        }
       );
 
+      // Sort by createdAt in memory (descending)
+      if (all.length > 0) {
+        all.sort((a, b) => {
+          const aTime = a.createdAt?.toMillis?.() ?? a.createdAt ?? 0;
+          const bTime = b.createdAt?.toMillis?.() ?? b.createdAt ?? 0;
+          return bTime - aTime; // desc
+        });
+      }
+
+      console.log('[ReservationService] Mapped and sorted reservations:', all.length);
+
       if (statusFilter && statusFilter.length > 0) {
-        const filtered = all.filter((r) => statusFilter.includes(r.status));
+        const filtered = all.filter((r) => {
+          const included = statusFilter.includes(r.status);
+          if (!included) {
+            console.log('[ReservationService] Filtered out reservation:', { id: r.id, status: r.status });
+          }
+          return included;
+        });
+        console.log('[ReservationService] Filtered reservations:', filtered.length, 'from', all.length);
         callback(filtered);
       } else {
+        console.log('[ReservationService] Returning all reservations:', all.length);
         callback(all);
       }
     },
-    (err) => logger.error('Owner reservations snapshot listener error', err, { code: err?.code, message: err?.message })
+    (err) => {
+      console.error('[ReservationService] Snapshot error:', err);
+      console.error('[ReservationService] Error details:', {
+        code: err?.code,
+        message: err?.message,
+        stack: err?.stack
+      });
+      logger.error('Owner reservations snapshot listener error', err, { 
+        code: err?.code, 
+        message: err?.message,
+        ownerUid,
+        query: 'itemOwnerUid (without orderBy)'
+      });
+      // Call callback with empty array on error to prevent UI from hanging
+      callback([]);
+    }
   );
 }
 
@@ -234,22 +309,19 @@ export function subscribeToRenterReservations(
 
 /**
  * Accept a reservation (owner action)
+ * Uses Cloud Function to ensure proper validation, date blocking, and notifications
  * @param reservationId - Reservation ID
- * @param ownerUid - Owner user ID
+ * @param ownerUid - Owner user ID (for validation, but Cloud Function will verify)
  */
 export async function acceptReservation(reservationId: string, ownerUid: string): Promise<void> {
-  await updateDoc(doc(db, RESERVATIONS_PATH, reservationId), {
-    status: 'accepted',
-    acceptedAt: serverTimestamp(),
-    acceptedBy: ownerUid,
-    updatedAt: serverTimestamp(),
-  });
+  await acceptReservationCF(reservationId);
 }
 
 /**
  * Reject a reservation (owner action)
+ * Uses Cloud Function to ensure proper validation and notifications
  * @param reservationId - Reservation ID
- * @param ownerUid - Owner user ID
+ * @param ownerUid - Owner user ID (for validation, but Cloud Function will verify)
  * @param reason - Optional rejection reason
  */
 export async function rejectReservation(
@@ -257,18 +329,7 @@ export async function rejectReservation(
   ownerUid: string,
   reason?: string
 ): Promise<void> {
-  const updateData: Record<string, unknown> = {
-    status: 'rejected',
-    rejectedAt: serverTimestamp(),
-    rejectedBy: ownerUid,
-    updatedAt: serverTimestamp(),
-  };
-
-  if (reason) {
-    updateData.rejectReason = reason.slice(0, 300);
-  }
-
-  await updateDoc(doc(db, RESERVATIONS_PATH, reservationId), updateData);
+  await rejectReservationCF(reservationId, reason);
 }
 
 /**

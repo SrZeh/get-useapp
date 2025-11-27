@@ -4,6 +4,7 @@ import { ThemedView } from '@/components/themed-view';
 import { router, useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useMemo, useState } from 'react';
 import { Alert, KeyboardAvoidingView, Platform, ScrollView, TextInput, TouchableOpacity, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { auth } from '@/lib/firebase';
 import { useTransactionsStore } from '@/stores/transactionsStore';
 import { LiquidGlassView } from '@/components/liquid-glass';
@@ -31,6 +32,7 @@ export default function ReviewScreen() {
   const palette = Colors[colorScheme];
   const colors = useThemeColors();
   const reviewService = useReviewService();
+  const insets = useSafeAreaInsets();
 
   // Get reservation from store (cached, no duplicate query!)
   const getTransaction = useTransactionsStore((state) => state.getTransaction);
@@ -240,7 +242,13 @@ export default function ReviewScreen() {
       keyboardVerticalOffset={Platform.select({ ios: 80, android: 0 })}
     >
       <ThemedView style={{ flex: 1 }}>
-        <ScrollView contentContainerStyle={{ padding: Spacing.sm, paddingBottom: Spacing.lg }}>
+        <ScrollView 
+          contentContainerStyle={{ 
+            padding: Spacing.sm, 
+            paddingBottom: Spacing.lg,
+            paddingTop: Math.max(insets.top + 80, Spacing.lg), // Account for transparent header
+          }}
+        >
           <ThemedText type="large-title" style={{ marginBottom: Spacing.lg }}>
             {title}
           </ThemedText>

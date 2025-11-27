@@ -7,6 +7,7 @@ type ScreenTransitionLayerProps = {
   duration?: number;
   delay?: number;
   backgroundColor?: string;
+  enabled?: boolean;
   children: React.ReactNode;
 };
 
@@ -17,20 +18,26 @@ export function ScreenTransitionLayer({
   duration = DEFAULT_DURATION,
   delay = 0,
   backgroundColor = 'transparent',
+  enabled = true,
   children,
 }: ScreenTransitionLayerProps) {
-  const progress = useSharedValue(0);
+  const progress = useSharedValue(enabled ? 0 : 1);
 
   useEffect(() => {
-    progress.value = 0;
-    progress.value = withDelay(
-      Math.max(delay, 0),
-      withTiming(1, {
-        duration,
-        easing: Easing.out(Easing.cubic),
-      })
-    );
-  }, [delay, duration, progress, transitionKey]);
+    if (enabled) {
+      progress.value = 0;
+      progress.value = withDelay(
+        Math.max(delay, 0),
+        withTiming(1, {
+          duration,
+          easing: Easing.out(Easing.cubic),
+        })
+      );
+    } else {
+      // Se desabilitado, mostrar imediatamente sem animação
+      progress.value = 1;
+    }
+  }, [delay, duration, progress, transitionKey, enabled]);
 
   const animatedStyle = useAnimatedStyle(() => ({
     flex: 1,

@@ -10,6 +10,7 @@
 
 import React, { useEffect, useState } from "react";
 import { KeyboardAvoidingView, Platform, ScrollView, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { auth } from "@/lib/firebase";
@@ -38,6 +39,7 @@ export default function ItemDetailScreen() {
   const palette = Colors[colorScheme ?? 'light'];
   const uid = auth.currentUser?.uid ?? null;
   const reviewService = useReviewService();
+  const insets = useSafeAreaInsets();
 
   // Item detail hook
   const { item, loading: itemLoading } = useItemDetail(id);
@@ -91,7 +93,11 @@ export default function ItemDetailScreen() {
       />
       <ThemedView style={{ flex: 1, backgroundColor: palette.background }}>
         <ScrollView 
-          contentContainerStyle={{ padding: Spacing.sm, paddingBottom: Spacing['3xl'] }}
+          contentContainerStyle={{ 
+            padding: Spacing.sm, 
+            paddingBottom: Spacing['3xl'],
+            paddingTop: Math.max(insets.top + 80, Spacing.lg), // Account for transparent header
+          }}
           showsVerticalScrollIndicator={false}
         >
           {/* HEADER DO ITEM */}
@@ -106,6 +112,7 @@ export default function ItemDetailScreen() {
             onDateRangeChange={bookingCalendar.handleDateRangeChange}
             onRequestReservation={reservation.requestReservation}
             disabled={!uid}
+            submitting={reservation.submitting}
           />
 
           {/* FORM DE AVALIAÇÃO */}

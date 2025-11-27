@@ -6,6 +6,7 @@ import { useLocalSearchParams } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
 import React, { useMemo, useState } from "react";
 import { ActivityIndicator, Alert, ScrollView, TouchableOpacity, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useThemeColors } from "@/utils";
 import {
   createCheckoutSession,
@@ -19,6 +20,7 @@ export default function PayScreen() {
   const id = Array.isArray(raw) ? raw[0] : raw;
   const uid = auth.currentUser?.uid ?? null;
   const colors = useThemeColors();
+  const insets = useSafeAreaInsets();
 
   const [busyCheckout, setBusyCheckout] = useState(false);
   const [busyConfirm, setBusyConfirm] = useState(false);
@@ -75,7 +77,12 @@ export default function PayScreen() {
 
   return (
     <ThemedView style={{ flex: 1 }}>
-      <ScrollView contentContainerStyle={{ padding: Spacing.sm }}>
+      <ScrollView 
+        contentContainerStyle={{ 
+          padding: Spacing.sm,
+          paddingTop: Math.max(insets.top + 80, Spacing.lg), // Account for transparent header
+        }}
+      >
         <ThemedText type="title">Pagamento</ThemedText>
         <ThemedText style={{ marginTop: 8, opacity: 0.8 }}>
           Você será redirecionado ao Checkout seguro da Stripe. Pagamento por cartão.

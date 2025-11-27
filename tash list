@@ -1,0 +1,24 @@
+*   [33m77e70b3[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m)[m Merge branch berton: restaurar alterações de transição, SVGs e filtros
+[31m|[m[32m\[m  
+* [32m\[m   [33me0ab007[m Merge pull request #2 from SrZeh/feat/item-experience
+[33m|[m[34m\[m [32m\[m  
+[33m|[m * [32m|[m [33m319f7ff[m[33m ([m[1;31morigin/feat/item-experience[m[33m, [m[1;32mfeat/item-experience[m[33m)[m feat: refresh item surfaces and category list
+* [34m|[m [32m|[m   [33m768112b[m Merge pull request #1 from SrZeh/feat/notification-counters
+[34m|[m[36m\[m [34m\[m [32m\[m  
+[34m|[m [36m|[m[34m/[m [32m/[m  
+[34m|[m[34m/[m[36m|[m [32m|[m   
+[34m|[m [36m|[m [32m|[m * [33m10ffd3a[m[33m ([m[1;35mrefs/stash[m[33m)[m On berton: Alterações temporárias antes de mudar para main
+[34m|[m [36m|[m [32m|[m[32m/[m[1;32m|[m 
+[34m|[m [36m|[m [32m|[m * [33md00dbc0[m index on berton: f255c5a feat: adicionar transição animada com novos ícones
+[34m|[m [36m|[m [32m|[m[32m/[m  
+[34m|[m [36m|[m * [33mf255c5a[m[33m ([m[1;31morigin/berton[m[33m, [m[1;32mberton[m[33m)[m feat: adicionar transição animada com novos ícones
+[34m|[m [36m|[m * [33me910a0b[m Ajusta tarifas de serviço e processamento
+[34m|[m [36m|[m * [33m46c43d8[m feat(items): adicionar botão de compartilhamento
+[34m|[m [36m|[m * [33m9fca8e1[m feat(item): registrar aceite dos termos na criacao
+[34m|[m [36m|[m * [33mdef3ff2[m Ajusta footer mobile e header por estado de login
+[34m|[m [36m|[m * [33mc696023[m Implementa avaliações bidirecionais de usuários e itens
+[34m|[m [36m|[m * [33m413b779[m Ajusta fluxo de avaliações de itens
+[34m|[m [36m|[m * [33m403f3fa[m feat(auth): adicionar verificação de telefone via SMS
+[34m|[m [36m|[m * [33m7e74db2[m feat(search): impedir blur no TextInput (blurOnSubmit=false)\n\nrefactor(home): estabiliza header com useMemo para manter foco do input\nchore(filters): remover inputs de texto de cidade/bairro do header; manter dropdowns\nfix(types): usar ThemeColors em BasicInfoSection\nchore(ui): renomear títulos dropdown para 'Cidade' e 'Bairro'
+[34m|[m [36m|[m[34m/[m  
+[34m|[m[34m/[m[36m|[m   

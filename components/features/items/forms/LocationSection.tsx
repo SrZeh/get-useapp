@@ -29,6 +29,8 @@ type LocationSectionProps = {
   cepFetched: boolean;
   saving: boolean;
   colors: UseThemeColorsReturn;
+  cityError?: string;
+  neighborhoodError?: string;
 };
 
 export const LocationSection = React.memo(function LocationSection({
@@ -43,6 +45,8 @@ export const LocationSection = React.memo(function LocationSection({
   cepFetched,
   saving,
   colors,
+  cityError,
+  neighborhoodError,
 }: LocationSectionProps) {
   return (
     <LiquidGlassView
@@ -52,7 +56,7 @@ export const LocationSection = React.memo(function LocationSection({
     >
       <View style={styles.section}>
         <ThemedText type="subhead" style={styles.sectionTitle}>
-          Localização
+          Localização do item
         </ThemedText>
 
         {/* CEP Input with ViaCEP */}
@@ -97,27 +101,27 @@ export const LocationSection = React.memo(function LocationSection({
         />
 
         <Input
-          label="Cidade"
-          placeholder="Preencha o CEP acima para buscar automaticamente"
+          label="Cidade *"
+          placeholder="Ex: São Paulo, Rio de Janeiro..."
           value={city}
           onChangeText={onCityChange}
           autoCapitalize="words"
-          helperText="Preenchido automaticamente via CEP"
+          error={cityError}
+          helperText={cityError ? undefined : (cepFetched ? "Preenchido automaticamente via CEP" : "Campo obrigatório - digite a cidade ou preencha o CEP acima")}
           leftElement={<Ionicons name="location" size={20} color={colors.icon.default} />}
-          editable={false}
-          style={{ opacity: 0.7 }}
+          editable={!saving}
         />
 
         <Input
-          label="Bairro"
-          placeholder="Preencha o CEP acima para buscar automaticamente"
+          label="Bairro *"
+          placeholder="Ex: Centro, Vila Madalena..."
           value={neighborhood}
           onChangeText={onNeighborhoodChange}
           autoCapitalize="words"
-          helperText="Preenchido automaticamente via CEP"
+          error={neighborhoodError}
+          helperText={neighborhoodError ? undefined : (cepFetched ? "Preenchido automaticamente via CEP" : "Campo obrigatório - digite o bairro ou preencha o CEP acima")}
           leftElement={<Ionicons name="location" size={20} color={colors.icon.default} />}
-          editable={false}
-          style={{ opacity: 0.7 }}
+          editable={!saving}
         />
       </View>
     </LiquidGlassView>
