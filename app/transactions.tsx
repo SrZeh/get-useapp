@@ -14,7 +14,10 @@ export default function TransactionsScreen() {
   useFocusEffect(
     useCallback(() => {
       // Mark transactions as seen whenever screen comes into focus
-      markTransactionsSeen();
+      console.log('[TransactionsScreen] Screen focused, calling markTransactionsSeen');
+      markTransactionsSeen().catch((err) => {
+        console.error('[TransactionsScreen] Error marking transactions as seen', err);
+      });
       return () => {};
     }, [])
   );

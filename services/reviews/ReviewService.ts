@@ -29,6 +29,7 @@ import type {
 } from '@/types';
 import { logger } from '@/utils';
 import { isValidRating } from '@/types/review';
+import { createUserReview as createUserReviewCF } from '@/services/cloudFunctions';
 
 /**
  * Create a new review for an item
@@ -37,6 +38,8 @@ import { isValidRating } from '@/types/review';
  * @returns Created review ID
  */
 export async function createItemReview(itemId: string, input: NewItemReviewInput): Promise<string> {
+  console.log('[ReviewService] createItemReview called', { itemId, reservationId: input.reservationId, renterUid: input.renterUid });
+  
   if (!isValidRating(input.rating)) {
     throw new Error('Rating deve ser entre 1 e 5');
   }
@@ -44,6 +47,27 @@ export async function createItemReview(itemId: string, input: NewItemReviewInput
   const trimmedComment = input.comment?.trim();
   if (input.rating <= 2 && (!trimmedComment || trimmedComment.length === 0)) {
     throw new Error('Para notas 1 ou 2, explique o motivo no comentário.');
+  }
+
+  // Verify reservation exists and is accessible
+  const reservationRef = doc(db, 'reservations', input.reservationId);
+  const reservationSnap = await getDoc(reservationRef);
+  if (!reservationSnap.exists()) {
+    throw new Error('Reserva não encontrada.');
+  }
+  const reservation = reservationSnap.data();
+  console.log('[ReviewService] Reservation status:', reservation?.status, 'renterUid:', reservation?.renterUid, 'itemId:', reservation?.itemId);
+  
+  if (reservation?.status !== 'returned' && reservation?.status !== 'closed') {
+    throw new Error(`Reserva precisa estar devolvida para avaliar. Status atual: ${reservation?.status ?? 'desconhecido'}`);
+  }
+  
+  if (reservation?.renterUid !== input.renterUid) {
+    throw new Error('Você não é o locatário desta reserva.');
+  }
+  
+  if (reservation?.itemId !== itemId) {
+    throw new Error('Item da reserva não corresponde.');
   }
 
   const reservationReviewRef = doc(db, 'items', itemId, 'reviews', input.reservationId);
@@ -64,7 +88,17 @@ export async function createItemReview(itemId: string, input: NewItemReviewInput
     createdAt: serverTimestamp(),
   };
 
-  await setDoc(reservationReviewRef, reviewData, { merge: false });
+  console.log('[ReviewService] Creating review document:', reviewData);
+  try {
+    await setDoc(reservationReviewRef, reviewData, { merge: false });
+    console.log('[ReviewService] Review created successfully');
+  } catch (error: any) {
+    console.error('[ReviewService] Error creating review:', error);
+    if (error?.code === 'permission-denied') {
+      throw new Error('Permissão negada. Verifique se a reserva está com status "returned" e se você é o locatário.');
+    }
+    throw error;
+  }
 
   try {
     await updateDoc(doc(db, 'reservations', input.reservationId), {
@@ -133,6 +167,7 @@ export function subscribeToItemReviews(
 
 /**
  * Create a review about a user (owner ⇄ renter)
+ * Uses Cloud Function to bypass Firestore security rules
  * @param input - Review input data
  * @returns Created review ID (reservationId)
  */
@@ -142,48 +177,61 @@ export async function createUserReview(input: NewUserReviewInput): Promise<strin
     throw new Error(validation.error ?? 'Dados inválidos para avaliação.');
   }
 
-  const trimmedComment = input.comment?.trim();
-
-  const reviewRef = doc(db, 'users', input.targetUid, 'reviewsReceived', input.reservationId);
-  const existingReview = await getDoc(reviewRef);
-  if (existingReview.exists()) {
-    throw new Error('Você já avaliou esta reserva.');
-  }
-
-  const reviewData = {
+  console.log('[ReviewService] createUserReview - START', {
     reservationId: input.reservationId,
-    reviewerUid: input.reviewerUid,
     reviewerRole: input.reviewerRole,
     targetUid: input.targetUid,
     targetRole: input.targetRole,
     rating: input.rating,
-    comment: trimmedComment ?? '',
-    createdAt: serverTimestamp(),
-  };
-
-  await setDoc(reviewRef, reviewData, { merge: false });
-
-  const reservationUpdate: Record<string, unknown> = {
-    updatedAt: serverTimestamp(),
-  };
-  if (input.reviewerRole === 'renter' && input.targetRole === 'owner') {
-    reservationUpdate['reviewsOpen.renterCanReviewOwner'] = false;
-  }
-  if (input.reviewerRole === 'owner' && input.targetRole === 'renter') {
-    reservationUpdate['reviewsOpen.ownerCanReviewRenter'] = false;
-  }
+    hasComment: !!input.comment,
+    commentLength: input.comment?.length || 0,
+  });
 
   try {
-    await updateDoc(doc(db, 'reservations', input.reservationId), reservationUpdate);
-  } catch (error) {
-    if (typeof logger.warn === 'function') {
-      logger.warn('Não foi possível atualizar reviewsOpen da reserva após avaliação de usuário', error);
-    } else {
-      console.warn('Não foi possível atualizar reviewsOpen da reserva após avaliação de usuário', error);
-    }
-  }
+    console.log('[ReviewService] createUserReview - Calling Cloud Function...');
+    // Use Cloud Function to create review (bypasses Firestore security rules)
+    const result = await createUserReviewCF({
+      reservationId: input.reservationId,
+      reviewerRole: input.reviewerRole,
+      targetUid: input.targetUid,
+      targetRole: input.targetRole,
+      rating: input.rating,
+      comment: input.comment,
+    });
 
-  return reviewRef.id;
+    console.log('[ReviewService] User review created successfully via Cloud Function:', result);
+    return result.reviewId;
+  } catch (error: any) {
+    console.error('[ReviewService] Error creating user review via Cloud Function:', {
+      code: error?.code,
+      message: error?.message,
+      details: error?.details,
+      error: error,
+      stack: error?.stack,
+    });
+    
+    // Convert Cloud Function errors to user-friendly messages
+    if (error?.code === 'unauthenticated') {
+      throw new Error('Você precisa estar logado para criar avaliações.');
+    }
+    if (error?.code === 'permission-denied') {
+      throw new Error(error?.message || 'Você não tem permissão para criar esta avaliação.');
+    }
+    if (error?.code === 'not-found') {
+      throw new Error(error?.message || 'Reserva não encontrada.');
+    }
+    if (error?.code === 'failed-precondition') {
+      throw new Error(error?.message || 'A reserva não está no status correto para avaliação.');
+    }
+    if (error?.code === 'already-exists') {
+      throw new Error(error?.message || 'Você já avaliou esta reserva.');
+    }
+    if (error?.code === 'invalid-argument') {
+      throw new Error(error?.message || 'Dados inválidos para avaliação.');
+    }
+    
+    throw error;
+  }
 }
 
 /**

@@ -41,6 +41,15 @@ export function OwnerReservationActions({
   isSyncing,
   isConfirming,
 }: OwnerReservationActionsProps) {
+  // Debug: Log reservation status
+  if (__DEV__) {
+    console.log('[OwnerReservationActions] Reservation:', {
+      id: reservation.id,
+      status: reservation.status,
+      canAccept: canAccept(reservation),
+    });
+  }
+
   // Requested status - can accept/reject/delete
   if (canAccept(reservation)) {
     return (

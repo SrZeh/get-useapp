@@ -8,4 +8,5 @@ export { useTransactionsDot, markTransactionsSeen } from './useTransactionsDot';
 export { useTransactions } from './useTransactions';
 export { useTransactionActions } from './useTransactionActions';
 export { usePendingTransactions } from './usePendingTransactions';
+export { useIsReservationNew } from './useIsReservationNew';
 

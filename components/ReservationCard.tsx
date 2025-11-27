@@ -77,6 +77,7 @@ export const ReservationCard = React.memo(function ReservationCard({
         container: {
           width: '100%',
           padding: Spacing.sm,
+          position: 'relative',
         },
         content: {
           gap: Spacing.xs,

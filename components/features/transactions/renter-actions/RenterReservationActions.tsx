@@ -37,6 +37,16 @@ export function RenterReservationActions({
   onReview,
   isMarkingReceived,
 }: RenterReservationActionsProps) {
+  // Debug: Log reservation status for troubleshooting
+  if (__DEV__) {
+    console.log('[RenterReservationActions] Reservation:', {
+      id: reservation.id,
+      status: reservation.status,
+      paidAt: reservation.paidAt,
+      canPay: canPay(reservation),
+    });
+  }
+
   // Can pay - accepted status
   if (canPay(reservation)) {
     return <PayAction reservationId={reservation.id} onPay={onPay} />;

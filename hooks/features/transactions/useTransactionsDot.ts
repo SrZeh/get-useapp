@@ -8,7 +8,7 @@
  * Uses timestamp-based tracking to only show new items since last viewed.
  */
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { auth, db } from "@/lib/firebase";
 import {
   collection,
@@ -58,6 +58,21 @@ function hasNewSince(snap: QuerySnapshot<DocumentData>, lastSeenMs?: number | nu
 export function useTransactionsDot(): boolean {
   const uid = auth.currentUser?.uid ?? null;
   const [dot, setDot] = useState(false);
+  const lastSeenMsRef = useRef<number | null | undefined>(undefined);
+  const ownerSnapRef = useRef<QuerySnapshot<DocumentData> | null>(null);
+  const renterSnapRef = useRef<QuerySnapshot<DocumentData> | null>(null);
+
+  // Helper to re-check both snapshots
+  const recheckDot = () => {
+    const ownerSnap = ownerSnapRef.current;
+    const renterSnap = renterSnapRef.current;
+    const lastSeen = lastSeenMsRef.current;
+    
+    const hasNewOwner = ownerSnap ? hasNewSince(ownerSnap, lastSeen) : false;
+    const hasNewRenter = renterSnap ? hasNewSince(renterSnap, lastSeen) : false;
+    
+    setDot(hasNewOwner || hasNewRenter);
+  };
 
   useEffect(() => {
     if (!uid) {
@@ -65,32 +80,9 @@ export function useTransactionsDot(): boolean {
       return;
     }
 
-    // Observe user's lastTransactionsSeenAt timestamp
+    // Observe user's lastSeenAt.reservations timestamp
+    // This is updated by the markAsSeen cloud function when type="reservations"
     const userRef = doc(db, "users", uid);
-    let lastSeenMs: number | null | undefined = undefined;
-
-    const unsubUser = onSnapshot(
-      userRef,
-      (snap) => {
-        if (!snap.exists()) {
-          lastSeenMs = null;
-          return;
-        }
-
-        const data = snap.data();
-        const lastSeen = data?.lastTransactionsSeenAt;
-        
-        if (lastSeen && typeof lastSeen === 'object' && 'toMillis' in lastSeen) {
-          const timestamp = lastSeen as Timestamp;
-          lastSeenMs = timestamp.toMillis();
-        } else {
-          lastSeenMs = null;
-        }
-      },
-      (err) => {
-        logger.error('Failed to subscribe to user lastTransactionsSeenAt', err, { uid });
-      }
-    );
 
     // Reservations requiring action from OWNER (requested)
     const qOwner = query(
@@ -109,22 +101,67 @@ export function useTransactionsDot(): boolean {
     const unsubs = [
       onSnapshot(
         qOwner,
-        (snap) => setDot((prev) => hasNewSince(snap, lastSeenMs) || prev),
+        (snap) => {
+          ownerSnapRef.current = snap;
+          recheckDot();
+        },
         (err) => {
           logger.warn('Failed to subscribe to owner reservations', { uid, error: err });
         }
       ),
       onSnapshot(
         qRenter,
-        (snap) => setDot((prev) => hasNewSince(snap, lastSeenMs) || prev),
+        (snap) => {
+          renterSnapRef.current = snap;
+          recheckDot();
+        },
         (err) => {
           logger.warn('Failed to subscribe to renter reservations', { uid, error: err });
         }
       ),
     ];
 
+    // Update the ref when lastSeenMs changes
+    const unsubUserWithRef = onSnapshot(
+      userRef,
+      (snap) => {
+        if (!snap.exists()) {
+          lastSeenMsRef.current = null;
+          recheckDot();
+          return;
+        }
+
+        const data = snap.data();
+        const lastSeenAtObj = data?.lastSeenAt as Record<string, Timestamp> | undefined;
+        const lastSeen = lastSeenAtObj?.reservations ?? data?.lastTransactionsSeenAt;
+        
+        let newLastSeenMs: number | null | undefined = undefined;
+        if (lastSeen && typeof lastSeen === 'object' && 'toMillis' in lastSeen) {
+          const timestamp = lastSeen as Timestamp;
+          newLastSeenMs = timestamp.toMillis();
+        } else {
+          newLastSeenMs = null;
+        }
+
+        // Only update and recheck if the value actually changed
+        if (lastSeenMsRef.current !== newLastSeenMs) {
+          logger.debug('useTransactionsDot: lastSeenAt.reservations changed', {
+            uid,
+            oldValue: lastSeenMsRef.current,
+            newValue: newLastSeenMs,
+            lastSeenAtObj: lastSeenAtObj ? Object.keys(lastSeenAtObj) : null,
+          });
+          lastSeenMsRef.current = newLastSeenMs;
+          recheckDot();
+        }
+      },
+      (err) => {
+        logger.error('Failed to subscribe to user lastSeenAt in useTransactionsDot', err, { uid });
+      }
+    );
+
     return () => {
-      unsubUser();
+      unsubUserWithRef();
       unsubs.forEach((unsub) => unsub());
     };
   }, [uid]);
@@ -137,7 +174,10 @@ export function useTransactionsDot(): boolean {
  */
 export async function markTransactionsSeen(): Promise<void> {
   const uid = auth.currentUser?.uid;
-  if (!uid) return;
+  if (!uid) {
+    logger.warn('markTransactionsSeen called but user is not authenticated');
+    return;
+  }
 
   try {
     const fns = getFunctions(app, "southamerica-east1");
@@ -147,7 +187,7 @@ export async function markTransactionsSeen(): Promise<void> {
       markAsSeen({ type: "reservations" }),
       markAsSeen({ type: "payments" }),
     ]);
-    logger.debug('Marked transactions counters as seen', { uid });
+    logger.debug('Marked transactions counters as seen', { uid, timestamp: new Date().toISOString() });
   } catch (error) {
     logger.error('Failed to mark transactions as seen', error, { uid });
   }

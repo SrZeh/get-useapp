@@ -46,10 +46,11 @@ export function OwnerInbox() {
       uid,
       (reservations) => {
         console.log('[OwnerInbox] Received reservations:', reservations.length);
+        console.log('[OwnerInbox] Reservations statuses:', reservations.map(r => ({ id: r.id, status: r.status })));
         const keep: Reservation[] = reservations.filter((r) =>
           ['requested', 'accepted', 'paid', 'picked_up', 'paid_out', 'returned'].includes(r.status)
         );
-        console.log('[OwnerInbox] Filtered reservations:', keep.length);
+        console.log('[OwnerInbox] Filtered reservations:', keep.length, 'Statuses:', keep.map(r => r.status));
         setRows(keep);
         setLoading(false);
       },
@@ -64,10 +65,15 @@ export function OwnerInbox() {
 
   const accept = async (id: string): Promise<void> => {
     try {
+      console.log('[OwnerInbox] Accepting reservation:', id);
       setBusyId(id);
-      await reservationService.acceptReservation(id, uid);
+      const result = await reservationService.acceptReservation(id, uid);
+      console.log('[OwnerInbox] Reservation accepted successfully:', id, result);
+      // Wait a bit for Firestore to propagate the update
+      await new Promise(resolve => setTimeout(resolve, 500));
       Alert.alert('Pedido aceito', 'O locatário já pode efetuar o pagamento.');
     } catch (e: unknown) {
+      console.error('[OwnerInbox] Error accepting reservation:', e);
       handleAsyncError(e, 'Falha ao aceitar reserva', { reservationId: id, action: 'accept' });
     } finally {
       setBusyId(null);

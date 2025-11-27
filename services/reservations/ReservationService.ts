@@ -313,8 +313,17 @@ export function subscribeToRenterReservations(
  * @param reservationId - Reservation ID
  * @param ownerUid - Owner user ID (for validation, but Cloud Function will verify)
  */
-export async function acceptReservation(reservationId: string, ownerUid: string): Promise<void> {
-  await acceptReservationCF(reservationId);
+export async function acceptReservation(reservationId: string, ownerUid: string): Promise<{ ok: boolean; prevStatus: string; newStatus: string; isFree?: boolean; blockedDays?: number }> {
+  console.log('[ReservationService] acceptReservation called', { reservationId, ownerUid });
+  try {
+    const result = await acceptReservationCF(reservationId);
+    console.log('[ReservationService] acceptReservation result:', result);
+    // Return result so caller can verify success
+    return result;
+  } catch (error) {
+    console.error('[ReservationService] acceptReservation error:', error);
+    throw error;
+  }
 }
 
 /**

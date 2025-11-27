@@ -15,6 +15,7 @@ export { ReservationDates } from './ReservationDates';
 export { ReservationPrice } from './ReservationPrice';
 export { ReservationActions } from './ReservationActions';
 export { ReservationTimestamps } from './ReservationTimestamps';
+export { NotificationBadge } from './NotificationBadge';
 
 // Re-export types for convenience
 export type * from './types';

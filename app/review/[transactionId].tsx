@@ -19,6 +19,8 @@ import { useReviewService } from '@/providers/ServicesProvider';
 export default function ReviewScreen() {
   const { transactionId } = useLocalSearchParams<{ transactionId: string }>();
   const uid = auth.currentUser?.uid ?? '';
+  console.log('[ReviewScreen] Component rendered, transactionId:', transactionId, 'uid:', uid);
+  
   const [stars, setStars] = useState(5);
   const [comment, setComment] = useState('');
   const [res, setRes] = useState<Reservation | null>(null);
@@ -40,19 +42,61 @@ export default function ReviewScreen() {
   useEffect(() => {
     let alive = true;
     (async () => {
-      if (!transactionId) return;
-      
-      // Get from cache or fetch if not cached
-      const transaction = await getTransaction(String(transactionId), false);
-      if (!alive) return;
-      
-      if (!transaction || !('itemId' in transaction)) {
-        Alert.alert('Avaliação', 'Reserva não encontrada.');
-        router.back();
+      if (!transactionId) {
+        console.log('[ReviewScreen] useEffect - No transactionId');
         return;
       }
       
-      setRes(transaction as Reservation);
+      console.log('[ReviewScreen] useEffect - Fetching transaction:', transactionId);
+      try {
+        // Get from cache or fetch if not cached
+        console.log('[ReviewScreen] useEffect - About to call getTransaction...');
+        const transactionPromise = getTransaction(String(transactionId), false);
+        
+        // Add timeout to prevent infinite waiting
+        const timeoutPromise = new Promise<null>((resolve) => {
+          setTimeout(() => {
+            console.error('[ReviewScreen] useEffect - getTransaction TIMEOUT after 10 seconds');
+            resolve(null);
+          }, 10000);
+        });
+        
+        const transaction = await Promise.race([transactionPromise, timeoutPromise]);
+        console.log('[ReviewScreen] useEffect - getTransaction completed or timed out');
+        console.log('[ReviewScreen] useEffect - Transaction fetched:', {
+          found: !!transaction,
+          hasItemId: transaction ? 'itemId' in transaction : false,
+          transaction: transaction ? { id: transaction.id, status: (transaction as any)?.status } : null,
+        });
+        
+        if (!alive) {
+          console.log('[ReviewScreen] useEffect - Component unmounted, skipping');
+          return;
+        }
+        
+        if (!transaction || !('itemId' in transaction)) {
+          console.error('[ReviewScreen] useEffect - Transaction not found or invalid:', {
+            transaction,
+            hasItemId: transaction ? 'itemId' in transaction : false,
+          });
+          Alert.alert('Avaliação', 'Reserva não encontrada.');
+          router.back();
+          return;
+        }
+        
+        console.log('[ReviewScreen] useEffect - Setting reservation:', {
+          id: transaction.id,
+          status: (transaction as Reservation).status,
+          renterUid: (transaction as Reservation).renterUid,
+          itemOwnerUid: (transaction as Reservation).itemOwnerUid,
+        });
+        setRes(transaction as Reservation);
+      } catch (error) {
+        console.error('[ReviewScreen] useEffect - Error fetching transaction:', error);
+        if (!alive) return;
+        Alert.alert('Avaliação', 'Erro ao carregar reserva.');
+        router.back();
+      }
     })();
     return () => { alive = false; };
   }, [transactionId, getTransaction]);
@@ -69,6 +113,17 @@ export default function ReviewScreen() {
 
   const canReviewItem = canReview && (reviewsOpen?.renterCanReviewItem ?? true) && !itemReviewSent;
   const canReviewOwner = canReview && (reviewsOpen?.renterCanReviewOwner ?? true) && !ownerReviewSent;
+  
+  console.log('[ReviewScreen] State:', {
+    hasRes: !!res,
+    resStatus: res?.status,
+    resRenterUid: res?.renterUid,
+    uid,
+    canReview,
+    canReviewOwner,
+    reviewsOpen,
+    ownerReviewSent,
+  });
 
   async function submitItemReview() {
     if (!res || !canReviewItem) {
@@ -129,17 +184,29 @@ export default function ReviewScreen() {
   }
 
   async function submitOwnerReview() {
+    console.log('[ReviewScreen] submitOwnerReview - BUTTON CLICKED');
+    console.log('[ReviewScreen] submitOwnerReview - State check:', {
+      hasRes: !!res,
+      canReviewOwner,
+      itemOwnerUid: res?.itemOwnerUid,
+      ownerStars,
+      ownerComment,
+    });
+    
     if (!res || !canReviewOwner) {
+      console.log('[ReviewScreen] submitOwnerReview - EARLY RETURN: !res or !canReviewOwner');
       Alert.alert('Avaliação', 'Você já avaliou esta pessoa ou a reserva não permite avaliações.');
       return;
     }
     if (!res.itemOwnerUid) {
+      console.log('[ReviewScreen] submitOwnerReview - EARLY RETURN: !itemOwnerUid');
       Alert.alert('Avaliação', 'Não foi possível identificar o dono.');
       return;
     }
 
     const rating = Math.max(1, Math.min(5, Number(ownerStars) || 1)) as 1 | 2 | 3 | 4 | 5;
     const text = (ownerComment || '').trim();
+    console.log('[ReviewScreen] submitOwnerReview - After validation, rating:', rating, 'text length:', text.length);
 
     const validation = reviewService.validateUserReviewInput({
       reviewerUid: uid,
@@ -157,6 +224,12 @@ export default function ReviewScreen() {
     }
 
     try {
+      console.log('[ReviewScreen] submitOwnerReview - START', {
+        reservationId: res.id,
+        targetUid: res.itemOwnerUid,
+        rating,
+        hasComment: !!text,
+      });
       setOwnerBusy(true);
       HapticFeedback.medium();
       await reviewService.createUserReview({
@@ -168,20 +241,29 @@ export default function ReviewScreen() {
         rating,
         comment: text,
       });
+      console.log('[ReviewScreen] submitOwnerReview - SUCCESS');
       HapticFeedback.success();
       setOwnerReviewSent(true);
       setOwnerComment('');
       setOwnerStars(5);
       Alert.alert('Obrigado!', 'Avaliação do dono registrada. 🙌');
     } catch (e: unknown) {
+      console.error('[ReviewScreen] submitOwnerReview - ERROR:', {
+        error: e,
+        message: (e as any)?.message,
+        code: (e as any)?.code,
+        details: (e as any)?.details,
+        stack: (e as any)?.stack,
+      });
       HapticFeedback.error();
-      const error = e as { message?: string };
+      const error = e as { message?: string; code?: string };
       const message = error?.message ?? String(e);
+      console.error('[ReviewScreen] Error message:', message);
       if (message.toLowerCase().includes('já avaliou')) {
         Alert.alert('Avaliação', 'Você já avaliou esta pessoa para esta reserva.');
         setOwnerReviewSent(true);
       } else {
-        Alert.alert('Avaliação', 'Não foi possível enviar. Tente novamente.');
+        Alert.alert('Avaliação', `Não foi possível enviar: ${message}`);
       }
     } finally {
       setOwnerBusy(false);
@@ -331,7 +413,10 @@ export default function ReviewScreen() {
                   </LiquidGlassView>
                   <Button
                     variant="primary"
-                    onPress={submitOwnerReview}
+                    onPress={() => {
+                      console.log('[ReviewScreen] Button onPress triggered for submitOwnerReview');
+                      submitOwnerReview();
+                    }}
                     disabled={ownerBusy}
                     loading={ownerBusy}
                     fullWidth

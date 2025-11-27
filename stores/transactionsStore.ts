@@ -105,25 +105,67 @@ export const useTransactionsStore = create<TransactionsStore>((set, get) => ({
    * Get transaction/reservation by ID with caching
    */
   getTransaction: async (id: string, forceRefresh = false) => {
+    console.log('[transactionsStore] getTransaction called:', { id, forceRefresh });
     const state = get();
     const cached = state.transactionsById.get(id);
     const now = Date.now();
 
     // Return cached transaction if still valid
     if (!forceRefresh && cached && (now - cached.timestamp) < CACHE_TTL) {
+      console.log('[transactionsStore] getTransaction - Returning from cache:', {
+        id,
+        cachedId: cached.transaction.id,
+        status: (cached.transaction as any)?.status,
+      });
       return cached.transaction;
     }
 
-    // Try transactions collection first
+    // Try reservations collection first (transactions are just reservations with a different name)
     try {
-      let snap = await getDoc(doc(db, FIRESTORE_COLLECTIONS.TRANSACTIONS, id));
+      console.log('[transactionsStore] getTransaction - Fetching from RESERVATIONS collection:', id);
+      let snap: DocumentSnapshot | null = null;
       
-      if (!snap.exists()) {
-        // Try reservations collection
+      try {
         snap = await getDoc(doc(db, FIRESTORE_COLLECTIONS.RESERVATIONS, id));
+        console.log('[transactionsStore] getTransaction - RESERVATIONS result:', {
+          exists: snap.exists(),
+          id: snap.id,
+          data: snap.exists() ? { 
+            status: snap.data()?.status,
+            renterUid: snap.data()?.renterUid,
+            itemOwnerUid: snap.data()?.itemOwnerUid,
+          } : null,
+        });
+      } catch (err: any) {
+        console.error('[transactionsStore] getTransaction - Error fetching from RESERVATIONS:', {
+          error: err,
+          code: err?.code,
+          message: err?.message,
+        });
+        throw err;
+      }
+      
+      // If not found in reservations, try transactions (legacy support)
+      if (!snap || !snap.exists()) {
+        console.log('[transactionsStore] getTransaction - Not found in RESERVATIONS, trying TRANSACTIONS (legacy):', id);
+        try {
+          snap = await getDoc(doc(db, FIRESTORE_COLLECTIONS.TRANSACTIONS, id));
+          console.log('[transactionsStore] getTransaction - TRANSACTIONS result:', {
+            exists: snap.exists(),
+            id: snap.id,
+          });
+        } catch (err: any) {
+          console.error('[transactionsStore] getTransaction - Error fetching from TRANSACTIONS:', {
+            error: err,
+            code: err?.code,
+            message: err?.message,
+          });
+          // Don't throw, just continue - transactions might not have rules
+        }
       }
 
       if (!snap.exists()) {
+        console.log('[transactionsStore] getTransaction - Not found in any collection:', id);
         // Remove from cache if not found
         set((state) => {
           const newCache = new Map(state.transactionsById);
@@ -134,6 +176,11 @@ export const useTransactionsStore = create<TransactionsStore>((set, get) => ({
       }
 
       const transaction = transformTransactionDocument(snap);
+      console.log('[transactionsStore] getTransaction - Transaction transformed:', {
+        id: transaction.id,
+        hasItemId: 'itemId' in transaction,
+        status: (transaction as any)?.status,
+      });
 
       // Update cache
       set((state) => {
@@ -144,6 +191,12 @@ export const useTransactionsStore = create<TransactionsStore>((set, get) => ({
 
       return transaction;
     } catch (error) {
+      console.error('[transactionsStore] getTransaction - Error:', {
+        error,
+        message: (error as any)?.message,
+        code: (error as any)?.code,
+        stack: (error as any)?.stack,
+      });
       logger.error('Error fetching transaction', error);
       throw error;
     }

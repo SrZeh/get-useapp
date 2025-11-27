@@ -15,6 +15,7 @@ import ShippingBoxSvg from "@/assets/icons/shippingbox.svg";
 import { ProfileIcon as ProfileIconSvg } from "@/assets/icons/profile-icon";
 import { useTransactionsDot } from "@/hooks/features/transactions";
 import { useNotificationCounters } from "@/hooks/features/notifications";
+import { useUnreadMessagesDot } from "@/hooks/features/messages";
 import { useAuth } from "@/providers/AuthProvider";
 import { useSidebar } from "@/providers/SidebarProvider";
 import * as Haptics from "expo-haptics";
@@ -47,6 +48,7 @@ export function GlobalSidebar({ style, opacity }: GlobalSidebarProps = {}) {
   const showTxDotLegacy = useTransactionsDot();
   const counters = useNotificationCounters();
   const showTxDot = (counters.reservations + counters.payments) > 0 || showTxDotLegacy;
+  const showMessagesDot = useUnreadMessagesDot();
   const { user } = useAuth();
   const { isOpen, close } = useSidebar();
 
@@ -255,6 +257,7 @@ export function GlobalSidebar({ style, opacity }: GlobalSidebarProps = {}) {
           {[...tabs].sort((a, b) => (a.name === 'index' ? -1 : b.name === 'index' ? 1 : 0)).map((tab) => {
             const isActive = activeTab === tab.name;
             const tabColor = isActive ? brandColor : colors.text.secondary;
+            // Show dot for transactions (messages don't have a menu item yet)
             const showDot = tab.name === "transactions" && showTxDot;
             return (
               <TouchableOpacity

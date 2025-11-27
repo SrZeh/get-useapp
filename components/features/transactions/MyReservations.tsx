@@ -42,6 +42,11 @@ export function MyReservations() {
   useEffect(() => {
     if (!uid) return;
     const unsub = reservationService.subscribeToRenterReservations(uid, (reservations) => {
+      console.log('[MyReservations] Received reservations:', reservations.length);
+      console.log('[MyReservations] Reservations by status:', reservations.reduce((acc, r) => {
+        acc[r.status] = (acc[r.status] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>));
       setRows(reservations);
     });
     return () => unsub();

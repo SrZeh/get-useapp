@@ -16,31 +16,34 @@ service cloud.firestore {
 
     function validItemReviewReservation(itemId, resId) {
       let p = /databases/$(database)/documents/reservations/$(resId);
-      return exists(p)
-        && get(p).data.itemId == itemId
-        && get(p).data.renterUid == uid()
-        && isReturnedReservation(get(p).data)
-        && get(p).data.itemOwnerUid == request.resource.data.itemOwnerUid;
+      if (!exists(p)) return false;
+      let resData = get(p).data;
+      return resData.itemId == itemId
+        && resData.renterUid == uid()
+        && isReturnedReservation(resData)
+        && resData.itemOwnerUid == request.resource.data.itemOwnerUid;
     }
 
     function validUserReviewReservation(resId, reviewerRole, targetUid) {
       let p = /databases/$(database)/documents/reservations/$(resId);
-      return exists(p)
-        && isReturnedReservation(get(p).data)
+      if (!exists(p)) return false;
+      let resData = get(p).data;
+      return isReturnedReservation(resData)
         && (
           (reviewerRole == "renter"
-            && get(p).data.renterUid == uid()
-            && get(p).data.itemOwnerUid == targetUid) ||
+            && resData.renterUid == uid()
+            && resData.itemOwnerUid == targetUid) ||
           (reviewerRole == "owner"
-            && get(p).data.itemOwnerUid == uid()
-            && get(p).data.renterUid == targetUid)
+            && resData.itemOwnerUid == uid()
+            && resData.renterUid == targetUid)
         );
     }
 
     // -------- USERS (perfil) --------
     match /users/{u} {
-      // cada um só lê/escreve o próprio perfil
-      allow read, create, update: if isAuthed() && uid() == u;
+      // leitura pública (para verificar se existe), escrita apenas pelo próprio usuário
+      allow read: if true;
+      allow create, update: if isAuthed() && uid() == u;
       allow delete: if false;
 
       match /reviewsReceived/{revId} {
@@ -93,6 +96,7 @@ service cloud.firestore {
           && request.resource.data.reservationId is string
           && request.resource.data.itemOwnerUid is string
           && request.resource.data.itemId == itemId
+          && revId == request.resource.data.reservationId
           && (!request.resource.data.keys().hasAny(["comment"]) || (request.resource.data.comment is string && request.resource.data.comment.size() <= 500))
           && hasLowRatingComment()
           && validItemReviewReservation(itemId, request.resource.data.reservationId);

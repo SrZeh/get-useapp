@@ -3,10 +3,10 @@
 import * as admin from "firebase-admin";
 import { App as AdminApp, getApp, getApps, initializeApp } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
+import * as functionsV1 from "firebase-functions/v1";
 import { setGlobalOptions } from "firebase-functions/v2";
 import { onDocumentCreated } from "firebase-functions/v2/firestore";
 import { HttpsError, onCall, onRequest } from "firebase-functions/v2/https";
-import * as functionsV1 from "firebase-functions/v1";
 import Stripe from "stripe";
 
 
@@ -227,14 +227,21 @@ export const createExpressLoginLink = onCall(
 // =====================================================
 // === Reservas: aceitar / recusar / cancelar etc.    ===
 // =====================================================
-export const acceptReservation = onCall(async ({ auth, data }) => {
-  const uid = auth?.uid;
-  if (!uid) throw new HttpsError("unauthenticated", "Faça login.");
-  const { reservationId } = (data ?? {}) as { reservationId?: string };
-  assertString(reservationId, "reservationId");
+export const acceptReservation = onCall(
+  { 
+    region: "southamerica-east1",
+    // Allow authenticated invocations (default behavior, but explicit for clarity)
+  },
+  async ({ auth, data }) => {
+    console.log('[acceptReservation] Called with auth:', auth?.uid ? 'authenticated' : 'unauthenticated');
+    const uid = auth?.uid;
+    if (!uid) throw new HttpsError("unauthenticated", "Faça login.");
+    const { reservationId } = (data ?? {}) as { reservationId?: string };
+    console.log('[acceptReservation] reservationId:', reservationId);
+    assertString(reservationId, "reservationId");
 
-  try {
-    const result = await db.runTransaction(async (trx) => {
+    try {
+      const result = await db.runTransaction(async (trx) => {
       const resRef = db.doc(`reservations/${reservationId!}`);
       const snap = await trx.get(resRef);
       if (!snap.exists) throw new HttpsError("not-found", "Reserva não encontrada.");
@@ -281,25 +288,28 @@ export const acceptReservation = onCall(async ({ auth, data }) => {
           });
         }
 
-        // Update reservation to accepted status
+        // For free items, mark as "paid" immediately (no payment needed)
+        // This allows the renter to mark as received right away
         trx.update(resRef, {
-          status: "accepted",
+          status: "paid",
           acceptedAt: TS(),
+          paidAt: TS(),
           updatedAt: TS(),
           acceptedBy: uid,
+          isFree: true,
         });
 
-        return { ok: true, prevStatus: r.status, newStatus: "accepted", isFree: true, blockedDays: days.length };
+        return { ok: true, prevStatus: r.status, newStatus: "paid", isFree: true, blockedDays: days.length };
       }
 
       // For paid items, just mark as accepted (renter will need to pay)
       trx.update(resRef, { status: "accepted", acceptedAt: TS(), updatedAt: TS(), acceptedBy: uid });
 
       return { ok: true, prevStatus: r.status, newStatus: "accepted", isFree: false };
-    });
+      });
 
-    // notifica locatário que foi aceita
-    try {
+      // notifica locatário que foi aceita
+      try {
       const resRef = db.doc(`reservations/${reservationId!}`);
       const rs = await resRef.get();
       if (rs.exists) {
@@ -320,25 +330,29 @@ export const acceptReservation = onCall(async ({ auth, data }) => {
           deepLink: `/reservation/${reservationId}`,
         });
       }
-    } catch (e) {
-      console.warn("notify(acceptReservation) failed", e);
-    }
+      } catch (e) {
+        console.warn("notify(acceptReservation) failed", e);
+      }
 
-    return result;
-  } catch (err: any) {
+      return result;
+    } catch (err: any) {
     if (err instanceof HttpsError) throw err;
     throw new HttpsError("internal", `Falha interna ao aceitar: ${err?.message ?? "erro desconhecido"}`);
   }
 });
 
-export const rejectReservation = onCall(async ({ auth, data }) => {
-  const uid = auth?.uid;
-  if (!uid) throw new HttpsError("unauthenticated", "Faça login.");
-  const { reservationId, reason } = (data ?? {}) as { reservationId?: string; reason?: string };
-  assertString(reservationId, "reservationId");
+export const rejectReservation = onCall(
+  { region: "southamerica-east1" },
+  async ({ auth, data }) => {
+    console.log('[rejectReservation] Called with auth:', auth?.uid ? 'authenticated' : 'unauthenticated');
+    const uid = auth?.uid;
+    if (!uid) throw new HttpsError("unauthenticated", "Faça login.");
+    const { reservationId, reason } = (data ?? {}) as { reservationId?: string; reason?: string };
+    console.log('[rejectReservation] reservationId:', reservationId, 'reason:', reason);
+    assertString(reservationId, "reservationId");
 
-  try {
-    const result = await db.runTransaction(async (trx) => {
+    try {
+      const result = await db.runTransaction(async (trx) => {
       const resRef = db.doc(`reservations/${reservationId!}`);
       const snap = await trx.get(resRef);
       if (!snap.exists) throw new HttpsError("not-found", "Reserva não encontrada.");
@@ -357,10 +371,10 @@ export const rejectReservation = onCall(async ({ auth, data }) => {
       });
 
       return { ok: true, prevStatus: r.status, newStatus: "rejected" };
-    });
+      });
 
-    // notifica locatário que foi rejeitada
-    try {
+      // notifica locatário que foi rejeitada
+      try {
       const resRef = db.doc(`reservations/${reservationId!}`);
       const rs = await resRef.get();
       if (rs.exists) {
@@ -381,18 +395,21 @@ export const rejectReservation = onCall(async ({ auth, data }) => {
           deepLink: `/reservation/${reservationId}`,
         });
       }
-    } catch (e) {
-      console.warn("notify(rejectReservation) failed", e);
+      } catch (e) {
+        console.warn("notify(rejectReservation) failed", e);
+      }
+
+      return result;
+    } catch (err: any) {
+      if (err instanceof HttpsError) throw err;
+      throw new HttpsError("internal", `Falha interna ao recusar: ${err?.message ?? "erro desconhecido"}`);
     }
-
-    return result;
-  } catch (err: any) {
-    if (err instanceof HttpsError) throw err;
-    throw new HttpsError("internal", `Falha interna ao recusar: ${err?.message ?? "erro desconhecido"}`);
   }
-});
+);
 
-export const cancelAcceptedReservation = onCall(async ({ auth, data }) => {
+export const cancelAcceptedReservation = onCall(
+  { region: "southamerica-east1" },
+  async ({ auth, data }) => {
   const uid = auth?.uid;
   if (!uid) throw new HttpsError("unauthenticated", "Faça login.");
   const { reservationId } = (data ?? {}) as { reservationId?: string };
@@ -1149,57 +1166,50 @@ export const releasePayoutToOwner = onCall(
 // === Locatário marca "Recebido!" (picked_up)        ===
 // =====================================================
 export const markPickup = onCall({ region: "southamerica-east1" }, async ({ auth, data }) => {
+  console.log('[markPickup] Called with auth:', auth?.uid ? 'authenticated' : 'unauthenticated');
   const uid = auth?.uid;
   if (!uid) throw new HttpsError("unauthenticated", "Faça login.");
 
   const { reservationId } = (data ?? {}) as { reservationId?: string };
+  console.log('[markPickup] reservationId:', reservationId);
   assertString(reservationId, "reservationId");
 
   const resRef = db.doc(`reservations/${reservationId}`);
   const snap = await resRef.get();
   if (!snap.exists) throw new HttpsError("not-found", "Reserva não encontrada.");
   const r = snap.data() as any;
+  console.log('[markPickup] Reservation status:', r.status, 'isFree:', r.isFree);
 
   if (r.renterUid !== uid) {
     throw new HttpsError("permission-denied", "Somente o locatário pode confirmar recebimento.");
   }
-  if (r.status === "picked_up") return { ok: true, already: true };
+  if (r.status === "picked_up") {
+    console.log('[markPickup] Already picked up');
+    return { ok: true, already: true };
+  }
 
   // ===== Fluxo GRÁTIS =====
   if (r.isFree === true) {
-    if (r.status !== "accepted") {
-      throw new HttpsError("failed-precondition", "Reserva (grátis) precisa estar 'accepted'.");
+    console.log('[markPickup] Processing free item');
+    // Free items can be marked as picked up if status is "paid" (after acceptance)
+    if (r.status !== "paid") {
+      console.log('[markPickup] Free item status check failed:', r.status);
+      throw new HttpsError("failed-precondition", `Reserva (grátis) precisa estar 'paid'. Status atual: '${r.status ?? "?"}'`);
     }
 
     assertString(r.itemId, "itemId");
-    assertISODate(r.startDate, "startDate");
-    assertISODate(r.endDate, "endDate");
 
-    const days = eachDateKeysExclusive(r.startDate, r.endDate);
-    const bookedCol = db.collection("items").doc(r.itemId).collection("bookedDays");
-
+    // For free items, dates were already blocked when reservation was accepted
+    // Just update the reservation status to picked_up
     await db.runTransaction(async (trx) => {
-      // checa conflito
-      for (const d of days) {
-        const dRef = bookedCol.doc(d);
-        const dSnap = await trx.get(dRef);
-        if (dSnap.exists) {
-          const curr = dSnap.data();
-          if (curr?.resId && curr.resId !== reservationId) {
-            throw new HttpsError("already-exists", `Conflito no dia ${d}`);
-          }
-        }
+      // Verify reservation still exists and is in correct state
+      const currentSnap = await trx.get(resRef);
+      if (!currentSnap.exists) throw new HttpsError("not-found", "Reserva não encontrada.");
+      const current = currentSnap.data() as any;
+      if (current.status !== "paid") {
+        throw new HttpsError("failed-precondition", `Status mudou. Esperado 'paid', atual: '${current.status ?? "?"}'`);
       }
-      // bloqueia dias
-      for (const d of days) {
-        trx.set(bookedCol.doc(d), {
-          resId: reservationId,
-          renterUid: r.renterUid,
-          itemOwnerUid: r.itemOwnerUid,
-          status: "booked",
-          createdAt: TS(),
-        });
-      }
+      
       // marca pickup
       trx.update(resRef, {
         status: "picked_up",
@@ -1215,7 +1225,8 @@ export const markPickup = onCall({ region: "southamerica-east1" }, async ({ auth
       );
     });
 
-    return { ok: true, flow: "free", blockedDays: days.length };
+    console.log('[markPickup] Free item pickup marked successfully');
+    return { ok: true, flow: "free" };
   }
 
   // ===== Fluxo PAGO (original) =====
@@ -1286,6 +1297,125 @@ export const confirmReturn = onCall(
     });
 
     return { ok: true };
+  }
+);
+
+// =====================================================
+// === Criar avaliação de usuário (bypass regras)    ===
+// =====================================================
+export const createUserReview = onCall(
+  { region: "southamerica-east1" },
+  async ({ auth, data }) => {
+    const uid = auth?.uid;
+    if (!uid) throw new HttpsError("unauthenticated", "Faça login.");
+
+    const {
+      reservationId,
+      reviewerRole,
+      targetUid,
+      targetRole,
+      rating,
+      comment,
+    } = (data ?? {}) as {
+      reservationId?: string;
+      reviewerRole?: "owner" | "renter";
+      targetUid?: string;
+      targetRole?: "owner" | "renter";
+      rating?: number;
+      comment?: string;
+    };
+
+    assertString(reservationId, "reservationId");
+    assertString(targetUid, "targetUid");
+    if (!reviewerRole || !["owner", "renter"].includes(reviewerRole))
+      throw new HttpsError("invalid-argument", "reviewerRole inválido.");
+    if (!targetRole || !["owner", "renter"].includes(targetRole))
+      throw new HttpsError("invalid-argument", "targetRole inválido.");
+    if (!rating || rating < 1 || rating > 5)
+      throw new HttpsError("invalid-argument", "Rating deve ser entre 1 e 5.");
+
+    const trimmedComment = typeof comment === "string" ? comment.trim() : "";
+    if (rating <= 2 && (!trimmedComment || trimmedComment.length === 0)) {
+      throw new HttpsError(
+        "invalid-argument",
+        "Para notas 1 ou 2, explique o motivo no comentário."
+      );
+    }
+
+    // Verificar reserva
+    const resRef = db.doc(`reservations/${reservationId}`);
+    const resSnap = await resRef.get();
+    if (!resSnap.exists)
+      throw new HttpsError("not-found", "Reserva não encontrada.");
+    const r = resSnap.data() as any;
+
+    // Verificar status
+    if (r.status !== "returned" && r.status !== "closed") {
+      throw new HttpsError(
+        "failed-precondition",
+        `Reserva precisa estar devolvida para avaliar. Status atual: ${r.status ?? "desconhecido"}`
+      );
+    }
+
+    // Verificar permissões
+    if (reviewerRole === "renter") {
+      if (r.renterUid !== uid)
+        throw new HttpsError(
+          "permission-denied",
+          "Você não é o locatário desta reserva."
+        );
+      if (r.itemOwnerUid !== targetUid)
+        throw new HttpsError(
+          "permission-denied",
+          "Usuário alvo não corresponde ao dono do item desta reserva."
+        );
+    } else if (reviewerRole === "owner") {
+      if (r.itemOwnerUid !== uid)
+        throw new HttpsError(
+          "permission-denied",
+          "Você não é o dono do item desta reserva."
+        );
+      if (r.renterUid !== targetUid)
+        throw new HttpsError(
+          "permission-denied",
+          "Usuário alvo não corresponde ao locatário desta reserva."
+        );
+    }
+
+    // Verificar se já existe avaliação
+    const reviewRef = db
+      .doc(`users/${targetUid}`)
+      .collection("reviewsReceived")
+      .doc(reservationId);
+    const existingReview = await reviewRef.get();
+    if (existingReview.exists)
+      throw new HttpsError("already-exists", "Você já avaliou esta reserva.");
+
+    // Criar avaliação (com privilégios de admin, bypass das regras)
+    await reviewRef.set({
+      reservationId,
+      reviewerUid: uid,
+      reviewerRole,
+      targetUid,
+      targetRole,
+      rating,
+      comment: trimmedComment,
+      createdAt: TS(),
+    });
+
+    // Atualizar reserva
+    const reservationUpdate: Record<string, unknown> = {
+      updatedAt: TS(),
+    };
+    if (reviewerRole === "renter" && targetRole === "owner") {
+      reservationUpdate["reviewsOpen.renterCanReviewOwner"] = false;
+    }
+    if (reviewerRole === "owner" && targetRole === "renter") {
+      reservationUpdate["reviewsOpen.ownerCanReviewRenter"] = false;
+    }
+    await resRef.update(reservationUpdate);
+
+    return { ok: true, reviewId: reservationId };
   }
 );
 
