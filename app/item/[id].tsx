@@ -17,13 +17,15 @@ import { auth } from "@/lib/firebase";
 import { useLocalSearchParams } from "expo-router";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { Colors } from "@/constants/theme";
-import type { Review } from "@/types";
+import type { Review, UserReview } from "@/types";
 import { CalendarSection } from "@/components/reservation";
-import { ReviewSection, ReviewList } from "@/components/review";
+import { ReviewSection, ReviewList, UserReviewList, StarRating } from "@/components/review";
+import { useUserProfileStore } from "@/stores/userProfileStore";
 import { ItemHeader } from "@/components/features/items";
 import { LoadingState } from "@/components/states";
 import { useReviewService } from "@/providers/ServicesProvider";
-import { Spacing } from "@/constants/spacing";
+import { Spacing, BorderRadius } from "@/constants/spacing";
+import { LiquidGlassView } from "@/components/liquid-glass";
 import { SeoHead } from "@/utils/seo";
 import { buildItemDetailPtBR } from "@/constants/seo/examples/itemDetail.pt-BR";
 import {
@@ -62,7 +64,7 @@ export default function ItemDetailScreen() {
     booked: bookingCalendar.booked,
   });
 
-  // Reviews subscription
+  // Reviews subscription (item reviews)
   const [reviews, setReviews] = useState<Review[]>([]);
   useEffect(() => {
     const unsub = reviewService.subscribeToItemReviews(id, (reviewList) => {
@@ -70,6 +72,37 @@ export default function ItemDetailScreen() {
     });
     return () => unsub();
   }, [id, reviewService]);
+
+  // Owner reviews subscription and profile
+  const [ownerReviews, setOwnerReviews] = useState<UserReview[]>([]);
+  const [ownerRating, setOwnerRating] = useState<number | null>(null);
+  const getProfile = useUserProfileStore((state) => state.getProfile);
+  
+  useEffect(() => {
+    if (!item?.ownerUid) {
+      setOwnerReviews([]);
+      setOwnerRating(null);
+      return;
+    }
+
+    const unsub = reviewService.subscribeToUserReviews(item.ownerUid, (reviewList) => {
+      setOwnerReviews(reviewList);
+    });
+    
+    // Load owner rating
+    (async () => {
+      try {
+        const profile = await getProfile(item.ownerUid, false);
+        if (profile) {
+          setOwnerRating(profile.ratingAvg ?? 0);
+        }
+      } catch (error) {
+        console.error('Error loading owner rating:', error);
+      }
+    })();
+    
+    return () => unsub();
+  }, [item?.ownerUid, reviewService, getProfile]);
 
   if (itemLoading || !item) {
     return <LoadingState message="Carregando item…" />;
@@ -127,9 +160,10 @@ export default function ItemDetailScreen() {
             onCommentChange={reviewSubmission.setComment}
             onSubmit={() => reviewSubmission.submitReview(id)}
             submitting={reviewSubmission.loading}
+            isAlreadyReviewed={reviewSubmission.isSelectedReservationReviewed}
           />
 
-          {/* LISTA DE REVIEWS */}
+          {/* LISTA DE REVIEWS DO ITEM */}
           {reviews.length > 0 && (
             <View style={{ marginTop: 8 }}>
               <ThemedText 
@@ -144,6 +178,44 @@ export default function ItemDetailScreen() {
                 Comentários recentes
               </ThemedText>
               <ReviewList reviews={reviews} />
+            </View>
+          )}
+
+          {/* AVALIAÇÕES DO USUÁRIO (DONO) */}
+          {item.ownerUid && (ownerReviews.length > 0 || ownerRating !== null) && (
+            <View style={{ marginTop: Spacing.lg }}>
+              <View style={{ marginBottom: Spacing.sm, flexDirection: 'row', alignItems: 'center', gap: Spacing.xs }}>
+                <ThemedText 
+                  type="title-2" 
+                  style={{ 
+                    fontWeight: '700',
+                  }}
+                  lightColor={Colors.light.text}
+                  darkColor={Colors.dark.text}
+                >
+                  Avaliações do usuário
+                </ThemedText>
+                {ownerRating !== null && ownerRating > 0 && (
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing['2xs'] }}>
+                    <StarRating value={ownerRating} size={16} />
+                    <ThemedText 
+                      type="callout" 
+                      className="text-light-text-secondary dark:text-dark-text-secondary"
+                    >
+                      {ownerRating.toFixed(1)}
+                    </ThemedText>
+                  </View>
+                )}
+              </View>
+              {ownerReviews.length > 0 ? (
+                <UserReviewList reviews={ownerReviews} />
+              ) : (
+                <LiquidGlassView intensity="subtle" cornerRadius={BorderRadius.md} style={{ padding: Spacing.md, alignItems: 'center' }}>
+                  <ThemedText type="callout" className="text-light-text-tertiary dark:text-dark-text-tertiary">
+                    Ainda não há avaliações para este usuário.
+                  </ThemedText>
+                </LiquidGlassView>
+              )}
             </View>
           )}
         </ScrollView>

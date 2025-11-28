@@ -86,9 +86,11 @@ export async function callCloudFunction<TReq, TRes>(
     });
     
     const functionPromise = fn(data);
+    console.log('[cloudFunctions] Promise criada, aguardando resposta...');
+    
     const res = await Promise.race([functionPromise, timeoutPromise]);
     
-    console.log('[cloudFunctions] Function response received:', res.data);
+    console.log('[cloudFunctions] ✅ Function response received:', res.data);
     return res.data;
   } catch (error: any) {
     console.error('[cloudFunctions] Function call failed:', {
@@ -146,18 +148,32 @@ export async function createExpressLoginLink() {
   return data as { url: string };
 }
 
-export async function createCheckoutSession(reservationId: string, successUrl: string, cancelUrl: string): Promise<{ url: string }> {
-  return callCloudFunction<
-    { reservationId: string; successUrl: string; cancelUrl: string },
-    { url: string }
-  >("createCheckoutSession", { reservationId, successUrl, cancelUrl });
-}
+// REMOVIDO: Stripe - usar createMercadoPagoPayment
+// export async function createCheckoutSession(reservationId: string, successUrl: string, cancelUrl: string): Promise<{ url: string }> {
+//   return callCloudFunction<
+//     { reservationId: string; successUrl: string; cancelUrl: string },
+//     { url: string }
+//   >("createCheckoutSession", { reservationId, successUrl, cancelUrl });
+// }
 
-export async function confirmCheckoutSession(reservationId: string): Promise<{ ok: boolean }> {
+// REMOVIDO: Stripe - webhook do Mercado Pago faz isso automaticamente
+// export async function confirmCheckoutSession(reservationId: string): Promise<{ ok: boolean }> {
+//   return callCloudFunction<
+//     { reservationId: string },
+//     { ok: boolean }
+//   >("confirmCheckoutSession", { reservationId });
+// }
+
+export async function createMercadoPagoPayment(
+  reservationId: string,
+  successUrl: string,
+  cancelUrl: string,
+  paymentMethod?: "card" | "pix"
+): Promise<{ url: string; preferenceId: string }> {
   return callCloudFunction<
-    { reservationId: string },
-    { ok: boolean }
-  >("confirmCheckoutSession", { reservationId });
+    { reservationId: string; successUrl: string; cancelUrl: string; paymentMethod?: "card" | "pix" },
+    { url: string; preferenceId: string }
+  >("createMercadoPagoPayment", { reservationId, successUrl, cancelUrl, paymentMethod });
 }
 
 export async function confirmReturn(reservationId: string, photoUrl: string): Promise<{ ok: boolean }> {

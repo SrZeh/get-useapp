@@ -172,5 +172,21 @@ service cloud.firestore {
         allow update, delete: if false;
       }
     }
+
+    // -------- HELP REQUESTS (Socorro!) --------
+    match /helpRequests/{requestId} {
+      // Leitura: qualquer usuário pode ver pedidos ativos
+      allow read: if true;
+
+      // Criar: apenas usuário autenticado pode criar seu próprio pedido
+      // Simplificado para ser igual ao padrão de items
+      allow create: if isAuthed() && request.resource.data.requesterUid == uid();
+
+      // Atualizar: criador pode atualizar
+      allow update: if isAuthed() && resource.data.requesterUid == uid();
+
+      // Deletar: não permitido (use status = expired ou fulfilled)
+      allow delete: if false;
+    }
   }
 }

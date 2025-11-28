@@ -15,6 +15,7 @@ import { Spacing, BorderRadius } from '@/constants/spacing';
 import { useThemeColors, HapticFeedback } from '@/utils';
 import type { Reservation } from '@/types';
 import { useReviewService } from '@/providers/ServicesProvider';
+import { StarInput } from '@/components/review/StarInput';
 
 export default function ReviewScreen() {
   const { transactionId } = useLocalSearchParams<{ transactionId: string }>();
@@ -284,36 +285,19 @@ export default function ReviewScreen() {
   const placeholderColor = colors.input.placeholder;
 
   const renderStarRow = (value: number, onSelect: (n: number) => void) => (
-    <View style={{ flexDirection: 'row', gap: Spacing.xs, marginBottom: Spacing.sm }}>
-      {[1, 2, 3, 4, 5].map((n) => {
-        const active = value >= n;
-        return (
-          <TouchableOpacity
-            key={n}
-            onPress={() => {
-              HapticFeedback.selection();
-              onSelect(n);
-            }}
-            style={{
-              padding: Spacing.xs,
-              borderRadius: BorderRadius.md,
-              backgroundColor: active ? colors.brand.primary : colors.card.bg,
-              borderWidth: 1,
-              borderColor: active ? colors.brand.primary : colors.border.default,
-            }}
-          >
-            <ThemedText
-              type="title-2"
-              style={{
-                color: active ? colors.brand.primary : colors.text.primary,
-                fontWeight: '700',
-              }}
-            >
-              {n}
-            </ThemedText>
-          </TouchableOpacity>
-        );
-      })}
+    <View style={{ flexDirection: 'row', gap: Spacing.xs, marginBottom: Spacing.sm, alignItems: 'center' }}>
+      {[1, 2, 3, 4, 5].map((n) => (
+        <StarInput
+          key={n}
+          n={n}
+          rating={value}
+          onPress={(rating) => {
+            HapticFeedback.selection();
+            onSelect(rating);
+          }}
+          size={36}
+        />
+      ))}
     </View>
   );
 

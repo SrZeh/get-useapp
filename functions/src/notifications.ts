@@ -156,8 +156,21 @@ async function getUserContactAndPrefs(uid: string): Promise<{
 
 async function sendEmail(recipientEmail: string, subject: string, text: string, html?: string) {
   const apiKey = process.env.SENDGRID_API_KEY;
-  const from = process.env.SENDGRID_FROM || "no-reply@getanduse.app";
-  if (!apiKey) throw new Error("SENDGRID_API_KEY ausente.");
+  const from = process.env.SENDGRID_FROM || "noreply@geteuse.com.br";
+  
+  console.log(`[sendEmail] Configuração: API_KEY presente: ${!!apiKey}, FROM: ${from}`);
+  
+  if (!apiKey) {
+    console.error("[sendEmail] SENDGRID_API_KEY ausente");
+    throw new Error("SENDGRID_API_KEY ausente.");
+  }
+
+  if (!from) {
+    console.error("[sendEmail] SENDGRID_FROM ausente e sem fallback");
+    throw new Error("SENDGRID_FROM ausente.");
+  }
+
+  console.log(`[sendEmail] Enviando email de ${from} para ${recipientEmail} com assunto: ${subject}`);
 
   const payload = {
     personalizations: [{ to: [{ email: recipientEmail }] }],
@@ -169,18 +182,25 @@ async function sendEmail(recipientEmail: string, subject: string, text: string, 
     ],
   };
 
-  const res = await fetch("https://api.sendgrid.com/v3/mail/send", {
-    method: "POST",
-    headers: {
-      "Authorization": `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(payload),
-  });
+  try {
+    const res = await fetch("https://api.sendgrid.com/v3/mail/send", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
 
-  if (!res.ok) {
-    const body = await res.text();
-    throw new Error(`SendGrid error: ${res.status} - ${body}`);
+    if (!res.ok) {
+      const body = await res.text();
+      console.error(`[sendEmail] SendGrid error: ${res.status} - ${body}`);
+      throw new Error(`SendGrid error: ${res.status} - ${body}`);
+    }
+    console.log(`[sendEmail] Email enviado com sucesso para ${recipientEmail}`);
+  } catch (error) {
+    console.error(`[sendEmail] Erro ao enviar email:`, error);
+    throw error;
   }
 }
 
@@ -215,7 +235,10 @@ export async function dispatchExternalNotify(
   recipientId: string,
   data: { type: NotificationType; title: string; body: string; deepLink?: string }
 ) {
+  console.log(`[dispatchExternalNotify] Iniciando notificação para ${recipientId}, tipo: ${data.type}`);
   const { email, prefs, webPushTokens } = await getUserContactAndPrefs(recipientId);
+
+  console.log(`[dispatchExternalNotify] Email encontrado: ${email || "NÃO ENCONTRADO"}, prefs:`, prefs);
 
   const prefKey =
     data.type === "message" ? "message" :
@@ -226,17 +249,35 @@ export async function dispatchExternalNotify(
   const emailAllowed = prefs?.email?.[prefKey] !== false; // padrão ligado
   const webPushEnabled = prefs?.webPush?.enabled === true && prefs?.webPush?.[prefKey] !== false;
 
+  console.log(`[dispatchExternalNotify] Email permitido: ${emailAllowed}, WebPush habilitado: ${webPushEnabled}`);
+
   const ops: Promise<any>[] = [];
 
   if (emailAllowed && email) {
-    ops.push(sendEmail(email, data.title, data.body, undefined).catch((e) => console.warn("email failed", e)));
+    ops.push(
+      sendEmail(email, data.title, data.body, undefined).catch((e) => {
+        console.error(`[dispatchExternalNotify] Falha ao enviar email para ${email}:`, e);
+        return null;
+      })
+    );
+  } else {
+    if (!email) {
+      console.warn(`[dispatchExternalNotify] Usuário ${recipientId} não tem email cadastrado`);
+    } else if (!emailAllowed) {
+      console.log(`[dispatchExternalNotify] Email desabilitado pelo usuário para tipo ${prefKey}`);
+    }
   }
 
   if (webPushEnabled && Array.isArray(webPushTokens) && webPushTokens.length) {
     ops.push(sendWebPushFCM(webPushTokens, data.title, data.body, data.deepLink));
   }
 
-  if (ops.length) await Promise.all(ops);
+  if (ops.length) {
+    await Promise.all(ops);
+    console.log(`[dispatchExternalNotify] Notificações processadas para ${recipientId}`);
+  } else {
+    console.warn(`[dispatchExternalNotify] Nenhuma notificação enviada para ${recipientId} (sem email/webPush habilitado)`);
+  }
 }
 
 // ============== save web push token (FCM) ==============

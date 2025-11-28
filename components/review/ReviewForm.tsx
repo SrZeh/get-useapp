@@ -20,6 +20,7 @@ type ReviewFormProps = {
   onCommentChange: (comment: string) => void;
   onSubmit: () => void;
   disabled?: boolean;
+  isAlreadyReviewed?: boolean;
 };
 
 /**
@@ -41,6 +42,7 @@ export function ReviewForm({
   onCommentChange,
   onSubmit,
   disabled = false,
+  isAlreadyReviewed = false,
 }: ReviewFormProps) {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
@@ -74,41 +76,56 @@ export function ReviewForm({
     );
   }
 
+  // Show message if already reviewed
+  if (isAlreadyReviewed) {
+    return (
+      <ThemedText type="callout" style={{ marginTop: 16 }} className="text-light-text-secondary dark:text-dark-text-secondary">
+        ✅ Você já avaliou este item para esta reserva.
+      </ThemedText>
+    );
+  }
+
+  const showReservationSelector = eligibleReservations.length > 1;
+
   return (
     <>
-      <ThemedText style={{ marginTop: 10, opacity: 0.8 }}>
-        Selecione a reserva que você utilizou:
-      </ThemedText>
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={{ marginTop: 8 }}
-        contentContainerStyle={{ gap: 8 }}
-      >
-        {eligibleReservations.map((r) => {
-          const active = selectedReservationId === r.id;
-          return (
-            <TouchableOpacity
-              key={r.id}
-              onPress={() => onReservationSelect(active ? '' : r.id)}
-              style={{
-                paddingVertical: Spacing['2xs'],
-                paddingHorizontal: Spacing.xs,
-                borderRadius: BorderRadius.full,
-                borderWidth: 1,
-                backgroundColor: active ? colors.brand.primary : 'transparent',
-                borderColor: active ? 'transparent' : colors.border.default,
-              }}
-            >
-              <ThemedText 
-                style={{ color: active ? (colors.isDark ? colors.text.primary : '#ffffff') : colors.text.primary }}
-              >
-                {r.label}
-              </ThemedText>
-            </TouchableOpacity>
-          );
-        })}
-      </ScrollView>
+      {showReservationSelector && (
+        <>
+          <ThemedText style={{ marginTop: 10, opacity: 0.8 }}>
+            Selecione a reserva que você utilizou:
+          </ThemedText>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={{ marginTop: 8 }}
+            contentContainerStyle={{ gap: 8 }}
+          >
+            {eligibleReservations.map((r) => {
+              const active = selectedReservationId === r.id;
+              return (
+                <TouchableOpacity
+                  key={r.id}
+                  onPress={() => onReservationSelect(active ? '' : r.id)}
+                  style={{
+                    paddingVertical: Spacing['2xs'],
+                    paddingHorizontal: Spacing.xs,
+                    borderRadius: BorderRadius.full,
+                    borderWidth: 1,
+                    backgroundColor: active ? colors.brand.primary : 'transparent',
+                    borderColor: active ? 'transparent' : colors.border.default,
+                  }}
+                >
+                  <ThemedText 
+                    style={{ color: active ? (colors.isDark ? colors.text.primary : '#ffffff') : colors.text.primary }}
+                  >
+                    {r.label}
+                  </ThemedText>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+        </>
+      )}
 
       <ThemedText style={{ marginTop: 14, opacity: 0.8 }}>Sua nota:</ThemedText>
       <View style={{ flexDirection: 'row', gap: 6, marginTop: 6 }}>

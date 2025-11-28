@@ -11,8 +11,11 @@ export function buildItemDetailPtBR(params: {
   image?: string;
 }): SeoMeta {
   const city = params.city ?? 'Florianópolis';
+  // Título para SEO (aparece na aba do navegador)
   const title = `${params.itemName} para alugar em ${city} | Get&Use`;
-  const description = `Alugue ${params.itemName} em ${city}. Seguro, rápido e com ótimos preços. Reserve pelo app.`;
+  // Descrição para compartilhamento (formato de anúncio)
+  const shareTitle = `Alugo ${params.itemName}`;
+  const shareDescription = `Precisou? Get & Use!`;
   const ogImage = params.image ?? `${SITE}/og/item.png`;
   const canonical = `${SITE}${params.path}`;
 
@@ -20,7 +23,7 @@ export function buildItemDetailPtBR(params: {
     '@context': 'https://schema.org',
     '@type': 'Product',
     name: params.itemName,
-    description,
+    description: shareDescription,
     brand: 'Get&Use',
     category: params.category ?? 'Itens para aluguel',
     url: canonical,
@@ -36,7 +39,7 @@ export function buildItemDetailPtBR(params: {
 
   return {
     title,
-    description,
+    description: shareDescription, // Usa a descrição de compartilhamento também para SEO
     canonical,
     robots: { index: true, follow: true },
     hreflang: [
@@ -45,8 +48,8 @@ export function buildItemDetailPtBR(params: {
       { lang: 'x-default', href: canonical },
     ],
     openGraph: {
-      title,
-      description,
+      title: shareTitle, // "Alugo {nome do item}"
+      description: shareDescription, // "Precisou? Get & Use!"
       type: 'product',
       url: canonical,
       siteName: 'Get&Use',
@@ -54,8 +57,8 @@ export function buildItemDetailPtBR(params: {
     },
     twitter: {
       card: 'summary_large_image',
-      title,
-      description,
+      title: shareTitle, // "Alugo {nome do item}"
+      description: shareDescription, // "Precisou? Get & Use!"
       image: ogImage,
     },
     structuredData: [productLd],

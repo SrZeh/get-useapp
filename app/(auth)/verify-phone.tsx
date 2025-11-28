@@ -3,7 +3,7 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import React, { useEffect, useState } from 'react';
 import { Alert, KeyboardAvoidingView, Platform, ScrollView, View } from 'react-native';
-import { auth, db } from '@/lib/firebase';
+import { auth, db, firebaseConfig } from '@/lib/firebase';
 import { doc, getDoc } from 'firebase/firestore';
 import { FirebaseRecaptchaVerifierModal } from 'expo-firebase-recaptcha';
 import Constants from 'expo-constants';
@@ -114,7 +114,11 @@ export default function VerifyPhoneScreen() {
       <ThemedView style={{ flex: 1, padding: Spacing.sm, justifyContent: 'center' }}>
         <FirebaseRecaptchaVerifierModal
           ref={recaptchaRef}
-          firebaseConfig={Constants?.expoConfig?.extra?.firebase || auth.app.options}
+          firebaseConfig={
+            Platform.OS === 'web' 
+              ? firebaseConfig
+              : (Constants?.expoConfig?.extra?.firebase || firebaseConfig)
+          }
           attemptInvisibleVerification={Platform.OS === 'web'}
         />
 

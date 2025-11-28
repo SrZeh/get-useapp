@@ -7,17 +7,16 @@ import * as functionsV1 from "firebase-functions/v1";
 import { setGlobalOptions } from "firebase-functions/v2";
 import { onDocumentCreated } from "firebase-functions/v2/firestore";
 import { HttpsError, onCall, onRequest } from "firebase-functions/v2/https";
-import Stripe from "stripe";
-
-
+import { onSchedule } from "firebase-functions/v2/scheduler";
 
 import { computeFees } from "./fees";
+import { getPaymentClient, getPreferenceClient } from "./mercadopago";
 import { createNotification, dispatchExternalNotify, markAsSeenCallable, saveWebPushTokenCallable } from "./notifications";
 
 
 
 const adminApp: AdminApp = getApps().length ? getApp() : initializeApp();
-setGlobalOptions({ region: "southamerica-east1", maxInstances: 10 });
+setGlobalOptions({ region: "southamerica-east1", maxInstances: 2 });
 
 // Firestore (usar o DB "appdb")
 const db = getFirestore(adminApp, "appdb");
@@ -63,17 +62,6 @@ function toCents(x: any): number {
   return 0;
 }
 
-function getStripe(): Stripe {
-  const key = process.env.STRIPE_SECRET_KEY;
-  if (!key) {
-    throw new HttpsError(
-      "failed-precondition",
-      "STRIPE_SECRET_KEY ausente. Defina com: firebase functions:secrets:set STRIPE_SECRET_KEY"
-    );
-  }
-  // sem apiVersion explicit para evitar conflitos de tipagem
-  return new Stripe(key);
-}
 
 // =====================================================
 // === LIMPEZA DE DADOS AO EXCLUIR USUÁRIO (AUTH)    ===
@@ -140,96 +128,12 @@ export const authUserDeleted = functionsV1
 
 
 // =====================================================
-// === CONNECT EXPRESS (onboarding JIT)               ===
-// =====================================================
-export const createAccountLink = onCall(
-  { region: "southamerica-east1", secrets: ["STRIPE_SECRET_KEY"] },
-  async ({ auth, data }) => {
-    const uid = auth?.uid;
-    if (!uid) throw new HttpsError("unauthenticated", "Faça login.");
-
-    const userRef = db.doc(`users/${uid}`);
-    const userSnap = await userRef.get();
-    const user = userSnap.exists ? (userSnap.data() as any) : {};
-    let accountId: string | undefined = user?.stripeAccountId;
-
-    const stripe = getStripe();
-
-    if (!accountId) {
-      const acct = await stripe.accounts.create({
-        country: "BR",
-        type: "express",
-        capabilities: { card_payments: { requested: true }, transfers: { requested: true } },
-        metadata: { appUserUid: uid },
-      });
-      accountId = acct.id;
-      await userRef.set({ stripeAccountId: accountId, updatedAt: TS() }, { merge: true });
-    }
-
-    const { refreshUrl, returnUrl } = (data ?? {}) as { refreshUrl?: string; returnUrl?: string };
-    if (!refreshUrl || !returnUrl) throw new HttpsError("invalid-argument", "Passe refreshUrl e returnUrl.");
-
-    const link = await stripe.accountLinks.create({
-      account: accountId,
-      refresh_url: refreshUrl,
-      return_url: returnUrl,
-      type: "account_onboarding",
-    });
-
-    return { url: link.url, accountId };
-  }
-);
-
-export const getAccountStatus = onCall(
-  { region: "southamerica-east1", secrets: ["STRIPE_SECRET_KEY"] },
-  async ({ auth }) => {
-    const uid = auth?.uid;
-    if (!uid) throw new HttpsError("unauthenticated", "Faça login.");
-
-    const userRef = db.doc(`users/${uid}`);
-    const snap = await userRef.get();
-    const user = snap.exists ? (snap.data() as any) : {};
-    const accountId: string | undefined = user?.stripeAccountId;
-
-    if (!accountId) {
-      return { hasAccount: false, payouts_enabled: false, charges_enabled: false };
-    }
-
-    const stripe = getStripe();
-    const acct = await stripe.accounts.retrieve(accountId);
-    return {
-      hasAccount: true,
-      accountId,
-      payouts_enabled: (acct as any).payouts_enabled ?? false,
-      charges_enabled: (acct as any).charges_enabled ?? false,
-      requirements: (acct as any).requirements ?? null,
-    };
-  }
-);
-
-export const createExpressLoginLink = onCall(
-  { region: "southamerica-east1", secrets: ["STRIPE_SECRET_KEY"] },
-  async ({ auth }) => {
-    const uid = auth?.uid;
-    if (!uid) throw new HttpsError("unauthenticated", "Faça login.");
-
-    const userRef = db.doc(`users/${uid}`);
-    const snap = await userRef.get();
-    const acctId = snap.exists ? (snap.data() as any)?.stripeAccountId : undefined;
-    assertString(acctId, "stripeAccountId");
-
-    const stripe = getStripe();
-    const link = await stripe.accounts.createLoginLink(acctId);
-    return { url: link.url };
-  }
-);
-
-// =====================================================
 // === Reservas: aceitar / recusar / cancelar etc.    ===
 // =====================================================
 export const acceptReservation = onCall(
   { 
     region: "southamerica-east1",
+    secrets: ["SENDGRID_API_KEY", "SENDGRID_FROM"],
     // Allow authenticated invocations (default behavior, but explicit for clarity)
   },
   async ({ auth, data }) => {
@@ -342,7 +246,7 @@ export const acceptReservation = onCall(
 });
 
 export const rejectReservation = onCall(
-  { region: "southamerica-east1" },
+  { region: "southamerica-east1", secrets: ["SENDGRID_API_KEY", "SENDGRID_FROM"] },
   async ({ auth, data }) => {
     console.log('[rejectReservation] Called with auth:', auth?.uid ? 'authenticated' : 'unauthenticated');
     const uid = auth?.uid;
@@ -408,7 +312,7 @@ export const rejectReservation = onCall(
 );
 
 export const cancelAcceptedReservation = onCall(
-  { region: "southamerica-east1" },
+  { region: "southamerica-east1", secrets: ["SENDGRID_API_KEY", "SENDGRID_FROM"] },
   async ({ auth, data }) => {
   const uid = auth?.uid;
   if (!uid) throw new HttpsError("unauthenticated", "Faça login.");
@@ -434,7 +338,7 @@ export const cancelAcceptedReservation = onCall(
 
       if (r.status === "accepted") {
         trx.update(resRef, { status: "canceled", canceledBy: uid, canceledAt: now, updatedAt: now });
-        return { ok: true, unblockedDays: 0 };
+        return { ok: true, unblockedDays: 0, prevStatus: "accepted" };
       }
 
       if (r.status === "paid") {
@@ -442,11 +346,40 @@ export const cancelAcceptedReservation = onCall(
         const bookedCol = db.collection("items").doc(r.itemId).collection("bookedDays");
         for (const d of days) trx.delete(bookedCol.doc(d));
         trx.update(resRef, { status: "canceled", canceledBy: uid, canceledAt: now, updatedAt: now });
-        return { ok: true, unblockedDays: days.length };
+        return { ok: true, unblockedDays: days.length, prevStatus: "paid" };
       }
 
       throw new HttpsError("failed-precondition", `Somente quando 'accepted' ou 'paid'. Atual: '${r.status ?? "?"}'`);
     });
+
+    // Notificar o outro participante sobre o cancelamento
+    try {
+      const resRef = db.doc(`reservations/${reservationId!}`);
+      const rs = await resRef.get();
+      if (rs.exists) {
+        const r = rs.data() as any;
+        const otherUid = uid === r.itemOwnerUid ? r.renterUid : r.itemOwnerUid;
+        const role = uid === r.itemOwnerUid ? "dono" : "locatário";
+        
+        await createNotification({
+          recipientId: String(otherUid),
+          type: "reservation_status",
+          entityType: "reservation",
+          entityId: String(reservationId),
+          title: "Reserva cancelada",
+          body: `A reserva foi cancelada pelo ${role}.`,
+          metadata: { reservationId, canceledBy: uid },
+        });
+        await dispatchExternalNotify(String(otherUid), {
+          type: "reservation_status",
+          title: "Reserva cancelada",
+          body: `A reserva foi cancelada pelo ${role}.`,
+          deepLink: `/reservation/${reservationId}`,
+        });
+      }
+    } catch (e) {
+      console.warn("notify(cancel) failed", e);
+    }
 
     return result;
   } catch (err: any) {
@@ -456,17 +389,31 @@ export const cancelAcceptedReservation = onCall(
 });
 
 // =====================================================
-// === Stripe Checkout (Destination Charges)         ===
+// === Mercado Pago Payment (Preference)              ===
 // =====================================================
-export const createCheckoutSession = onCall(
-  { region: "southamerica-east1", secrets: ["STRIPE_SECRET_KEY"] },
+export const createMercadoPagoPayment = onCall(
+  { region: "southamerica-east1", secrets: ["MERCADO_PAGO_ACCESS_TOKEN"] },
   async ({ auth, data }) => {
+    console.log("[createMercadoPagoPayment] ========== FUNCTION CHAMADA ==========");
+    console.log("[createMercadoPagoPayment] Auth:", auth?.uid ? "autenticado" : "não autenticado");
+    console.log("[createMercadoPagoPayment] Data recebida:", JSON.stringify(data));
+    
     try {
       const uid = auth?.uid;
-      if (!uid) throw new HttpsError("unauthenticated", "Faça login.");
+      if (!uid) {
+        console.log("[createMercadoPagoPayment] ❌ Usuário não autenticado");
+        throw new HttpsError("unauthenticated", "Faça login.");
+      }
 
-      const { reservationId, successUrl, cancelUrl } =
-        (data ?? {}) as { reservationId?: string; successUrl?: string; cancelUrl?: string };
+      const { reservationId, successUrl, cancelUrl, paymentMethod } =
+        (data ?? {}) as {
+          reservationId?: string;
+          successUrl?: string;
+          cancelUrl?: string;
+          paymentMethod?: "card" | "pix";
+        };
+
+      console.log("[createMercadoPagoPayment] Parâmetros:", { reservationId, successUrl, cancelUrl, paymentMethod });
 
       assertString(reservationId, "reservationId");
       assertString(successUrl, "successUrl");
@@ -482,16 +429,22 @@ export const createCheckoutSession = onCall(
       if (!snap.exists) throw new HttpsError("not-found", "Reserva não encontrada.");
       const r = snap.data() as any;
 
-      if (r.renterUid !== uid) throw new HttpsError("permission-denied", "Somente o locatário pode pagar.");
-      if (r.status !== "accepted") throw new HttpsError("failed-precondition", "Reserva não está 'accepted'.");
+      if (r.renterUid !== uid) {
+        throw new HttpsError("permission-denied", "Somente o locatário pode pagar.");
+      }
+      if (r.status !== "accepted") {
+        throw new HttpsError("failed-precondition", "Reserva não está 'accepted'.");
+      }
 
       // === cálculo do valor base (anúncio) ===
       const daysCount = (() => {
-        try { return eachDateKeysExclusive(r.startDate, r.endDate).length; }
-        catch { return Number(r.days) || 1; }
+        try {
+          return eachDateKeysExclusive(r.startDate, r.endDate).length;
+        } catch {
+          return Number(r.days) || 1;
+        }
       })();
 
-      // Se já existir baseAmountCents na reserva, respeitamos; senão derivamos de priceCents * days
       let baseCents = Number(r.baseAmountCents);
       if (!Number.isInteger(baseCents) || baseCents <= 0) {
         const unit = Number(r.priceCents) || toCents(r.total) || 0;
@@ -501,94 +454,260 @@ export const createCheckoutSession = onCall(
         throw new HttpsError("failed-precondition", "Valor base inválido.");
       }
 
-      // breakdown: 7% de serviço + taxa fixa de R$0,39
-      const { serviceFee, surcharge, appFeeFromBase, ownerPayout, totalToCustomer } =
-        computeFees(baseCents);
+      // Calcular taxas (Mercado Pago)
+      const method = paymentMethod || "card";
+      const { serviceFee, surcharge, appFeeFromBase, ownerPayout, totalToCustomer } = computeFees(
+        baseCents,
+        { paymentProvider: "mercadopago", paymentMethod: method }
+      );
 
-      // garantir que temos o accountId do dono salvo (para etapas futuras/payout)
-      let ownerStripeAccountId: string | undefined = r.ownerStripeAccountId;
-      if (!ownerStripeAccountId && r.itemOwnerUid) {
-        const ownerSnap = await db.doc(`users/${r.itemOwnerUid}`).get();
-        ownerStripeAccountId = ownerSnap.exists ? (ownerSnap.data() as any)?.stripeAccountId : undefined;
-        if (ownerStripeAccountId) await resRef.update({ ownerStripeAccountId, updatedAt: TS() });
-      }
+      // Verificar se está em modo sandbox (para ajustar configuração)
+      const mpAccessToken = process.env.MERCADO_PAGO_ACCESS_TOKEN || '';
+      const isSandbox = mpAccessToken.startsWith('TEST-');
+      console.log("[createMercadoPagoPayment] Modo sandbox:", isSandbox);
 
-      const stripe = getStripe();
-      const session = await stripe.checkout.sessions.create({
-        mode: "payment",
-        currency: "brl",
-        payment_method_types: ["card", "pix"], // Pix aparece se estiver ativo no Dashboard
-        success_url: `${successUrl}?res=${reservationId}`,
-        cancel_url: `${cancelUrl}?res=${reservationId}`,
-        line_items: [
+      console.log("[createMercadoPagoPayment] Calculando taxas...");
+      console.log("[createMercadoPagoPayment] Base:", baseCents, "Method:", method);
+      console.log("[createMercadoPagoPayment] Taxas calculadas:", { serviceFee, surcharge, totalToCustomer });
+
+      const preference = getPreferenceClient();
+      console.log("[createMercadoPagoPayment] Cliente do Mercado Pago criado");
+
+      // Criar preferência de pagamento
+      // NOTA: marketplace_fee só funciona com OAuth configurado
+      // Por enquanto, vamos criar preferência sem split e fazer transferência manual depois
+      console.log("[createMercadoPagoPayment] Criando preferência...");
+      
+      // Calcular valor total que o cliente paga
+      const totalReais = totalToCustomer / 100;
+      
+      const preferenceData = {
+        items: [
           {
+            id: `item-${reservationId}`,
+            title: r.itemTitle ?? "Aluguel de item",
             quantity: 1,
-            price_data: {
-              currency: "brl",
-              product_data: {
-                name: r.itemTitle ?? "Aluguel de item",
-                metadata: { reservationId: String(reservationId) },
-              },
-              unit_amount: baseCents,
-            },
-          },
-          {
-            quantity: 1,
-            price_data: {
-              currency: "brl",
-              product_data: { name: "Taxa de serviço Get & Use (7%)" },
-              unit_amount: serviceFee,
-            },
-          },
-          {
-            quantity: 1,
-            price_data: {
-              currency: "brl",
-              product_data: { name: "Taxa fixa de processamento (R$0,39)" },
-              unit_amount: surcharge,
-            },
+            unit_price: totalReais, // Valor total (base + taxas) em reais
+            currency_id: "BRL",
           },
         ],
+        // marketplace_fee removido temporariamente - requer OAuth configurado
+        // TODO: Implementar OAuth para usar split automático
+        // marketplace_fee: marketplaceFeeReais, // Só funciona com OAuth
+        payer: {
+          // O payer será preenchido pelo usuário no checkout
+        },
+        // Configuração de métodos de pagamento
+        // No sandbox, simplificar para garantir que cartões funcionem
+        ...(isSandbox ? {
+          // Sandbox: configuração mínima para permitir todos os métodos
+          payment_methods: {
+            installments: method === "card" ? 12 : 1,
+            // Não excluir nada no sandbox para permitir testes
+          },
+        } : {
+          // Produção: configuração normal
+          payment_methods: {
+            // Para PIX: excluir apenas cartões de crédito e débito, mas permitir PIX
+            // Para cartão: permitir todos os métodos (PIX, cartão, boleto)
+            excluded_payment_methods: method === "pix" ? [{ id: "credit_card" }, { id: "debit_card" }] : [],
+            excluded_payment_types: method === "pix" ? [{ id: "credit_card" }, { id: "debit_card" }] : [],
+            installments: method === "card" ? 12 : 1, // Máximo de parcelas para cartão
+            // Nota: PIX deve estar habilitado na conta do Mercado Pago
+            // Se não aparecer, verifique as configurações da conta no painel
+          },
+        }),
+        back_urls: {
+          success: `${successUrl}?res=${reservationId}&status=success`,
+          failure: `${cancelUrl}?res=${reservationId}&status=failure`,
+          pending: `${successUrl}?res=${reservationId}&status=pending`,
+        },
+        auto_return: "approved", // Redireciona automaticamente após pagamento aprovado
+        external_reference: reservationId, // ID da reserva para identificar no webhook
+        notification_url: `https://southamerica-east1-${process.env.GCLOUD_PROJECT || "upperreggae"}.cloudfunctions.net/mercadoPagoWebhook`,
+        statement_descriptor: "Get & Use",
         metadata: {
           reservationId: String(reservationId),
-          ownerStripeAccountId: String(ownerStripeAccountId ?? ""),
           baseCents: String(baseCents),
           serviceFee: String(serviceFee),
           surcharge: String(surcharge),
           appFeeFromBase: String(appFeeFromBase),
           ownerPayout: String(ownerPayout),
+          totalToCustomer: String(totalToCustomer),
+          renterUid: String(uid),
+          itemOwnerUid: String(r.itemOwnerUid),
         },
-        locale: "pt-BR",
-      });
+        // NOTA: Split de Pagamentos requer OAuth configurado
+        // Por enquanto, o pagamento vai para a conta do marketplace
+        // Depois, precisamos fazer transferência manual para o vendedor
+        // TODO: Implementar OAuth para usar marketplace_fee e split automático
+      };
 
-      await resRef.set({
-        checkoutSessionId: session.id,
-        // mantém totalCents para compat (mas agora total do checkout):
-        totalCents: totalToCustomer,
-        // novo breakdown:
-        baseAmountCents: baseCents,
-        serviceFeeCents: serviceFee,
-        stripeSurchargeCents: surcharge,
-        appFeeFromBaseCents: appFeeFromBase,
-        expectedOwnerPayoutCents: ownerPayout,
-        ownerStripeAccountId,
-        updatedAt: TS(),
-      }, { merge: true });
+      console.log("[createMercadoPagoPayment] Chamando preference.create...");
+      console.log("[createMercadoPagoPayment] Preference data:", JSON.stringify(preferenceData, null, 2));
+      
+      let response;
+      try {
+        response = await preference.create({ body: preferenceData });
+        console.log("[createMercadoPagoPayment] ✅ Preferência criada:", response.id);
+      } catch (mpError: any) {
+        console.error("[createMercadoPagoPayment] ❌ Erro ao criar preferência no Mercado Pago:", mpError);
+        console.error("[createMercadoPagoPayment] Erro completo:", JSON.stringify(mpError, null, 2));
+        throw new HttpsError(
+          "failed-precondition",
+          `Erro ao criar pagamento no Mercado Pago: ${mpError?.message || mpError?.toString() || "Erro desconhecido"}`
+        );
+      }
+      console.log("[createMercadoPagoPayment] Init point (PRODUÇÃO):", response.init_point);
+      console.log("[createMercadoPagoPayment] Sandbox init point (TESTE):", response.sandbox_init_point);
+      console.log("[createMercadoPagoPayment] Response completa:", JSON.stringify({
+        id: response.id,
+        hasInitPoint: !!response.init_point,
+        hasSandboxInitPoint: !!response.sandbox_init_point,
+      }, null, 2));
 
-      return { url: session.url };
+      // Salvar dados da preferência na reserva
+      console.log("[createMercadoPagoPayment] Salvando dados na reserva...");
+      await resRef.set(
+        {
+          mercadoPagoPreferenceId: response.id,
+          mercadoPagoInitPoint: response.init_point,
+          mercadoPagoSandboxInitPoint: response.sandbox_init_point,
+          // Mantém compatibilidade com campos antigos
+          totalCents: totalToCustomer,
+          baseAmountCents: baseCents,
+          serviceFeeCents: serviceFee,
+          mercadoPagoSurchargeCents: surcharge,
+          appFeeFromBaseCents: appFeeFromBase,
+          expectedOwnerPayoutCents: ownerPayout,
+          paymentMethod: method,
+          updatedAt: TS(),
+        },
+        { merge: true }
+      );
+
+      // Retornar URL do checkout (PRIORIDADE: init_point = produção, sandbox_init_point = teste)
+      // IMPORTANTE: Se init_point existir, SEMPRE usar ele (produção)
+      // Só usar sandbox_init_point se init_point não existir
+      const checkoutUrl = response.init_point || response.sandbox_init_point;
+      const isProduction = !!response.init_point;
+      
+      console.log("[createMercadoPagoPayment] ========== URLS DISPONÍVEIS ==========");
+      console.log("[createMercadoPagoPayment] init_point (PRODUÇÃO):", response.init_point || "NÃO DISPONÍVEL");
+      console.log("[createMercadoPagoPayment] sandbox_init_point (TESTE):", response.sandbox_init_point || "NÃO DISPONÍVEL");
+      console.log("[createMercadoPagoPayment] URL escolhida:", checkoutUrl);
+      console.log("[createMercadoPagoPayment] Modo:", isProduction ? "✅ PRODUÇÃO" : "⚠️ SANDBOX (TESTE)");
+      
+      // Verificar o Access Token usado
+      const accessToken = process.env.MERCADO_PAGO_ACCESS_TOKEN || '';
+      const tokenType = accessToken.startsWith('APP_USR-') ? 'PRODUÇÃO' : accessToken.startsWith('TEST-') ? 'TESTE' : 'DESCONHECIDO';
+      console.log("[createMercadoPagoPayment] Token usado:", tokenType);
+      console.log("[createMercadoPagoPayment] Token prefixo:", accessToken.substring(0, 10) + '...');
+      
+      if (!checkoutUrl) {
+        throw new HttpsError("failed-precondition", "URL do checkout não foi retornada pelo Mercado Pago");
+      }
+      
+      if (!isProduction) {
+        console.warn("[createMercadoPagoPayment] ⚠️ ATENÇÃO: Usando SANDBOX!");
+        console.warn("[createMercadoPagoPayment] ⚠️ Para produção, certifique-se de:");
+        console.warn("[createMercadoPagoPayment] 1. Usar Access Token de PRODUÇÃO (APP_USR-...)");
+        console.warn("[createMercadoPagoPayment] 2. Conta do Mercado Pago estar aprovada para produção");
+        console.warn("[createMercadoPagoPayment] 3. Verificar se a preferência foi criada com sucesso");
+      } else {
+        console.log("[createMercadoPagoPayment] ✅ Usando URL de PRODUÇÃO (sem marca d'água)");
+      }
+
+      const result = { url: checkoutUrl, preferenceId: response.id };
+      console.log("[createMercadoPagoPayment] ✅ Retornando resultado:", result);
+      return result;
     } catch (err: any) {
-      const msg = err?.message || err?.raw?.message || "Falha ao criar checkout.";
+      console.error("[createMercadoPagoPayment] ❌ ERRO:", err);
+      console.error("[createMercadoPagoPayment] Stack:", err?.stack);
+      const msg = err?.message || err?.cause?.message || err?.toString() || "Falha ao criar pagamento.";
+      console.error("[createMercadoPagoPayment] Mensagem de erro:", msg);
       throw new HttpsError("failed-precondition", msg);
     }
   }
 );
 
+// =====================================================
+// === Notificações: nova reserva criada (trigger)    ===
+// =====================================================
+export const onReservationCreated = onDocumentCreated(
+  {
+    region: "southamerica-east1",
+    database: "appdb",
+    document: "reservations/{reservationId}",
+    secrets: ["SENDGRID_API_KEY", "SENDGRID_FROM"],
+  },
+  async (event) => {
+    console.log("[onReservationCreated] ========== FUNCTION DISPARADA ==========");
+    console.log("[onReservationCreated] Event params:", JSON.stringify(event.params));
+    
+    const snap = event.data;
+    if (!snap) {
+      console.log("[onReservationCreated] ❌ Snap não existe, retornando");
+      return;
+    }
+    
+    const r = snap.data() as any;
+    const { reservationId } = event.params as any;
+
+    console.log(`[onReservationCreated] ✅ Reserva criada: ${reservationId}`);
+    console.log(`[onReservationCreated] Status: ${r.status}`);
+    console.log(`[onReservationCreated] Dados completos:`, JSON.stringify(r, null, 2));
+
+    // Notificar apenas se for status "requested" (nova reserva)
+    if (r.status !== "requested") {
+      console.log(`[onReservationCreated] Status não é "requested" (é "${r.status}"), retornando`);
+      return;
+    }
+
+    const ownerUid = String(r.itemOwnerUid || "");
+    const renterUid = String(r.renterUid || "");
+    const itemTitle = String(r.itemTitle || "Item");
+
+    console.log(`[onReservationCreated] OwnerUid: ${ownerUid}, RenterUid: ${renterUid}, Item: ${itemTitle}`);
+
+    if (!ownerUid) {
+      console.warn("[onReservationCreated] OwnerUid não encontrado, retornando");
+      return;
+    }
+
+    try {
+      console.log(`[onReservationCreated] Criando notificação in-app para ${ownerUid}`);
+      await createNotification({
+        recipientId: ownerUid,
+        type: "reservation_request",
+        entityType: "reservation",
+        entityId: String(reservationId),
+        title: "Nova solicitação de reserva",
+        body: `Você recebeu uma nova solicitação de reserva para "${itemTitle}".`,
+        metadata: { reservationId, itemTitle, renterUid },
+      });
+
+      console.log(`[onReservationCreated] Disparando notificação externa (email/webpush) para ${ownerUid}`);
+      await dispatchExternalNotify(ownerUid, {
+        type: "reservation_request",
+        title: "Nova solicitação de reserva",
+        body: `Você recebeu uma nova solicitação de reserva para "${itemTitle}".`,
+        deepLink: `/reservation/${reservationId}`,
+      });
+      console.log(`[onReservationCreated] Notificações enviadas com sucesso para ${ownerUid}`);
+    } catch (e) {
+      console.error("[onReservationCreated] Erro ao enviar notificações:", e);
+    }
+  }
+);
 
 // 🔔 quando cria uma mensagem, incrementa contador do outro participante
 export const onMessageCreated = onDocumentCreated(
   {
     region: "southamerica-east1",
+    database: "appdb",
     document: "threads/{threadId}/messages/{msgId}",
+    secrets: ["SENDGRID_API_KEY", "SENDGRID_FROM"],
   },
   async (event) => {
     const snap = event.data; if (!snap) return;
@@ -707,8 +826,10 @@ export const getOrCreateThread = onCall({ region: "southamerica-east1" }, async 
 // =====================================================
 // === Cancelar reserva paga com estorno (até 7 dias) ===
 // =====================================================
+// REMOVIDO: Função Stripe - implementar refunds via Mercado Pago no futuro
+/*
 export const cancelWithRefund = onCall(
-  { region: "southamerica-east1", secrets: ["STRIPE_SECRET_KEY"] },
+  { region: "southamerica-east1", secrets: ["STRIPE_SECRET_KEY", "SENDGRID_API_KEY", "SENDGRID_FROM"] },
   async ({ auth, data }) => {
     const uid = auth?.uid;
     if (!uid) throw new HttpsError("unauthenticated", "Faça login.");
@@ -811,6 +932,54 @@ export const cancelWithRefund = onCall(
         });
       });
 
+      // Notificar dono sobre o estorno
+      try {
+        const resRef = db.doc(`reservations/${reservationId}`);
+        const rs = await resRef.get();
+        if (rs.exists) {
+          const r = rs.data() as any;
+          const refundAmountFormatted = new Intl.NumberFormat('pt-BR', {
+            style: 'currency',
+            currency: 'BRL'
+          }).format(refund.amount / 100);
+
+          await createNotification({
+            recipientId: String(r.itemOwnerUid),
+            type: "payment_update",
+            entityType: "reservation",
+            entityId: String(reservationId),
+            title: "Estorno processado",
+            body: `Um estorno de ${refundAmountFormatted} foi processado para esta reserva.`,
+            metadata: { reservationId, refundId: refund.id, refundAmount: refund.amount },
+          });
+          await dispatchExternalNotify(String(r.itemOwnerUid), {
+            type: "payment_update",
+            title: "Estorno processado",
+            body: `Um estorno de ${refundAmountFormatted} foi processado para esta reserva.`,
+            deepLink: `/reservation/${reservationId}`,
+          });
+
+          // Notificar locatário também
+          await createNotification({
+            recipientId: String(r.renterUid),
+            type: "payment_update",
+            entityType: "reservation",
+            entityId: String(reservationId),
+            title: "Estorno aprovado",
+            body: `Seu estorno de ${refundAmountFormatted} foi processado e será creditado em breve.`,
+            metadata: { reservationId, refundId: refund.id },
+          });
+          await dispatchExternalNotify(String(r.renterUid), {
+            type: "payment_update",
+            title: "Estorno aprovado",
+            body: `Seu estorno de ${refundAmountFormatted} foi processado e será creditado em breve.`,
+            deepLink: `/reservation/${reservationId}`,
+          });
+        }
+      } catch (e) {
+        console.warn("notify(refund) failed", e);
+      }
+
       return {
         ok: true,
         refundId: refund.id,
@@ -825,14 +994,15 @@ export const cancelWithRefund = onCall(
     }
   }
 );
-
-
+*/
 
 // =====================================================
 // === Confirmar sessão manualmente (fallback)        ===
 // =====================================================
+// REMOVIDO: Função Stripe - usar Mercado Pago
+/*
 export const confirmCheckoutSession = onCall(
-  { region: "southamerica-east1", secrets: ["STRIPE_SECRET_KEY"] },
+  { region: "southamerica-east1", secrets: ["STRIPE_SECRET_KEY", "SENDGRID_API_KEY", "SENDGRID_FROM"] },
   async ({ auth, data }) => {
     const uid = auth?.uid;
     if (!uid) throw new HttpsError("unauthenticated", "Faça login.");
@@ -922,6 +1092,7 @@ export const confirmCheckoutSession = onCall(
     return { ok: true, marked: "paid" };
   }
 );
+*/
 
 // ==== Callable: markAsSeen (counters + lastSeenAt) ====
 export const markAsSeen = markAsSeenCallable;
@@ -931,12 +1102,14 @@ export const saveWebPushToken = saveWebPushTokenCallable;
 // =====================================================
 // === Webhook Stripe: marca paid e bloqueia datas    ===
 // =====================================================
+// REMOVIDO: Função Stripe - usar mercadoPagoWebhook
+/*
 export const stripeWebhook = onRequest(
   {
     region: "southamerica-east1",
     cors: true,
     maxInstances: 10,
-    secrets: ["STRIPE_WEBHOOK_SECRET", "STRIPE_SECRET_KEY"],
+    secrets: ["STRIPE_WEBHOOK_SECRET", "STRIPE_SECRET_KEY", "SENDGRID_API_KEY", "SENDGRID_FROM"],
   },
   async (req, res) => {
     const stripe = getStripe();
@@ -1077,14 +1250,161 @@ export const stripeWebhook = onRequest(
     }
   }
 );
+*/
+
+// =====================================================
+// === Webhook Mercado Pago: marca paid e bloqueia datas ===
+// =====================================================
+export const mercadoPagoWebhook = onRequest(
+  {
+    region: "southamerica-east1",
+    cors: true,
+    maxInstances: 10,
+    secrets: ["MERCADO_PAGO_ACCESS_TOKEN", "SENDGRID_API_KEY", "SENDGRID_FROM"],
+  },
+  async (req, res) => {
+    try {
+      // Mercado Pago envia notificações via POST com query parameter "topic" e "id"
+      const { topic, id } = req.query as { topic?: string; id?: string };
+
+      console.log("[MercadoPagoWebhook] Recebido:", { topic, id });
+
+      if (topic !== "payment" || !id) {
+        console.log("[MercadoPagoWebhook] Ignorando notificação:", topic);
+        res.json({ received: true });
+        return;
+      }
+
+      // Buscar informações do pagamento
+      const paymentClient = getPaymentClient();
+      const payment = await paymentClient.get({ id: String(id) });
+
+      console.log("[MercadoPagoWebhook] Payment status:", payment.status);
+      console.log("[MercadoPagoWebhook] Payment external_reference:", payment.external_reference);
+
+      // Apenas processar se estiver aprovado
+      if (payment.status !== "approved") {
+        console.log("[MercadoPagoWebhook] Pagamento não aprovado:", payment.status);
+        res.json({ received: true });
+        return;
+      }
+
+      const reservationId = payment.external_reference;
+      if (!reservationId || typeof reservationId !== "string") {
+        console.warn("[MercadoPagoWebhook] Sem reservationId no external_reference");
+        res.json({ received: true });
+        return;
+      }
+
+      const resRef = db.doc(`reservations/${reservationId}`);
+      const snap = await resRef.get();
+      if (!snap.exists) {
+        console.warn("[MercadoPagoWebhook] Reserva não encontrada:", reservationId);
+        res.json({ received: true });
+        return;
+      }
+
+      const r = snap.data() as any;
+      if (r.status === "paid") {
+        console.log("[MercadoPagoWebhook] Reserva já está paga");
+        res.json({ received: true });
+        return;
+      }
+
+      // Obter método de pagamento
+      const paymentMethodType = payment.payment_method_id || "unknown";
+
+      const days = eachDateKeysExclusive(r.startDate, r.endDate);
+      const bookedCol = db.collection("items").doc(r.itemId).collection("bookedDays");
+
+      await db.runTransaction(async (trx) => {
+        // Verificar conflitos
+        for (const d of days) {
+          const dRef = bookedCol.doc(d);
+          const dSnap = await trx.get(dRef);
+          if (dSnap.exists) {
+            const curr = dSnap.data() as any;
+            if (curr.resId && curr.resId !== reservationId) {
+              throw new Error(`Conflito de data ${d}`);
+            }
+          }
+        }
+        // Bloquear datas
+        for (const day of days) {
+          const dayRef = bookedCol.doc(day);
+          trx.set(dayRef, {
+            resId: reservationId,
+            renterUid: r.renterUid,
+            itemOwnerUid: r.itemOwnerUid,
+            status: "booked",
+            createdAt: TS(),
+          });
+        }
+        // Atualizar reserva
+        trx.update(resRef, {
+          status: "paid",
+          paidAt: TS(),
+          mercadoPagoPaymentId: String(id),
+          paymentMethodType: paymentMethodType,
+          updatedAt: TS(),
+        });
+      });
+
+      // Notificar dono e locatário
+      try {
+        await Promise.all([
+          createNotification({
+            recipientId: String(r.itemOwnerUid),
+            type: "payment_update",
+            entityType: "reservation",
+            entityId: String(reservationId),
+            title: "Pagamento confirmado",
+            body: "Uma reserva sua foi paga. Prepare-se para a entrega/retirada.",
+            metadata: { reservationId },
+          }).then(() =>
+            dispatchExternalNotify(String(r.itemOwnerUid), {
+              type: "payment_update",
+              title: "Pagamento confirmado",
+              body: "Uma reserva sua foi paga.",
+              deepLink: `/reservation/${reservationId}`,
+            })
+          ),
+          createNotification({
+            recipientId: String(r.renterUid),
+            type: "payment_update",
+            entityType: "reservation",
+            entityId: String(reservationId),
+            title: "Pagamento aprovado",
+            body: "Seu pagamento foi aprovado. Confira os próximos passos.",
+            metadata: { reservationId },
+          }).then(() =>
+            dispatchExternalNotify(String(r.renterUid), {
+              type: "payment_update",
+              title: "Pagamento aprovado",
+              body: "Seu pagamento foi aprovado.",
+              deepLink: `/reservation/${reservationId}`,
+            })
+          ),
+        ]);
+      } catch (e) {
+        console.warn("[MercadoPagoWebhook] notify(paid) failed", e);
+      }
+
+      res.json({ received: true });
+    } catch (e: any) {
+      console.error("[MercadoPagoWebhook] Handler error:", e?.message, e);
+      res.status(500).send("Webhook handler error");
+    }
+  }
+);
 
 // =====================================================
 // === Repasse 90% para o dono (LEGADO)              ===
 // =====================================================
-// Mantenha apenas para reservas antigas feitas em "separate charges & transfers".
-// Para novas reservas (destination charges), NÃO usar.
+// REMOVIDO: Função Stripe - Mercado Pago faz split automático
+/*
 export const releasePayoutToOwner = onCall(
-  { region: "southamerica-east1", secrets: ["STRIPE_SECRET_KEY"] },
+  { region: "southamerica-east1", secrets: ["STRIPE_SECRET_KEY", "SENDGRID_API_KEY", "SENDGRID_FROM"] },
   async ({ auth, data }) => {
     const uid = auth?.uid;
     if (!uid) throw new HttpsError("unauthenticated", "Faça login.");
@@ -1154,6 +1474,32 @@ export const releasePayoutToOwner = onCall(
         updatedAt: TS(),
       });
 
+      // Notificar dono que pagamento foi liberado
+      try {
+        const amountFormatted = new Intl.NumberFormat('pt-BR', {
+          style: 'currency',
+          currency: 'BRL'
+        }).format(transferAmount / 100);
+
+        await createNotification({
+          recipientId: String(r.itemOwnerUid),
+          type: "payment_update",
+          entityType: "reservation",
+          entityId: String(reservationId),
+          title: "Pagamento liberado",
+          body: `Seu pagamento de ${amountFormatted} foi liberado e transferido para sua conta.`,
+          metadata: { reservationId, transferId: transfer.id, amount: transferAmount },
+        });
+        await dispatchExternalNotify(String(r.itemOwnerUid), {
+          type: "payment_update",
+          title: "Pagamento liberado",
+          body: `Seu pagamento de ${amountFormatted} foi liberado e transferido para sua conta.`,
+          deepLink: `/reservation/${reservationId}`,
+        });
+      } catch (e) {
+        console.warn("notify(payout) failed", e);
+      }
+
       return { ok: true, transferId: transfer.id, amount: transferAmount };
     } catch (err: any) {
       const msg = err?.raw?.message || err?.message || "Erro Stripe";
@@ -1161,11 +1507,12 @@ export const releasePayoutToOwner = onCall(
     }
   }
 );
+*/
 
 // =====================================================
 // === Locatário marca "Recebido!" (picked_up)        ===
 // =====================================================
-export const markPickup = onCall({ region: "southamerica-east1" }, async ({ auth, data }) => {
+export const markPickup = onCall({ region: "southamerica-east1", secrets: ["SENDGRID_API_KEY", "SENDGRID_FROM"] }, async ({ auth, data }) => {
   console.log('[markPickup] Called with auth:', auth?.uid ? 'authenticated' : 'unauthenticated');
   const uid = auth?.uid;
   if (!uid) throw new HttpsError("unauthenticated", "Faça login.");
@@ -1225,6 +1572,27 @@ export const markPickup = onCall({ region: "southamerica-east1" }, async ({ auth
       );
     });
 
+    // Notificar dono que item foi recebido (free item)
+    try {
+      await createNotification({
+        recipientId: String(r.itemOwnerUid),
+        type: "reservation_status",
+        entityType: "reservation",
+        entityId: String(reservationId),
+        title: "Item recebido",
+        body: "O locatário confirmou o recebimento do item.",
+        metadata: { reservationId },
+      });
+      await dispatchExternalNotify(String(r.itemOwnerUid), {
+        type: "reservation_status",
+        title: "Item recebido",
+        body: "O locatário confirmou o recebimento do item.",
+        deepLink: `/reservation/${reservationId}`,
+      });
+    } catch (e) {
+      console.warn("notify(picked_up free) failed", e);
+    }
+
     console.log('[markPickup] Free item pickup marked successfully');
     return { ok: true, flow: "free" };
   }
@@ -1243,6 +1611,27 @@ export const markPickup = onCall({ region: "southamerica-east1" }, async ({ auth
     { merge: true }
   );
 
+  // Notificar dono que item foi recebido
+  try {
+    await createNotification({
+      recipientId: String(r.itemOwnerUid),
+      type: "reservation_status",
+      entityType: "reservation",
+      entityId: String(reservationId),
+      title: "Item recebido",
+      body: "O locatário confirmou o recebimento do item.",
+      metadata: { reservationId },
+    });
+    await dispatchExternalNotify(String(r.itemOwnerUid), {
+      type: "reservation_status",
+      title: "Item recebido",
+      body: "O locatário confirmou o recebimento do item.",
+      deepLink: `/reservation/${reservationId}`,
+    });
+  } catch (e) {
+    console.warn("notify(picked_up) failed", e);
+  }
+
   return { ok: true, flow: "paid" };
 });
 
@@ -1251,7 +1640,7 @@ export const markPickup = onCall({ region: "southamerica-east1" }, async ({ auth
 // === Confirmar devolução (sem foto)                 ===
 // =====================================================
 export const confirmReturn = onCall(
-  { region: "southamerica-east1" },
+  { region: "southamerica-east1", secrets: ["SENDGRID_API_KEY", "SENDGRID_FROM"] },
   async ({ auth, data }) => {
     const uid = auth?.uid;
     if (!uid) throw new HttpsError("unauthenticated", "Faça login.");
@@ -1295,6 +1684,27 @@ export const confirmReturn = onCall(
         updatedAt: TS(),
       });
     });
+
+    // Notificar locatário que item foi devolvido
+    try {
+      await createNotification({
+        recipientId: String(r.renterUid),
+        type: "reservation_status",
+        entityType: "reservation",
+        entityId: String(reservationId),
+        title: "Item devolvido",
+        body: "O dono confirmou a devolução do item. Você pode avaliar agora.",
+        metadata: { reservationId },
+      });
+      await dispatchExternalNotify(String(r.renterUid), {
+        type: "reservation_status",
+        title: "Item devolvido",
+        body: "O dono confirmou a devolução do item. Você pode avaliar agora.",
+        deepLink: `/reservation/${reservationId}`,
+      });
+    } catch (e) {
+      console.warn("notify(returned) failed", e);
+    }
 
     return { ok: true };
   }
@@ -1425,6 +1835,7 @@ export const createUserReview = onCall(
 export const onItemReviewCreatedV3 = onDocumentCreated(
   {
     region: "southamerica-east1",
+    database: "appdb",
     document: "items/{itemId}/reviews/{revId}",
   },
   async (event) => {
@@ -1469,6 +1880,7 @@ export const onItemReviewCreatedV3 = onDocumentCreated(
 export const onUserReviewCreatedV3 = onDocumentCreated(
   {
     region: "southamerica-east1",
+    database: "appdb",
     document: "users/{targetUid}/reviewsReceived/{revId}",
   },
   async (event) => {
@@ -1498,5 +1910,57 @@ export const onUserReviewCreatedV3 = onDocumentCreated(
         { merge: true }
       );
     });
+  }
+);
+
+// =====================================================
+// === Expire Help Requests (Scheduled)                ===
+// =====================================================
+// Runs every hour to mark expired help requests
+export const expireHelpRequests = onSchedule(
+  {
+    schedule: "0 * * * *", // Every hour at minute 0
+    timeZone: "America/Sao_Paulo",
+    region: "southamerica-east1",
+  },
+  async (event) => {
+    console.log("[expireHelpRequests] ========== FUNCTION CHAMADA ==========");
+    
+    try {
+      const db = getFirestore(adminApp, "appdb");
+      const now = admin.firestore.Timestamp.now();
+      
+      // Find all active help requests that have expired
+      const expiredQuery = db
+        .collection("helpRequests")
+        .where("status", "==", "active")
+        .where("expiresAt", "<=", now);
+      
+      const snapshot = await expiredQuery.get();
+      console.log(`[expireHelpRequests] Encontrados ${snapshot.size} pedidos expirados`);
+      
+      const batch = db.batch();
+      let count = 0;
+      
+      snapshot.forEach((doc) => {
+        batch.update(doc.ref, {
+          status: "expired",
+          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
+        count++;
+      });
+      
+      if (count > 0) {
+        await batch.commit();
+        console.log(`[expireHelpRequests] ✅ ${count} pedidos marcados como expirados`);
+      } else {
+        console.log("[expireHelpRequests] Nenhum pedido para expirar");
+      }
+      
+      // Scheduled functions must return void
+    } catch (error) {
+      console.error("[expireHelpRequests] ❌ ERRO:", error);
+      throw error;
+    }
   }
 );

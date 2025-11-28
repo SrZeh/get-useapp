@@ -73,9 +73,21 @@ export const useUserProfileStore = create<UserProfileStore>((set, get) => ({
     }
 
     try {
-      const snap = await getDoc(doc(db, FIRESTORE_COLLECTIONS.USERS, uid));
+      console.log('[userProfileStore] Fetching profile for uid:', uid, 'from collection:', FIRESTORE_COLLECTIONS.USERS);
+      const userDocRef = doc(db, FIRESTORE_COLLECTIONS.USERS, uid);
+      console.log('[userProfileStore] Document reference created, calling getDoc...');
+      
+      let snap;
+      try {
+        snap = await getDoc(userDocRef);
+        console.log('[userProfileStore] getDoc completed, snapshot exists:', snap.exists(), 'for uid:', uid);
+      } catch (getDocError) {
+        console.error('[userProfileStore] Error in getDoc:', getDocError);
+        throw getDocError;
+      }
       
       if (!snap.exists()) {
+        console.warn('[userProfileStore] Profile not found for uid:', uid);
         // Remove from cache if not found
         set((state) => {
           const newCache = new Map(state.profilesByUid);
@@ -85,9 +97,20 @@ export const useUserProfileStore = create<UserProfileStore>((set, get) => ({
         return null;
       }
 
+      const data = snap.data();
+      console.log('[userProfileStore] Profile data loaded:', { 
+        uid: snap.id, 
+        hasName: !!data?.name, 
+        hasEmail: !!data?.email,
+        name: data?.name,
+        email: data?.email,
+        ratingAvg: data?.ratingAvg,
+        allKeys: Object.keys(data || {})
+      });
+      
       const profile: UserProfile = {
         uid: snap.id,
-        ...(snap.data() as Partial<UserProfile>),
+        ...(data as Partial<UserProfile>),
       } as UserProfile;
 
       // Update cache
@@ -97,8 +120,10 @@ export const useUserProfileStore = create<UserProfileStore>((set, get) => ({
         return { profilesByUid: newCache };
       });
 
+      console.log('[userProfileStore] Profile cached and returned:', { uid: profile.uid, name: profile.name });
       return profile;
     } catch (error) {
+      console.error('[userProfileStore] Error fetching user profile:', error);
       logger.error('Error fetching user profile', error);
       throw error;
     }

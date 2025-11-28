@@ -105,17 +105,18 @@ export function CalendarSection({
     if (startISO && endISOInc) {
       const days = enumerateInclusive(startISO, endISOInc);
       days.forEach((d, idx) => {
-        const isStartOrEnd = idx === 0 || idx === days.length - 1;
+        const isStart = idx === 0;
+        const isEnd = idx === days.length - 1;
+        const isMiddle = !isStart && !isEnd;
+        
         md[d] = {
           ...(md[d] || {}),
           selected: true,
-          startingDay: idx === 0,
-          endingDay: idx === days.length - 1,
-          // Explicit colors for start/end days to ensure contrast
-          ...(isStartOrEnd && {
-            color: brandBg,
-            textColor: brandText,
-          }),
+          startingDay: isStart,
+          endingDay: isEnd,
+          // All days in range get background color
+          color: isStart || isEnd ? brandBg : (isDark ? '#96ff9a30' : '#08af0e25'),
+          textColor: isStart || isEnd ? brandText : (isDark ? '#f9fafb' : '#0a0a0a'),
         };
       });
     } else if (startISO) {
@@ -173,6 +174,23 @@ export function CalendarSection({
         hideExtraDays
         enableSwipeMonths
         disableArrowLeft
+        firstDay={1}
+        monthFormat="MMMM yyyy"
+        dayNames={['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']}
+        monthNames={[
+          'Janeiro',
+          'Fevereiro',
+          'Março',
+          'Abril',
+          'Maio',
+          'Junho',
+          'Julho',
+          'Agosto',
+          'Setembro',
+          'Outubro',
+          'Novembro',
+          'Dezembro',
+        ]}
         theme={{
           calendarBackground: palette.background,
           textSectionTitleColor: isDark ? '#94a3b8' : '#6b7280',
@@ -234,9 +252,10 @@ export function CalendarSection({
               style={{ fontWeight: '600' }}
               className="text-light-text-secondary dark:text-dark-text-secondary"
             >
-              {startISO ? new Date(startISO + 'T00:00:00').toLocaleDateString('pt-BR', { 
+              {startISO ? new Date(startISO).toLocaleDateString('pt-BR', { 
                 day: '2-digit', 
-                month: 'short' 
+                month: 'short',
+                timeZone: 'UTC'
               }) : '—'}
             </ThemedText>
           </View>
@@ -254,9 +273,10 @@ export function CalendarSection({
               className="text-light-text-secondary dark:text-dark-text-secondary"
             >
               {summary.endExclusive 
-                ? new Date(summary.endExclusive + 'T00:00:00').toLocaleDateString('pt-BR', { 
+                ? new Date(summary.endExclusive).toLocaleDateString('pt-BR', { 
                     day: '2-digit', 
-                    month: 'short' 
+                    month: 'short',
+                    timeZone: 'UTC'
                   })
                 : '—'}
             </ThemedText>

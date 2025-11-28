@@ -21,11 +21,13 @@ import { SearchHeader } from "@/components/search";
 import { EmptyState } from "@/components/states";
 import { Footer } from "@/components/Footer";
 import { useItemList, useResponsiveGrid } from "@/hooks/features/items";
+import { useHelpRequests } from "@/hooks/features/help";
 import { Spacing, BorderRadius } from "@/constants/spacing";
 import type { Item } from "@/types";
 import { useThemeColors } from "@/utils/theme";
 import { SeoHead } from "@/utils/seo";
 import { itemsListingPtBR } from "@/constants/seo/examples/items.pt-BR";
+import { HelpRequestCard } from "@/components/features/help";
 
 const CATEGORIES = [
   "Ferramentas elétricas","Ferramentas manuais","Construção & Reforma","Marcenaria & Carpintaria","Jardinagem",
@@ -42,6 +44,7 @@ export default function VitrineScreen() {
   // Business logic - extracted to hooks
   const itemList = useItemList();
   const grid = useResponsiveGrid(12);
+  const { requests: helpRequests } = useHelpRequests();
 
   const { visible: showOnboarding, markSeen } = useOnboardingVisibility();
 
@@ -68,7 +71,16 @@ export default function VitrineScreen() {
   // Header como elemento memoizado para evitar remontagem a cada render
   const headerElement = React.useMemo(
     () => (
-      <SearchHeader
+      <>
+        {/* Help Requests (Socorro!) */}
+        {helpRequests.length > 0 && (
+          <View style={{ paddingHorizontal: grid.screenPadding, paddingTop: Spacing.sm, paddingBottom: Spacing.xs }}>
+            {helpRequests.map((request) => (
+              <HelpRequestCard key={request.id} request={request} />
+            ))}
+          </View>
+        )}
+        <SearchHeader
         search={itemList.filters.search}
         onSearchChange={itemList.actions.setSearch}
         city={itemList.filters.city}
@@ -92,6 +104,7 @@ export default function VitrineScreen() {
         onMinPriceChange={itemList.actions.setMinPrice}
         onMaxPriceChange={itemList.actions.setMaxPrice}
       />
+      </>
     ),
     [
       itemList.filters.search,
@@ -107,6 +120,7 @@ export default function VitrineScreen() {
       itemList.loading,
       itemList.locationsLoading,
       grid.screenPadding,
+      helpRequests,
     ]
   );
 

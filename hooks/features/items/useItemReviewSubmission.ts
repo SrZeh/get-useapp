@@ -9,7 +9,8 @@
 
 import { useEffect, useState } from 'react';
 import { Alert } from 'react-native';
-import { auth } from '@/lib/firebase';
+import { auth, db } from '@/lib/firebase';
+import { doc, getDoc } from 'firebase/firestore';
 import { logger } from '@/utils';
 import { useReservationService, useReviewService } from '@/providers/ServicesProvider';
 
@@ -37,6 +38,10 @@ type UseItemReviewSubmissionResult = {
   // Submission
   submitReview: (itemId: string) => Promise<void>;
   loading: boolean;
+  
+  // Review status
+  reviewedReservations: Set<string>;
+  isSelectedReservationReviewed: boolean;
 };
 
 export function useItemReviewSubmission(itemId: string): UseItemReviewSubmissionResult {
@@ -49,24 +54,54 @@ export function useItemReviewSubmission(itemId: string): UseItemReviewSubmission
   const [comment, setComment] = useState<string>("");
   const [eligibleRes, setEligibleRes] = useState<EligibleReservationInfo[]>([]);
   const [loading, setLoading] = useState(false);
+  const [reviewedReservations, setReviewedReservations] = useState<Set<string>>(new Set());
 
-  // Load eligible reservations
+  // Load eligible reservations and check which ones are already reviewed
   useEffect(() => {
     (async () => {
       if (!uid) {
         setEligibleRes([]);
+        setReviewedReservations(new Set());
         return;
       }
       try {
         const list = await reservationService.listEligibleReservationsForReview(uid, itemId);
         const filtered = list.filter((entry) => !!entry.itemOwnerUid);
         setEligibleRes(filtered);
-        if (filtered.length === 1) {
+        
+        // Check which reservations already have reviews
+        const reviewed = new Set<string>();
+        for (const res of filtered) {
+          try {
+            const reviewRef = doc(db, 'items', itemId, 'reviews', res.id);
+            const reviewSnap = await getDoc(reviewRef);
+            if (reviewSnap.exists()) {
+              reviewed.add(res.id);
+            }
+          } catch (err) {
+            // Ignore errors checking individual reviews
+          }
+        }
+        setReviewedReservations(reviewed);
+        
+        // Auto-select the first non-reviewed reservation, or the only one if there's just one
+        const notReviewed = filtered.filter((r) => !reviewed.has(r.id));
+        if (notReviewed.length === 1) {
+          setSelectedResId(notReviewed[0].id);
+        } else if (filtered.length === 1 && reviewed.has(filtered[0].id)) {
+          // Only one reservation and it's already reviewed - still select it to show message
+          setSelectedResId(filtered[0].id);
+        } else if (notReviewed.length > 0) {
+          // Select the first non-reviewed (most recent)
+          setSelectedResId(notReviewed[0].id);
+        } else if (filtered.length > 0) {
+          // All reviewed, select the first one to show message
           setSelectedResId(filtered[0].id);
         }
       } catch (err) {
         logger.error("Error loading eligible reservations", err);
         setEligibleRes([]);
+        setReviewedReservations(new Set());
       }
     })();
   }, [uid, itemId, reservationService]);
@@ -110,12 +145,20 @@ export function useItemReviewSubmission(itemId: string): UseItemReviewSubmission
         itemOwnerUid: selectedReservation.itemOwnerUid,
       });
 
+      // Mark this reservation as reviewed
+      setReviewedReservations((prev) => new Set(prev).add(selectedResId));
+      
       setComment("");
       setRating(5);
       Alert.alert("Obrigado!", "Sua avaliação foi registrada.");
     } catch (e: unknown) {
       const error = e as { message?: string };
-      Alert.alert("Erro ao enviar avaliação", error?.message ?? String(e));
+      const message = error?.message ?? String(e);
+      if (message.toLowerCase().includes('já avaliou')) {
+        // Mark as reviewed if error says already reviewed
+        setReviewedReservations((prev) => new Set(prev).add(selectedResId));
+      }
+      Alert.alert("Erro ao enviar avaliação", message);
     } finally {
       setLoading(false);
     }
@@ -132,6 +175,8 @@ export function useItemReviewSubmission(itemId: string): UseItemReviewSubmission
     selectedOwnerUid: eligibleRes.find((entry) => entry.id === selectedResId)?.itemOwnerUid,
     submitReview,
     loading,
+    reviewedReservations,
+    isSelectedReservationReviewed: reviewedReservations.has(selectedResId),
   };
 }
 

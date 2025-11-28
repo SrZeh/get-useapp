@@ -21,7 +21,7 @@ import {
   StyleSheet,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
@@ -47,6 +47,8 @@ export default function NewItemScreen() {
   const colors = useThemeColors();
   const { isTablet, isDesktop } = useResponsive();
   const insets = useSafeAreaInsets();
+  const params = useLocalSearchParams<{ helpRequestId?: string }>();
+  const helpRequestId = params.helpRequestId;
 
   // Form state
   const [title, setTitle] = useState("");
@@ -103,6 +105,20 @@ export default function NewItemScreen() {
       ...data,
       photos: photoUrl ? [photoUrl] : data.photos ?? [],
     });
+
+    // If created from help request, link it
+    if (helpRequestId && result.data.id) {
+      try {
+        const { offerItemToHelpRequest } = await import('@/services/helpRequest');
+        await offerItemToHelpRequest(helpRequestId, result.data.id);
+        Alert.alert("Sucesso", "Item cadastrado e vinculado ao pedido de ajuda!");
+        router.replace(`/help/${helpRequestId}`);
+        return;
+      } catch (error) {
+        console.error('Error linking item to help request:', error);
+        // Continue anyway
+      }
+    }
 
     Alert.alert("Sucesso", `Item cadastrado! (id: ${result.data.id})`);
     navigation.navigateToHome();

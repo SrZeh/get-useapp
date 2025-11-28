@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Image as ExpoImage } from 'expo-image';
 import { ThemedText } from '@/components/themed-text';
@@ -6,6 +6,8 @@ import { LiquidGlassView } from '@/components/liquid-glass';
 import { StarRating } from '@/components/review';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Colors } from '@/constants/theme';
+import { useThemeColors } from '@/utils';
+import { useUserProfileStore } from '@/stores/userProfileStore';
 import type { Item } from '@/types';
 import { Spacing, BorderRadius } from '@/constants/spacing';
 
@@ -27,9 +29,91 @@ export function ItemHeader({ item }: ItemHeaderProps) {
   const colorScheme = useColorScheme();
   const palette = Colors[colorScheme ?? 'light'];
   const isDark = colorScheme === 'dark';
+  const colors = useThemeColors();
+  
+  const [ownerName, setOwnerName] = useState<string | null>(null);
+  const [ownerRating, setOwnerRating] = useState<number | null>(null);
+  const [ownerLoading, setOwnerLoading] = useState(false);
+
+  // Debug: Log state changes
+  useEffect(() => {
+    console.log('[ItemHeader] State changed:', { ownerName, ownerRating, ownerLoading, hasOwnerUid: !!item.ownerUid });
+  }, [ownerName, ownerRating, ownerLoading, item.ownerUid]);
 
   // Improved image height: 360px for better visual impact (was 280px)
   const IMAGE_HEIGHT = 360;
+
+  // Load owner name and rating using the same method as user profile page
+  const getProfile = useUserProfileStore((state) => state.getProfile);
+  
+  useEffect(() => {
+    if (!item.ownerUid) {
+      console.log('[ItemHeader] No ownerUid, clearing state');
+      setOwnerName(null);
+      setOwnerRating(null);
+      setOwnerLoading(false);
+      return;
+    }
+
+    console.log('[ItemHeader] Loading owner profile for:', item.ownerUid);
+    setOwnerLoading(true);
+    setOwnerName(null);
+    setOwnerRating(null);
+    
+    let alive = true;
+    (async () => {
+      try {
+        console.log('[ItemHeader] Calling getProfile...');
+        const profile = await getProfile(item.ownerUid, false);
+        console.log('[ItemHeader] getProfile returned:', profile ? 'profile' : 'null');
+        
+        if (!alive) return;
+        
+        if (profile) {
+          console.log('[ItemHeader] Profile loaded - ALL FIELDS:', profile);
+          console.log('[ItemHeader] Profile keys:', Object.keys(profile));
+          console.log('[ItemHeader] Profile values:', {
+            name: profile.name,
+            displayName: (profile as any).displayName,
+            userName: (profile as any).userName,
+            email: profile.email,
+            ratingAvg: profile.ratingAvg,
+            ratingCount: profile.ratingCount,
+          });
+          
+          // Try multiple possible field names
+          const name = 
+            (profile.name && profile.name.trim()) ||
+            ((profile as any).displayName && String((profile as any).displayName).trim()) ||
+            ((profile as any).userName && String((profile as any).userName).trim()) ||
+            (profile.email && profile.email.split('@')[0]) ||
+            'Usuário';
+          const rating = profile.ratingAvg ?? 0;
+          
+          console.log('[ItemHeader] Setting owner info:', { name, rating, usedField: profile.name ? 'name' : (profile as any).displayName ? 'displayName' : (profile as any).userName ? 'userName' : 'email' });
+          setOwnerName(name);
+          setOwnerRating(rating);
+          setOwnerLoading(false);
+        } else {
+          console.warn('[ItemHeader] Profile not found');
+          setOwnerName('Usuário');
+          setOwnerRating(0);
+          setOwnerLoading(false);
+        }
+      } catch (error) {
+        console.error('[ItemHeader] Error loading profile:', error);
+        if (alive) {
+          setOwnerName('Usuário');
+          setOwnerRating(0);
+          setOwnerLoading(false);
+        }
+      }
+    })();
+
+    return () => {
+      alive = false;
+    };
+  }, [item.ownerUid, getProfile]);
 
   return (
     <LiquidGlassView 
@@ -58,6 +142,50 @@ export function ItemHeader({ item }: ItemHeaderProps) {
         >
           {item.title}
         </ThemedText>
+
+        {/* Owner info */}
+        {item.ownerUid && (
+          <View style={styles.ownerContainer}>
+            {ownerLoading ? (
+              <ThemedText 
+                type="callout" 
+                style={styles.ownerName}
+                className="text-light-text-tertiary dark:text-dark-text-tertiary"
+              >
+                Carregando...
+              </ThemedText>
+            ) : (
+              <>
+                <ThemedText 
+                  type="callout" 
+                  style={styles.ownerName}
+                  className="text-light-text-secondary dark:text-dark-text-secondary"
+                >
+                  {ownerName || 'Usuário'}
+                </ThemedText>
+                <View style={styles.ownerRating}>
+                  <ThemedText 
+                    type="caption-1" 
+                    style={[styles.ownerRatingText, {
+                      color: colors.isDark ? colors.brand.primary : colors.brand.dark,
+                      fontWeight: '600',
+                    }]}
+                  >
+                    {ownerRating !== null ? ownerRating.toFixed(1) : '0.0'}
+                  </ThemedText>
+                  <ThemedText
+                    style={{
+                      fontSize: 14,
+                      color: colors.isDark ? colors.brand.primary : colors.brand.dark,
+                    }}
+                  >
+                    ★
+                  </ThemedText>
+                </View>
+              </>
+            )}
+          </View>
+        )}
 
         {/* Rating section with improved spacing */}
         <View style={styles.ratingContainer}>
@@ -137,6 +265,27 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     marginBottom: 4,
     letterSpacing: 0.36,
+  },
+  ownerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+    marginTop: 4,
+    marginBottom: 8,
+  },
+  ownerName: {
+    fontSize: 15,
+    lineHeight: 20,
+    fontWeight: '600',
+  },
+  ownerRating: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing['2xs'],
+  },
+  ownerRatingText: {
+    fontSize: 13,
+    fontWeight: '600',
   },
   ratingContainer: {
     flexDirection: 'row',

@@ -5,7 +5,7 @@ import { LiquidGlassView } from '@/components/liquid-glass';
 import { ReservationCard } from '@/components/ReservationCard';
 import { auth } from '@/lib/firebase';
 import { confirmReturn } from '@/services/cloudFunctions';
-import { syncStripeAccount } from '@/services/stripe';
+// Removido: syncStripeAccount - agora usando Mercado Pago
 
 import { handleAsyncError } from '@/utils';
 import type { Reservation } from './types';
@@ -104,17 +104,11 @@ export function OwnerInbox() {
     }
   };
 
-  // Onboarding para receber (dono)
-  async function syncStripe(): Promise<void> {
-    try {
-      setBusyAction('sync');
-      await syncStripeAccount('http://localhost:8081/', 'http://localhost:8081/');
-    } catch (error) {
-      handleAsyncError(error, undefined, { action: 'syncStripe' });
-    } finally {
-      setBusyAction(null);
-    }
-  }
+  // Função vazia - botão agora abre Mercado Pago diretamente
+  // Mantida para compatibilidade com OwnerReservationActions
+  const syncStripe = () => {
+    // Não faz nada - o botão em AcceptedActions abre o Mercado Pago diretamente
+  };
 
   // Confirmar devolução (sem foto)
   async function confirmReturnLocal(reservationId: string): Promise<void> {

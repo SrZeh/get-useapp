@@ -83,6 +83,17 @@ export {
   isValidRating,
 } from './review';
 
+// Help Request types
+export type {
+  HelpRequest,
+  HelpRequestDocument,
+  HelpRequestUrgency,
+  HelpRequestStatus,
+  CreateHelpRequestInput,
+} from './helpRequest';
+
+export { isHelpRequest } from './helpRequest';
+
 // Address types
 export type {
   ViaCEPResponse,

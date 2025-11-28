@@ -16,6 +16,7 @@ type ReviewSectionProps = {
   onCommentChange: (comment: string) => void;
   onSubmit: () => void;
   submitting?: boolean;
+  isAlreadyReviewed?: boolean;
 };
 
 /**
@@ -37,6 +38,7 @@ export function ReviewSection({
   onCommentChange,
   onSubmit,
   submitting = false,
+  isAlreadyReviewed = false,
 }: ReviewSectionProps) {
   if (!userId) {
     return (
@@ -61,6 +63,7 @@ export function ReviewSection({
         onCommentChange={onCommentChange}
         onSubmit={onSubmit}
         disabled={submitting}
+        isAlreadyReviewed={isAlreadyReviewed}
       />
     </LiquidGlassView>
   );
