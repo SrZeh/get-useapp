@@ -18,22 +18,29 @@ export default function HelpLayout() {
       <Stack.Screen
         name="index"
         options={{
-          title: 'Pedidos de Ajuda',
+          headerShown: false, // Custom header in component
         }}
       />
       <Stack.Screen
         name="new"
         options={{
-          title: 'Novo Pedido',
+          headerShown: false, // Custom header in component
         }}
       />
       <Stack.Screen
         name="[id]"
         options={{
-          title: 'Detalhes do Pedido',
+          headerShown: false, // Redirects to item detail
+        }}
+      />
+      <Stack.Screen
+        name="verify-required"
+        options={{
+          headerShown: false, // Custom header in component
         }}
       />
     </Stack>
   );
 }
+
 

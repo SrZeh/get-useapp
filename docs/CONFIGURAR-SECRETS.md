@@ -177,3 +177,4 @@ Se você receber um erro dizendo que o secret não está configurado:
 - [SendGrid API Keys](https://docs.sendgrid.com/ui/account-and-settings/api-keys)
 - [Mercado Pago Credentials](https://www.mercadopago.com.br/developers/pt/docs/your-integrations/credentials)
 
+

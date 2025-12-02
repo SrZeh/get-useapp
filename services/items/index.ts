@@ -23,4 +23,10 @@ export { safeListItems, safeGetItem } from "./ItemReader";
 // Write operations
 export { safeCreateItemFull, safeUpdateItem, safeBumpRating, safeCreateItem } from "./ItemWriter";
 
+// Offer item to request
+export { offerItemToRequest } from "./offerItemToRequest";
+
+// Repeat request
+export { repeatRequest } from "./repeatRequest";
+
 

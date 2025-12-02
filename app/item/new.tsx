@@ -106,19 +106,8 @@ export default function NewItemScreen() {
       photos: photoUrl ? [photoUrl] : data.photos ?? [],
     });
 
-    // If created from help request, link it
-    if (helpRequestId && result.data.id) {
-      try {
-        const { offerItemToHelpRequest } = await import('@/services/helpRequest');
-        await offerItemToHelpRequest(helpRequestId, result.data.id);
-        Alert.alert("Sucesso", "Item cadastrado e vinculado ao pedido de ajuda!");
-        router.replace(`/help/${helpRequestId}`);
-        return;
-      } catch (error) {
-        console.error('Error linking item to help request:', error);
-        // Continue anyway
-      }
-    }
+    // Note: helpRequestId is no longer used - requests are now items
+    // If needed in the future, we can link items to request items via a different mechanism
 
     Alert.alert("Sucesso", `Item cadastrado! (id: ${result.data.id})`);
     navigation.navigateToHome();

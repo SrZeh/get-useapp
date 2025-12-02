@@ -106,3 +106,4 @@ const docRef = await addDoc(collection(db, COLLECTION_NAME), data);
 
 Se eles funcionam e `helpRequests` não funciona, o problema é definitivamente nas regras de segurança ou na existência da coleção/database.
 
+

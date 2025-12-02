@@ -14,7 +14,7 @@
 import { useCallback, useMemo, useState } from 'react';
 import { auth, db } from '@/lib/firebase';
 import type { DocumentSnapshot } from 'firebase/firestore';
-import { collection, limit, orderBy, query, startAfter, where } from 'firebase/firestore';
+import { collection, limit, orderBy, query, startAfter, where, Timestamp } from 'firebase/firestore';
 import { usePagination } from '@/hooks/usePagination';
 import { useLocations } from '@/hooks/useLocations';
 import type { Item, ItemFilters } from '@/types';
@@ -88,15 +88,22 @@ export function useItemList(): UseItemListResult {
   const { cities, neighborhoods, loading: locationsLoading } = useLocations();
 
   // Build query for pagination
+  // Includes both offers and non-expired requests
   const buildQuery = useCallback(
     (firstPage: boolean, lastDoc: DocumentSnapshot | null) => {
       const base = collection(db, 'items');
+      const now = Timestamp.now();
+      
+      // Query: published items that are either:
+      // 1. Offers (itemType !== 'request' or itemType is undefined)
+      // 2. Requests that haven't expired (expiresAt > now)
+      // Note: Firestore doesn't support OR queries easily, so we'll filter requests in the transform
       if (firstPage || !lastDoc) {
         return query(
           base,
           where('published', '==', true),
           orderBy('createdAt', 'desc'),
-          limit(PAGE_SIZE)
+          limit(PAGE_SIZE * 2) // Get more to account for filtering
         );
       }
       return query(
@@ -104,7 +111,7 @@ export function useItemList(): UseItemListResult {
         where('published', '==', true),
         orderBy('createdAt', 'desc'),
         startAfter(lastDoc),
-        limit(PAGE_SIZE)
+        limit(PAGE_SIZE * 2) // Get more to account for filtering
       );
     },
     []
@@ -114,10 +121,25 @@ export function useItemList(): UseItemListResult {
   const { items, loading, loadingMore, hasMore, refreshing, refresh, loadMore } = usePagination<Item>({
     queryBuilder: buildQuery,
     pageSize: PAGE_SIZE,
-    defaultTransform: (docs) =>
-      docs
+    defaultTransform: (docs) => {
+      const now = Date.now();
+      return docs
         .map((d) => ({ id: d.id, ...(d.data() as Partial<Item>) } as Item))
-        .filter((it) => it.published === true && it.available !== false),
+        .filter((it) => {
+          // Must be published and available
+          if (it.published !== true || it.available === false) return false;
+          
+          // If it's a request, check if it's expired
+          if (it.itemType === 'request' && it.expiresAt) {
+            const expiration = it.expiresAt instanceof Date 
+              ? it.expiresAt 
+              : (it.expiresAt as any)?.toDate?.() || new Date(it.expiresAt as any);
+            if (expiration.getTime() <= now) return false; // Expired request
+          }
+          
+          return true;
+        });
+    },
   });
 
   // Combine filters for filterItems utility
@@ -135,7 +157,41 @@ export function useItemList(): UseItemListResult {
   );
 
   // Apply local filters
-  const filteredItems = useMemo(() => filterItems(items, itemFilters), [items, itemFilters]);
+  const filteredItems = useMemo(() => {
+    const filtered = filterItems(items, itemFilters);
+    
+    // Separate requests (help requests) from offers (rentals)
+    const requests = filtered.filter(item => item.itemType === 'request');
+    const offers = filtered.filter(item => item.itemType !== 'request');
+    
+    // Sort requests by most recent (createdAt desc)
+    const sortedRequests = [...requests].sort((a, b) => {
+      const aDate = a.createdAt instanceof Date 
+        ? a.createdAt 
+        : (a.createdAt as any)?.toDate?.() || new Date(a.createdAt as any);
+      const bDate = b.createdAt instanceof Date 
+        ? b.createdAt 
+        : (b.createdAt as any)?.toDate?.() || new Date(b.createdAt as any);
+      return bDate.getTime() - aDate.getTime(); // Most recent first
+    });
+    
+    // Interleave: request, offer, request, offer, etc.
+    const interleaved: Item[] = [];
+    const maxLength = Math.max(sortedRequests.length, offers.length);
+    
+    for (let i = 0; i < maxLength; i++) {
+      // Prioritize requests - add one if available
+      if (i < sortedRequests.length) {
+        interleaved.push(sortedRequests[i]);
+      }
+      // Then add an offer if available
+      if (i < offers.length) {
+        interleaved.push(offers[i]);
+      }
+    }
+    
+    return interleaved;
+  }, [items, itemFilters]);
 
   // Filter state object
   const filters: ItemListFilters = useMemo(

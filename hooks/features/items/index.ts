@@ -28,3 +28,6 @@ export { useItemBookingCalendar } from './useItemBookingCalendar';
 export { useItemReviewSubmission } from './useItemReviewSubmission';
 export { useItemReservation } from './useItemReservation';
 
+// Offered items hook
+export { useOfferedItems } from './useOfferedItems';
+

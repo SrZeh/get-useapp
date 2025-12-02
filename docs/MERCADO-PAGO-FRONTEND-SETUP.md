@@ -117,3 +117,4 @@ function MyPaymentScreen() {
 - [Documentação do SDK React](https://www.mercadopago.com.br/developers/pt/docs/checkout-pro/integration-test/test-your-integration)
 - [Credenciais do Mercado Pago](https://www.mercadopago.com.br/developers/panel/credentials)
 
+

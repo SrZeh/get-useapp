@@ -42,3 +42,4 @@ firebase deploy --only functions
 - Use sempre secrets do Firebase para credenciais
 - O código já está configurado para usar `process.env.MERCADO_PAGO_ACCESS_TOKEN`
 
+

@@ -15,6 +15,7 @@ import { db } from '@/lib/firebase';
 import { doc, deleteDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { Alert } from 'react-native';
 import { useItemsStore } from '@/stores/itemsStore';
+import { FIRESTORE_COLLECTIONS } from '@/constants/api';
 import type { Item } from '@/types';
 
 type UseItemOperationsResult = {
@@ -41,7 +42,7 @@ export function useItemOperations(): UseItemOperationsResult {
       setUpdatingId(item.id);
       const updatedItem = { ...item, available: !item.available };
       
-      await updateDoc(doc(db, 'items', item.id), {
+      await updateDoc(doc(db, FIRESTORE_COLLECTIONS.ITEMS, item.id), {
         available: !item.available,
         updatedAt: serverTimestamp(),
       });
@@ -62,7 +63,7 @@ export function useItemOperations(): UseItemOperationsResult {
   const deleteItem = async (item: Item) => {
     try {
       setUpdatingId(item.id);
-      await deleteDoc(doc(db, 'items', item.id));
+      await deleteDoc(doc(db, FIRESTORE_COLLECTIONS.ITEMS, item.id));
       
       // Invalidate cache after deletion
       invalidateItem(item.id);
@@ -70,6 +71,7 @@ export function useItemOperations(): UseItemOperationsResult {
     } catch (error: unknown) {
       const err = error as { message?: string };
       Alert.alert('Erro ao excluir', err?.message ?? String(error));
+      throw error; // Re-throw to allow caller to handle
     } finally {
       setUpdatingId(null);
     }

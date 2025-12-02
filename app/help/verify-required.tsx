@@ -15,7 +15,7 @@ import { Spacing } from '@/constants/spacing';
 import { useThemeColors } from '@/utils';
 import { useAuth } from '@/providers/AuthProvider';
 import { useUserProfileStore } from '@/stores/userProfileStore';
-import { getMissingVerifications } from '@/utils/helpRequest';
+import { getMissingVerifications } from '@/utils/itemRequest';
 
 export default function VerifyRequiredScreen() {
   const insets = useSafeAreaInsets();
@@ -41,9 +41,12 @@ export default function VerifyRequiredScreen() {
   };
 
   return (
-    <ThemedView style={[styles.container, { paddingTop: insets.top + 80 }]}>
+    <ThemedView style={styles.container}>
       <ScrollView
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[
+          styles.content,
+          { paddingTop: Spacing.md + insets.top + 90 } // Account for header height (approx 90px) + safe area
+        ]}
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.header}>
@@ -54,7 +57,6 @@ export default function VerifyRequiredScreen() {
             Para usar o Socorro!, você precisa completar sua verificação de conta.
           </ThemedText>
         </View>
-
         <View style={styles.requirements}>
           <ThemedText type="title-3" style={styles.sectionTitle}>
             Requisito:
@@ -103,6 +105,7 @@ const styles = StyleSheet.create({
   },
   header: {
     marginBottom: Spacing.lg,
+    paddingHorizontal: Spacing.md,
   },
   title: {
     fontWeight: '700',

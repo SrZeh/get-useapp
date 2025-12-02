@@ -65,6 +65,10 @@ export interface Reservation {
   // Who performed actions
   acceptedBy?: string;
   rejectedBy?: string;
+  
+  // Help offer fields (for help requests)
+  isHelpOffer?: boolean;
+  helpRequestId?: string; // ID of the help request item
 }
 
 /**

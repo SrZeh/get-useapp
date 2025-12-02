@@ -71,6 +71,14 @@ export interface Item {
   // Additional fields
   isFree?: boolean;
 
+  // Item type: 'offer' (default) or 'request' (socorro)
+  itemType?: 'offer' | 'request';
+  
+  // Request-specific fields (only for itemType === 'request')
+  urgencyType?: 'immediate' | 'planned'; // immediate = 1h, planned = 7 days
+  expiresAt?: FirestoreTimestamp; // Calculated expiration time
+  offeredItems?: string[]; // Array of item IDs offered to help this request
+
   // Timestamps
   createdAt?: FirestoreTimestamp;
   updatedAt?: FirestoreTimestamp;
@@ -102,6 +110,10 @@ export interface NewItemInput {
   isFree?: boolean;
   termsAccepted?: boolean;
   termsAcceptedVersion?: string;
+  
+  // Request-specific fields
+  itemType?: 'offer' | 'request';
+  urgencyType?: 'immediate' | 'planned';
 }
 
 /**

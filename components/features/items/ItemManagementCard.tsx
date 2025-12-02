@@ -87,11 +87,9 @@ export function ItemManagementCard({
   const handleShare = async () => {
     const sharePath = `/item/${item.id}`;
     const shareUrl = `${SHARE_BASE_URL}${sharePath}`;
-    const priceText = typeof item.dailyRate === 'number' ? formatBRL(item.dailyRate) : '';
-    const baseMessage = priceText
-      ? `Alugo "${item.title}" por ${priceText} no Get & Use! Clique e reserve!`
-      : `Alugo "${item.title}" no Get & Use! Clique e reserve!`;
+    const baseMessage = `Alugo "${item.title}" no Get & Use! Clique e reserve!`;
     const sharePayload = `${baseMessage} ${shareUrl}`.trim();
+    const itemImage = item.photos?.[0];
 
     try {
       HapticFeedback.light();
@@ -99,11 +97,27 @@ export function ItemManagementCard({
         const nav = typeof navigator !== 'undefined' ? navigator : undefined;
 
         if (nav?.share) {
-          await nav.share({
+          const shareData: any = {
             title: item.title,
             text: baseMessage,
             url: shareUrl,
-          });
+          };
+          
+          // Include image if available (Web Share API supports files)
+          if (itemImage) {
+            try {
+              // Fetch image and convert to File for Web Share API
+              const response = await fetch(itemImage);
+              const blob = await response.blob();
+              const file = new File([blob], 'item-photo.jpg', { type: blob.type });
+              shareData.files = [file];
+            } catch (imageError) {
+              // If image fetch fails, share without image
+              logger.warn('Failed to fetch image for share', imageError);
+            }
+          }
+          
+          await nav.share(shareData);
           return;
         }
 
@@ -117,11 +131,21 @@ export function ItemManagementCard({
         return;
       }
 
-      await Share.share({
-        title: item.title,
-        message: sharePayload,
-        url: shareUrl,
-      });
+      // Native platforms (iOS/Android)
+      if (itemImage && Platform.OS !== 'web') {
+        // For native, Share.share can include url which may show image preview
+        await Share.share({
+          title: item.title,
+          message: sharePayload,
+          url: itemImage, // Some platforms use this for image preview
+        });
+      } else {
+        await Share.share({
+          title: item.title,
+          message: sharePayload,
+          url: shareUrl,
+        });
+      }
     } catch (error) {
       logger.error('Erro ao compartilhar item', error, { itemId: item.id });
       Alert.alert('Compartilhar item', 'Não foi possível compartilhar agora. Tente novamente.');
@@ -200,24 +224,34 @@ export function ItemManagementCard({
               Compartilhar
             </Button>
 
-            <View style={{ flexDirection: 'row', gap: 10, flexWrap: 'wrap' }}>
+            <View style={{ flexDirection: 'row', gap: 10, width: '100%', alignItems: 'flex-start' }}>
               <Button
                 variant="secondary"
                 onPress={handleEdit}
-                style={{ flex: 1, minWidth: 100, maxWidth: '100%' }}
+                style={{ flexShrink: 0 }}
               >
                 Editar
               </Button>
 
-              <Button
-                variant={item.available ? 'primary' : 'premium'}
-                onPress={handleToggle}
-                disabled={isUpdating}
-                loading={isUpdating}
-                style={{ flex: 1, minWidth: 100, maxWidth: '100%' }}
-              >
-                {item.available ? 'Marcar Alugado' : 'Marcar Disponível'}
-              </Button>
+              <View style={{ flex: 1, minWidth: 0 }}>
+                <Button
+                  variant="outline"
+                  onPress={handleToggle}
+                  disabled={isUpdating}
+                  loading={isUpdating}
+                  style={{ 
+                    width: '100%',
+                    borderWidth: 2,
+                    borderColor: colors.semantic.error,
+                  }}
+                  textStyle={{ 
+                    color: colors.semantic.error,
+                  } as any}
+                  numberOfLines={1}
+                >
+                  {item.available ? 'Marcar Alugado' : 'Marcar Disponível'}
+                </Button>
+              </View>
             </View>
 
             <View style={{ alignItems: 'center' }}>

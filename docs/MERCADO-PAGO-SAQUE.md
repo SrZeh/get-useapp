@@ -210,3 +210,4 @@ Com OAuth implementado, podemos:
 - [API de Saques](https://www.mercadopago.com.br/developers/pt/reference)
 - [Período de Liberação](https://www.mercadopago.com.br/developers/pt/docs/checkout-pro/payment-methods)
 
+

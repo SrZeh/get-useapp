@@ -263,7 +263,14 @@ export const rejectReservation = onCall(
       const r = snap.data() as any;
 
       assertString(r.itemOwnerUid, "itemOwnerUid");
-      if (r.itemOwnerUid !== uid) throw new HttpsError("permission-denied", "Não é o dono.");
+      
+      // Para ofertas de ajuda (isHelpOffer), o itemOwnerUid é quem precisa de ajuda (pode rejeitar)
+      // Para reservas normais, o itemOwnerUid é o dono do item (pode rejeitar)
+      // Em ambos os casos, apenas o itemOwnerUid pode rejeitar
+      if (r.itemOwnerUid !== uid) {
+        throw new HttpsError("permission-denied", "Sem permissão para rejeitar esta reserva.");
+      }
+      
       if (r.status !== "requested") throw new HttpsError("failed-precondition", `Esperado 'requested', atual: '${r.status ?? "?"}'`);
 
       trx.update(resRef, {
@@ -1914,37 +1921,39 @@ export const onUserReviewCreatedV3 = onDocumentCreated(
 );
 
 // =====================================================
-// === Expire Help Requests (Scheduled)                ===
+// === Expire Request Items (Scheduled)                ===
 // =====================================================
-// Runs every hour to mark expired help requests
-export const expireHelpRequests = onSchedule(
+// Runs every hour to unpublish expired request items
+export const expireRequestItems = onSchedule(
   {
     schedule: "0 * * * *", // Every hour at minute 0
     timeZone: "America/Sao_Paulo",
     region: "southamerica-east1",
   },
   async (event) => {
-    console.log("[expireHelpRequests] ========== FUNCTION CHAMADA ==========");
+    console.log("[expireRequestItems] ========== FUNCTION CHAMADA ==========");
     
     try {
       const db = getFirestore(adminApp, "appdb");
       const now = admin.firestore.Timestamp.now();
       
-      // Find all active help requests that have expired
+      // Find all published request items that have expired
       const expiredQuery = db
-        .collection("helpRequests")
-        .where("status", "==", "active")
+        .collection("items")
+        .where("itemType", "==", "request")
+        .where("published", "==", true)
         .where("expiresAt", "<=", now);
       
       const snapshot = await expiredQuery.get();
-      console.log(`[expireHelpRequests] Encontrados ${snapshot.size} pedidos expirados`);
+      console.log(`[expireRequestItems] Encontrados ${snapshot.size} pedidos expirados`);
       
       const batch = db.batch();
       let count = 0;
       
       snapshot.forEach((doc) => {
         batch.update(doc.ref, {
-          status: "expired",
+          published: false,
+          available: false,
           updatedAt: admin.firestore.FieldValue.serverTimestamp(),
         });
         count++;
@@ -1952,15 +1961,143 @@ export const expireHelpRequests = onSchedule(
       
       if (count > 0) {
         await batch.commit();
-        console.log(`[expireHelpRequests] ✅ ${count} pedidos marcados como expirados`);
+        console.log(`[expireRequestItems] ✅ ${count} pedidos marcados como expirados (unpublished)`);
       } else {
-        console.log("[expireHelpRequests] Nenhum pedido para expirar");
+        console.log("[expireRequestItems] Nenhum pedido para expirar");
       }
       
       // Scheduled functions must return void
     } catch (error) {
-      console.error("[expireHelpRequests] ❌ ERRO:", error);
+      console.error("[expireRequestItems] ❌ ERRO:", error);
       throw error;
     }
+  }
+);
+
+// =====================================================
+// === Oferecer item para pedido de ajuda (socorro) ===
+// =====================================================
+export const offerItemToRequest = onCall(
+  { region: "southamerica-east1" },
+  async ({ auth, data }) => {
+  const uid = auth?.uid;
+  if (!uid) throw new HttpsError("unauthenticated", "Faça login.");
+  
+  const { requestItemId, offeredItemId } = (data ?? {}) as { requestItemId?: string; offeredItemId?: string };
+  assertString(requestItemId, "requestItemId");
+  assertString(offeredItemId, "offeredItemId");
+
+  // Verify that the offered item belongs to the current user
+  const offeredItemRef = db.collection("items").doc(offeredItemId);
+  const offeredItemDoc = await offeredItemRef.get();
+  
+  if (!offeredItemDoc.exists) {
+    throw new HttpsError("not-found", "Item oferecido não encontrado");
+  }
+  
+  const offeredItemData = offeredItemDoc.data();
+  if (offeredItemData?.ownerUid !== uid) {
+    throw new HttpsError("permission-denied", "Você só pode oferecer seus próprios itens");
+  }
+
+  // Verify that the request item is actually a request
+  const requestItemRef = db.collection("items").doc(requestItemId);
+  const requestItemDoc = await requestItemRef.get();
+  
+  if (!requestItemDoc.exists) {
+    throw new HttpsError("not-found", "Pedido de ajuda não encontrado");
+  }
+  
+  const requestItemData = requestItemDoc.data();
+  if (requestItemData?.itemType !== "request") {
+    throw new HttpsError("failed-precondition", "Este item não é um pedido de ajuda");
+  }
+
+  // Check if item is already offered
+  const currentOfferedItems = (requestItemData.offeredItems as string[]) || [];
+  if (currentOfferedItems.includes(offeredItemId)) {
+    throw new HttpsError("already-exists", "Este item já foi oferecido para este pedido");
+  }
+
+  // Update the request item to add the offered item ID
+  await requestItemRef.update({
+    offeredItems: admin.firestore.FieldValue.arrayUnion(offeredItemId),
+    updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+  });
+
+  // Create a special reservation so it appears in "Ajuda Recebida!" section
+  const requestOwnerUid = requestItemData.ownerUid;
+  const offeredItemTitle = offeredItemData?.title || "Item oferecido";
+  
+  const reservationData = {
+    itemId: offeredItemId,
+    itemTitle: offeredItemTitle,
+    itemOwnerUid: requestOwnerUid, // Person who needs help
+    renterUid: uid, // Person offering the item
+    startDate: new Date().toISOString().split("T")[0],
+    endDate: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split("T")[0],
+    days: 1,
+    total: 0,
+    isFree: true,
+    helpRequestId: requestItemId,
+    isHelpOffer: true,
+    status: "requested" as const,
+    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+  };
+
+  const reservationRef = await db.collection("reservations").add(reservationData);
+
+    return { 
+      ok: true, 
+      reservationId: reservationRef.id,
+      requestItemId,
+      offeredItemId,
+    };
+  }
+);
+
+// =====================================================
+// === Remover item oferecido de pedido de ajuda ===
+// =====================================================
+export const removeOfferedItemFromRequest = onCall(
+  { region: "southamerica-east1" },
+  async ({ auth, data }) => {
+    const uid = auth?.uid;
+    if (!uid) throw new HttpsError("unauthenticated", "Faça login.");
+    
+    const { requestItemId, offeredItemId } = (data ?? {}) as { requestItemId?: string; offeredItemId?: string };
+    assertString(requestItemId, "requestItemId");
+    assertString(offeredItemId, "offeredItemId");
+
+    // Verify that the request item exists and is a request
+    const requestItemRef = db.collection("items").doc(requestItemId);
+    const requestItemDoc = await requestItemRef.get();
+    
+    if (!requestItemDoc.exists) {
+      throw new HttpsError("not-found", "Pedido de ajuda não encontrado");
+    }
+    
+    const requestItemData = requestItemDoc.data();
+    if (requestItemData?.itemType !== "request") {
+      throw new HttpsError("failed-precondition", "Este item não é um pedido de ajuda");
+    }
+
+    // Verify that the user is the owner of the request (only the person who needs help can remove offers)
+    if (requestItemData.ownerUid !== uid) {
+      throw new HttpsError("permission-denied", "Você só pode remover ofertas dos seus próprios pedidos");
+    }
+
+    // Remove the item from the offeredItems array
+    await requestItemRef.update({
+      offeredItems: admin.firestore.FieldValue.arrayRemove(offeredItemId),
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    return { 
+      ok: true, 
+      requestItemId,
+      offeredItemId,
+    };
   }
 );

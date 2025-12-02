@@ -170,6 +170,104 @@ export async function listEligibleReservationsForUserReview(
 }
 
 /**
+ * Subscribe to help offer reservations (where user needs help)
+ * @param ownerUid - Owner user ID (person who needs help)
+ * @param callback - Callback function for updates
+ * @returns Unsubscribe function
+ */
+export function subscribeToHelpOfferReservations(
+  ownerUid: string,
+  callback: (reservations: Reservation[]) => void
+): Unsubscribe {
+  console.log('[ReservationService] subscribeToHelpOfferReservations called', { 
+    ownerUid,
+    collection: RESERVATIONS_PATH,
+  });
+  
+  if (!ownerUid) {
+    console.warn('[ReservationService] No ownerUid provided, returning empty array');
+    callback([]);
+    return () => {}; // Return no-op unsubscribe
+  }
+
+  // Query for help offers: itemOwnerUid == ownerUid AND isHelpOffer == true
+  // Note: We can't use where('isHelpOffer', '==', true) directly because Firestore
+  // requires an index for compound queries. So we'll filter in memory.
+  const q = query(
+    collection(db, RESERVATIONS_PATH),
+    where('itemOwnerUid', '==', ownerUid)
+  );
+
+  return onSnapshot(
+    q,
+    (snap) => {
+      console.log('[ReservationService] Help offers snapshot received', { 
+        size: snap.size, 
+        empty: snap.empty,
+        hasPendingWrites: snap.metadata.hasPendingWrites,
+        fromCache: snap.metadata.fromCache
+      });
+      
+      if (snap.empty) {
+        console.log('[ReservationService] Snapshot is empty - no reservations found');
+        callback([]);
+        return;
+      }
+      
+      const all = snap.docs.map((d) => {
+        const data = d.data();
+        const reservation = { id: d.id, ...(data as Partial<Reservation>) } as Reservation;
+        console.log('[ReservationService] Reservation doc:', { 
+          id: d.id, 
+          status: reservation.status, 
+          itemOwnerUid: reservation.itemOwnerUid,
+          renterUid: reservation.renterUid,
+          isHelpOffer: (reservation as Reservation & { isHelpOffer?: boolean }).isHelpOffer,
+          itemId: reservation.itemId,
+        });
+        return reservation;
+      });
+
+      // Filter only help offers that are not rejected
+      const helpOffers = all.filter(
+        (r) => (r as Reservation & { isHelpOffer?: boolean }).isHelpOffer === true && r.status === 'requested'
+      );
+
+      console.log('[ReservationService] Filtered help offers:', {
+        total: all.length,
+        helpOffers: helpOffers.length,
+        helpOffersIds: helpOffers.map(r => r.id),
+      });
+
+      // Sort by createdAt in memory (descending)
+      if (helpOffers.length > 0) {
+        helpOffers.sort((a, b) => {
+          const aTime = a.createdAt?.toMillis?.() ?? a.createdAt ?? 0;
+          const bTime = b.createdAt?.toMillis?.() ?? b.createdAt ?? 0;
+          return bTime - aTime; // desc
+        });
+      }
+
+      callback(helpOffers);
+    },
+    (err) => {
+      console.error('[ReservationService] Help offers snapshot error:', err);
+      console.error('[ReservationService] Error details:', {
+        code: err?.code,
+        message: err?.message,
+        stack: err?.stack
+      });
+      logger.error('Help offer reservations snapshot listener error', err, { 
+        code: err?.code, 
+        message: err?.message,
+        ownerUid,
+      });
+      callback([]);
+    }
+  );
+}
+
+/**
  * Subscribe to owner reservations with real-time updates
  * @param ownerUid - Owner user ID
  * @param statusFilter - Optional status filter

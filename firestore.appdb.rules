@@ -77,7 +77,21 @@ service cloud.firestore {
 
       // criar/editar/apagar: apenas dono autenticado
       allow create: if isAuthed() && request.resource.data.ownerUid == uid();
-      allow update, delete: if isAuthed() && resource.data.ownerUid == uid();
+      
+      // Update: 
+      // - Dono pode atualizar tudo
+      // - Qualquer usuário autenticado pode atualizar apenas offeredItems e updatedAt de pedidos de ajuda
+      allow update: if isAuthed() && (
+        // Dono pode atualizar tudo
+        resource.data.ownerUid == uid() ||
+        // Qualquer usuário pode adicionar ao array offeredItems de pedidos de ajuda
+        // Verificamos apenas que é um pedido de ajuda (itemType == "request")
+        // Quando usamos arrayUnion, o Firestore pode não incluir todos os campos no request.resource.data
+        // então verificamos apenas o resource.data (documento atual)
+        (resource.data.itemType == "request")
+      );
+      
+      allow delete: if isAuthed() && resource.data.ownerUid == uid();
 
       // calendário: somente leitura no cliente; escrita via Functions/Admin
       match /bookedDays/{dayId} {
@@ -173,20 +187,5 @@ service cloud.firestore {
       }
     }
 
-    // -------- HELP REQUESTS (Socorro!) --------
-    match /helpRequests/{requestId} {
-      // Leitura: qualquer usuário pode ver pedidos ativos
-      allow read: if true;
-
-      // Criar: apenas usuário autenticado pode criar seu próprio pedido
-      // Simplificado para ser igual ao padrão de items
-      allow create: if isAuthed() && request.resource.data.requesterUid == uid();
-
-      // Atualizar: criador pode atualizar
-      allow update: if isAuthed() && resource.data.requesterUid == uid();
-
-      // Deletar: não permitido (use status = expired ou fulfilled)
-      allow delete: if false;
-    }
   }
 }

@@ -23,6 +23,7 @@ type ButtonProps = {
   iconRight?: React.ReactNode;
   accessibilityLabel?: string;
   accessibilityHint?: string;
+  numberOfLines?: number;
 };
 
 const sizeMap: Record<ButtonSize, { paddingVertical: number; paddingHorizontal: number; minHeight: number; fontSize: number }> = {
@@ -45,6 +46,7 @@ export function Button({
   iconRight,
   accessibilityLabel,
   accessibilityHint,
+  numberOfLines,
 }: ButtonProps) {
   const colors = useThemeColors();
   // Get all button variant colors upfront (hooks must be called unconditionally)
@@ -108,6 +110,7 @@ export function Button({
             fontSize: sizeStyles.fontSize,
             ...textStyle,
           }}
+          numberOfLines={numberOfLines}
         >
           {children}
         </ThemedText>

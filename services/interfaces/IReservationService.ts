@@ -78,6 +78,14 @@ export interface IReservationService {
   subscribeToRenterReservations(renterUid: string, callback: (reservations: Reservation[]) => void): Unsubscribe;
 
   /**
+   * Subscribe to help offer reservations (where user needs help)
+   * @param ownerUid - Owner user ID (person who needs help)
+   * @param callback - Callback function for updates
+   * @returns Unsubscribe function
+   */
+  subscribeToHelpOfferReservations(ownerUid: string, callback: (reservations: Reservation[]) => void): Unsubscribe;
+
+  /**
    * Accept a reservation (owner action)
    * @param reservationId - Reservation ID
    * @param ownerUid - Owner user ID

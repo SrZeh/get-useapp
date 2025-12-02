@@ -150,3 +150,4 @@ Divisão com Split:
 3. **Modelo 1:1**: Marketplace não pode reembolsar total se vendedor não tiver saldo
 4. **Saldo entre contas**: Split permite pagamentos com saldo disponível entre contas Mercado Pago
 
+

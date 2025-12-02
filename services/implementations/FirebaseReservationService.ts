@@ -20,6 +20,7 @@ export class FirebaseReservationService implements IReservationService {
   listEligibleReservationsForUserReview = ReservationService.listEligibleReservationsForUserReview;
   subscribeToOwnerReservations = ReservationService.subscribeToOwnerReservations;
   subscribeToRenterReservations = ReservationService.subscribeToRenterReservations;
+  subscribeToHelpOfferReservations = ReservationService.subscribeToHelpOfferReservations;
   acceptReservation = ReservationService.acceptReservation;
   rejectReservation = ReservationService.rejectReservation;
   deleteReservation = ReservationService.deleteReservation;

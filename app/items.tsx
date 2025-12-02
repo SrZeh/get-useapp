@@ -28,6 +28,11 @@ export default function ItemsScreen() {
   const { items, loading, refreshing, refresh } = useUserItems();
   const { updatingId, toggleAvailability, confirmDelete } = useItemOperations();
 
+  // Filter out help requests - they should only appear in the help screen
+  const filteredItems = React.useMemo(() => {
+    return items.filter(item => item.itemType !== 'request');
+  }, [items]);
+
   const goNew = () => navigation.navigateToNewItem();
   const goEdit = (id: string) => navigation.navigateToEditItem(id);
 
@@ -67,7 +72,7 @@ export default function ItemsScreen() {
           <ShimmerLoader height={200} borderRadius={BorderRadius.lg} />
           <ShimmerLoader height={200} borderRadius={BorderRadius.lg} />
         </View>
-      ) : items.length === 0 ? (
+      ) : filteredItems.length === 0 ? (
         <LiquidGlassView
           intensity="standard"
           cornerRadius={BorderRadius.xl}
@@ -82,7 +87,7 @@ export default function ItemsScreen() {
         </LiquidGlassView>
       ) : (
         <FlatList
-          data={items}
+          data={filteredItems}
           refreshing={refreshing}
           onRefresh={refresh}
           keyExtractor={(it) => it.id}

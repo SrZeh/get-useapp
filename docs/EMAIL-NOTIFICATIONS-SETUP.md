@@ -116,3 +116,4 @@ Para testar, crie uma nova reserva e verifique:
 2. Se o email está na pasta de spam
 3. Os logs do Firebase Functions
 
+

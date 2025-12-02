@@ -17,7 +17,6 @@ export const FIRESTORE_COLLECTIONS = {
   USERS: "users",
   THREADS: "threads",
   MESSAGES: "messages",
-  HELP_REQUESTS: "helpRequests",
 } as const;
 
 export const STORAGE_PATHS = {

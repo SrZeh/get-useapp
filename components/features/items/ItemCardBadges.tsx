@@ -10,6 +10,7 @@ import { ThemedText } from '@/components/themed-text';
 import { useThemeColors } from '@/utils';
 import { Spacing, BorderRadius } from '@/constants/spacing';
 import type { Item } from '@/types';
+import { formatRequestTimeRemaining } from '@/utils/itemRequest';
 
 type ItemCardBadgesProps = {
   item: Item;
@@ -19,9 +20,40 @@ export const ItemCardBadges = React.memo(function ItemCardBadges({
   item,
 }: ItemCardBadgesProps) {
   const colors = useThemeColors();
+  const isRequest = item.itemType === 'request';
+  const timeRemaining = isRequest ? formatRequestTimeRemaining(item) : null;
 
   return (
     <>
+      {isRequest && (
+        <View
+          style={{
+            paddingVertical: Spacing['3xs'],
+            paddingHorizontal: Spacing['2xs'],
+            borderRadius: BorderRadius.full,
+            backgroundColor: item.urgencyType === 'immediate' 
+              ? `${colors.semantic.warning}20` 
+              : `${colors.brand.primary}20`,
+            borderWidth: 1,
+            borderColor: item.urgencyType === 'immediate' 
+              ? colors.semantic.warning 
+              : colors.brand.primary,
+          }}
+        >
+          <ThemedText
+            type="caption-1"
+            style={{
+              color: item.urgencyType === 'immediate' 
+                ? colors.semantic.warning 
+                : colors.brand.primary,
+              fontWeight: '600',
+            }}
+          >
+            {item.urgencyType === 'immediate' ? '⚡ Urgente' : '📅 Planejado'}
+            {timeRemaining && ` • ${timeRemaining}`}
+          </ThemedText>
+        </View>
+      )}
       {!!item.category && (
         <View
           style={{

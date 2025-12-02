@@ -71,6 +71,8 @@ function transformDocument(doc: DocumentSnapshot): Item {
     ratingSum: data.ratingSum ?? 0,
     ownerRatingCount: data.ownerRatingCount ?? 0,
     ownerRatingSum: data.ownerRatingSum ?? 0,
+    // Explicitly preserve offeredItems array (important for help requests)
+    offeredItems: Array.isArray(data.offeredItems) ? data.offeredItems : undefined,
     ...data,
   } as Item;
 }
@@ -188,6 +190,21 @@ export const useItemsStore = create<ItemsStore>((set, get) => ({
         (snap) => {
           const items = transformSnapshot(snap);
           
+          // Check if items actually changed to avoid unnecessary updates
+          const currentItems = get().userItems;
+          const itemsChanged = 
+            items.length !== currentItems.length ||
+            items.some((item, index) => {
+              const current = currentItems[index];
+              return !current || current.id !== item.id || 
+                     JSON.stringify(current) !== JSON.stringify(item);
+            });
+          
+          // Only update if items actually changed
+          if (!itemsChanged && !get().userItemsLoading) {
+            return; // Skip update if nothing changed
+          }
+          
           // Also update individual item cache
           const newCache = new Map(get().itemsById);
           items.forEach((item) => {
@@ -282,18 +299,18 @@ export const useItemsStore = create<ItemsStore>((set, get) => ({
 
   /**
    * Set item in cache (useful after mutations)
+   * NOTE: Does NOT update userItems to avoid infinite loops with Firestore listeners
+   * The listener will update userItems automatically when Firestore changes
    */
   setItem: (item: Item) => {
     set((state) => {
       const newCache = new Map(state.itemsById);
       newCache.set(item.id, { item, timestamp: Date.now() });
       
-      // Also update in userItems if it's there
-      const userItems = state.userItems.map((i) => (i.id === item.id ? item : i));
-      
+      // Only update cache, NOT userItems - let the Firestore listener handle userItems updates
+      // This prevents infinite loops when listeners trigger setItem
       return {
         itemsById: newCache,
-        userItems,
       };
     });
   },
