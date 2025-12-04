@@ -165,6 +165,8 @@ service cloud.firestore {
           (before == "requested" && after == "canceled" && uid() == renter) ||
           // Cancelar mesmo após aceito (política sua) — sem marcar pago/payout
           ((before == "accepted") && after == "canceled" && (uid() == renter || uid() == owner)) ||
+          // Fechar reserva (ocultar da lista) - qualquer participante pode fechar antes de paid_out
+          (before != "paid_out" && after == "closed" && (uid() == renter || uid() == owner)) ||
           // Permite updates que NÃO trocam status
           (before == after);
       }

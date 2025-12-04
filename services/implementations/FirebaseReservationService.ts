@@ -25,6 +25,7 @@ export class FirebaseReservationService implements IReservationService {
   rejectReservation = ReservationService.rejectReservation;
   deleteReservation = ReservationService.deleteReservation;
   updateReservationStatus = ReservationService.updateReservationStatus;
+  closeReservation = ReservationService.closeReservation;
 }
 
 // Export singleton instance

@@ -1,0 +1,21 @@
+# Execute estes comandos no terminal onde o gcloud funciona
+# (o mesmo terminal onde você executou gcloud init)
+
+gcloud config set project upperreggae
+
+gcloud services enable pubsub.googleapis.com
+gcloud services enable cloudscheduler.googleapis.com
+gcloud services enable eventarc.googleapis.com
+gcloud services enable run.googleapis.com
+gcloud services enable serviceusage.googleapis.com
+gcloud services enable servicemanagement.googleapis.com
+
+echo.
+echo ========================================
+echo APIs habilitadas!
+echo ========================================
+echo.
+echo Agora volte para o terminal do projeto e execute:
+echo firebase deploy --only functions
+echo.
+

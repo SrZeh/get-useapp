@@ -68,8 +68,9 @@ export function Badge({
   const getTextColor = (): string => {
     switch (variant) {
       case 'primary':
-        // For brand color, use dark text on light mode, white on dark mode for better contrast
-        return colors.isDark ? TEXT_ON_COLOR.white : colors.text.primary;
+        // For brand color (verde claro #96ff9a), use dark text in dark mode, dark text in light mode
+        // No dark mode o verde claro precisa de texto escuro para contraste
+        return colors.isDark ? colors.text.primary : colors.text.primary;
       case 'success':
         // Success uses brand green, same text color logic as primary
         return colors.isDark ? TEXT_ON_COLOR.white : colors.text.primary;

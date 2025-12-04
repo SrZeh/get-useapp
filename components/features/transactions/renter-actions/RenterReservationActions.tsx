@@ -7,6 +7,7 @@ import React from 'react';
 import { canPay, canDeleteByRenter, canReview } from '@/services/reservations/ReservationRules';
 import type { Reservation } from '../types';
 import { PayAction } from './PayAction';
+import { AcceptedActions } from './AcceptedActions';
 import { PaidActions } from './PaidActions';
 import { RejectedActions } from './RejectedActions';
 import { DeleteAction } from './DeleteAction';
@@ -18,7 +19,9 @@ interface RenterReservationActionsProps {
   reservation: Reservation;
   onPay: (id: string) => void;
   onMarkReceived: (id: string) => void;
+  onReleasePayout: (id: string) => void;
   onCancelWithRefund: (id: string) => void;
+  onCancelAccepted: (id: string) => void;
   onDelete: (id: string, reservation: Reservation) => void;
   onReview: (id: string) => void;
   isMarkingReceived: boolean;
@@ -32,33 +35,47 @@ export function RenterReservationActions({
   reservation,
   onPay,
   onMarkReceived,
+  onReleasePayout,
   onCancelWithRefund,
+  onCancelAccepted,
   onDelete,
   onReview,
   isMarkingReceived,
 }: RenterReservationActionsProps) {
-  // Debug: Log reservation status for troubleshooting
-  if (__DEV__) {
-    console.log('[RenterReservationActions] Reservation:', {
-      id: reservation.id,
-      status: reservation.status,
-      paidAt: reservation.paidAt,
-      canPay: canPay(reservation),
-    });
-  }
-
-  // Can pay - accepted status
+  // Can pay - accepted status (only pay button)
   if (canPay(reservation)) {
-    return <PayAction reservationId={reservation.id} onPay={onPay} />;
+    return (
+      <AcceptedActions
+        reservation={reservation}
+        onPay={onPay}
+        onDelete={onDelete}
+      />
+    );
   }
 
-  // Paid status - can mark received and request refund
+  // Paid status - can mark received, release payout, and request refund
   if (reservation.status === 'paid') {
     return (
       <PaidActions
         reservation={reservation}
         onMarkReceived={onMarkReceived}
+        onReleasePayout={onReleasePayout}
         onCancelWithRefund={onCancelWithRefund}
+        onDelete={onDelete}
+        isMarkingReceived={isMarkingReceived}
+      />
+    );
+  }
+
+  // Picked up status - can release payout
+  if (reservation.status === 'picked_up') {
+    return (
+      <PaidActions
+        reservation={reservation}
+        onMarkReceived={onMarkReceived}
+        onReleasePayout={onReleasePayout}
+        onCancelWithRefund={onCancelWithRefund}
+        onDelete={onDelete}
         isMarkingReceived={isMarkingReceived}
       />
     );
@@ -86,15 +103,16 @@ export function RenterReservationActions({
 
   // Picked up status
   if (reservation.status === 'picked_up') {
-    return <PickedUpActions />;
+    return <PickedUpActions reservation={reservation} onDelete={onDelete} />;
   }
 
   // Can review
   if (canReview(reservation)) {
     return (
       <ReviewAction
-        reservationId={reservation.id}
+        reservation={reservation}
         onReview={onReview}
+        onDelete={onDelete}
       />
     );
   }

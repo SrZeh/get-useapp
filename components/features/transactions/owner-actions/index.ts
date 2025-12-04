@@ -8,6 +8,7 @@ export { OwnerReservationActions } from './OwnerReservationActions';
 export { RequestActions } from './RequestActions';
 export { AcceptedActions } from './AcceptedActions';
 export { PaidActions } from './PaidActions';
+export { PaidOutActions } from './PaidOutActions';
 export { ReturnActions } from './ReturnActions';
 export { ReturnedActions } from './ReturnedActions';
 

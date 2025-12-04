@@ -101,10 +101,31 @@ export async function createItemReview(itemId: string, input: NewItemReviewInput
   }
 
   try {
-    await updateDoc(doc(db, 'reservations', input.reservationId), {
+    // Atualizar reviewsOpen e verificar se todas as avaliações foram feitas
+    const reservationRef = doc(db, 'reservations', input.reservationId);
+    const reservationSnapAfter = await getDoc(reservationRef);
+    const reservationAfter = reservationSnapAfter.exists() ? reservationSnapAfter.data() : null;
+    
+    const reviewsOpen = reservationAfter?.reviewsOpen || {};
+    const updatedReviewsOpen = { ...reviewsOpen, renterCanReviewItem: false };
+    
+    // Verificar se todas as avaliações foram feitas
+    const allReviewsDone = 
+      (updatedReviewsOpen.renterCanReviewOwner === false || updatedReviewsOpen.renterCanReviewOwner === undefined) &&
+      (updatedReviewsOpen.renterCanReviewItem === false) &&
+      (updatedReviewsOpen.ownerCanReviewRenter === false || updatedReviewsOpen.ownerCanReviewRenter === undefined);
+    
+    const updateData: Record<string, unknown> = {
       'reviewsOpen.renterCanReviewItem': false,
       updatedAt: serverTimestamp(),
-    });
+    };
+    
+    // Se todas as avaliações foram feitas e status é returned, fechar automaticamente
+    if (allReviewsDone && reservationAfter?.status === 'returned') {
+      updateData.status = 'closed';
+    }
+    
+    await updateDoc(reservationRef, updateData);
   } catch (error) {
     if (typeof logger.warn === 'function') {
       logger.warn('Não foi possível atualizar reviewsOpen da reserva após avaliação', error);

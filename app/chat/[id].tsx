@@ -51,7 +51,9 @@ export default function ThreadChatScreen() {
       const functions = getFunctions(app, "southamerica-east1");
       const markThread = httpsCallable(functions, "markThreadRead");
       await markThread({ threadId: id });
-      // zera contador de mensagens (dot global de mensagens)
+      // zera contador de mensagens (dot global de mensagens) - usa sistema otimista
+      const { useNotificationBadges } = await import("@/hooks/features/notifications");
+      // Nota: não podemos usar hook aqui, então chama diretamente
       const markAsSeen = httpsCallable(functions, "markAsSeen");
       await markAsSeen({ type: "messages" });
     } catch {
@@ -163,6 +165,16 @@ export default function ThreadChatScreen() {
           ) : (
             msgs.map((m) => {
               const mine = m.fromUid === uid; // <- compara com fromUid
+              // No dark mode: verde claro (#96ff9a) precisa de texto escuro, verde escuro (#08af0e) precisa de texto branco
+              // No light mode: verde escuro precisa de texto branco
+              const bgColor = mine ? colors.brand.dark : colors.brand.primary;
+              // Simplifica: se é dark mode e usa brand.primary (verde claro), texto escuro
+              // Se é dark mode e usa brand.dark (verde escuro), texto branco
+              // Se é light mode, sempre texto branco (usa verde escuro)
+              const textColor = colors.isDark 
+                ? (!mine ? colors.text.primary : '#ffffff') // Dark: mensagem recebida (verde claro) = texto escuro, enviada (verde escuro) = branco
+                : '#ffffff'; // Light: sempre branco
+              
               return (
                 <View
                   key={m.id}
@@ -174,10 +186,10 @@ export default function ThreadChatScreen() {
                     borderRadius: 12,
                     marginBottom: 8,
                     borderWidth: 2,
-                    backgroundColor: mine ? colors.brand.dark : colors.brand.primary,
+                    backgroundColor: bgColor,
                   }}
                 >
-                  <ThemedText style={{ color: colors.isDark ? colors.text.primary : '#ffffff' }}>
+                  <ThemedText style={{ color: textColor }}>
                     {m.text}
                   </ThemedText>
                 </View>
@@ -218,10 +230,21 @@ export default function ThreadChatScreen() {
               paddingVertical: 10,
               paddingHorizontal: 14,
               borderRadius: 10,
-              backgroundColor: sending || !text.trim() ? colors.text.tertiary : colors.brand.dark,
+              // No dark mode usa verde claro, no light mode usa verde escuro
+              backgroundColor: sending || !text.trim() 
+                ? colors.text.tertiary 
+                : (colors.isDark ? colors.brand.primary : colors.brand.dark),
             }}
           >
-            <ThemedText type="defaultSemiBold" style={{ color: colors.isDark ? colors.text.primary : '#ffffff' }}>
+            <ThemedText 
+              type="defaultSemiBold" 
+              style={{ 
+                // No dark mode com verde claro, usa texto escuro. No light mode com verde escuro, usa branco
+                color: sending || !text.trim() 
+                  ? colors.text.secondary
+                  : (colors.isDark ? colors.text.primary : '#ffffff')
+              }}
+            >
               Enviar
             </ThemedText>
           </TouchableOpacity>

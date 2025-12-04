@@ -134,7 +134,6 @@ export const acceptReservation = onCall(
   { 
     region: "southamerica-east1",
     secrets: ["SENDGRID_API_KEY", "SENDGRID_FROM"],
-    // Allow authenticated invocations (default behavior, but explicit for clarity)
   },
   async ({ auth, data }) => {
     console.log('[acceptReservation] Called with auth:', auth?.uid ? 'authenticated' : 'unauthenticated');
@@ -318,6 +317,32 @@ export const rejectReservation = onCall(
   }
 );
 
+export const closeReservation = onCall(
+  { region: "southamerica-east1" },
+  async ({ auth, data }) => {
+    const uid = auth?.uid;
+    if (!uid) throw new HttpsError("unauthenticated", "Faça login.");
+
+    const { reservationId } = (data ?? {}) as { reservationId?: string };
+    assertString(reservationId, "reservationId");
+
+    const resRef = db.doc(`reservations/${reservationId}`);
+    const snap = await resRef.get();
+    if (!snap.exists) throw new HttpsError("not-found", "Reserva não encontrada.");
+    const r = snap.data() as any;
+
+    if (![r.itemOwnerUid, r.renterUid].includes(uid)) throw new HttpsError("permission-denied", "Sem permissão.");
+
+    if (r.status === "paid_out") {
+      throw new HttpsError("failed-precondition", "Não é possível fechar uma reserva após o pagamento ser liberado.");
+    }
+
+    await resRef.update({ status: "closed", updatedAt: TS() });
+
+    return { ok: true };
+  }
+);
+
 export const cancelAcceptedReservation = onCall(
   { region: "southamerica-east1", secrets: ["SENDGRID_API_KEY", "SENDGRID_FROM"] },
   async ({ auth, data }) => {
@@ -417,10 +442,11 @@ export const createMercadoPagoPayment = onCall(
           reservationId?: string;
           successUrl?: string;
           cancelUrl?: string;
-          paymentMethod?: "card" | "pix";
+          paymentMethod?: "card" | "pix"; // Opcional - não usado mais, mantido para compatibilidade
         };
 
       console.log("[createMercadoPagoPayment] Parâmetros:", { reservationId, successUrl, cancelUrl, paymentMethod });
+      console.log("[createMercadoPagoPayment] ⚠️ paymentMethod é opcional - checkout mostrará TODAS as opções (PIX, cartão, boleto, etc.)");
 
       assertString(reservationId, "reservationId");
       assertString(successUrl, "successUrl");
@@ -452,30 +478,68 @@ export const createMercadoPagoPayment = onCall(
         }
       })();
 
+      console.log("[createMercadoPagoPayment] Dados da reserva:", {
+        baseAmountCents: r.baseAmountCents,
+        priceCents: r.priceCents,
+        total: r.total,
+        days: r.days,
+        daysCount,
+      });
+
       let baseCents = Number(r.baseAmountCents);
       if (!Number.isInteger(baseCents) || baseCents <= 0) {
-        const unit = Number(r.priceCents) || toCents(r.total) || 0;
-        baseCents = unit * (Number.isFinite(daysCount) ? daysCount : 1);
+        // Se baseAmountCents não existe, calcular a partir do total
+        // IMPORTANTE: r.total já é o valor total (diária × dias), não a diária!
+        const totalCents = Number(r.priceCents) || toCents(r.total) || 0;
+        
+        if (totalCents > 0 && Number.isFinite(daysCount) && daysCount > 0) {
+          // Se temos o total e os dias, o baseAmountCents é o próprio total
+          // (não dividir, pois o total já está correto)
+          baseCents = totalCents;
+          console.log("[createMercadoPagoPayment] Calculado baseCents a partir do total:", {
+            totalCents,
+            daysCount,
+            baseCents,
+          });
+        } else {
+          throw new HttpsError("failed-precondition", "Não foi possível calcular o valor base da reserva.");
+        }
       }
+      
       if (!Number.isInteger(baseCents) || baseCents <= 0) {
         throw new HttpsError("failed-precondition", "Valor base inválido.");
       }
+      
+      console.log("[createMercadoPagoPayment] Valor base final (centavos):", baseCents);
+      console.log("[createMercadoPagoPayment] Valor base final (reais):", baseCents / 100);
 
       // Calcular taxas (Mercado Pago)
-      const method = paymentMethod || "card";
+      // Usar "card" como padrão para cálculo de taxas (mais conservador - garante que sempre teremos valor suficiente)
+      // O cliente escolherá o método no checkout do Mercado Pago
+      const methodForFees = paymentMethod || "card";
       const { serviceFee, surcharge, appFeeFromBase, ownerPayout, totalToCustomer } = computeFees(
         baseCents,
-        { paymentProvider: "mercadopago", paymentMethod: method }
+        { paymentProvider: "mercadopago", paymentMethod: methodForFees }
       );
 
-      // Verificar se está em modo sandbox (para ajustar configuração)
+      // Verificar se está em modo sandbox (para logs)
       const mpAccessToken = process.env.MERCADO_PAGO_ACCESS_TOKEN || '';
       const isSandbox = mpAccessToken.startsWith('TEST-');
       console.log("[createMercadoPagoPayment] Modo sandbox:", isSandbox);
 
       console.log("[createMercadoPagoPayment] Calculando taxas...");
-      console.log("[createMercadoPagoPayment] Base:", baseCents, "Method:", method);
-      console.log("[createMercadoPagoPayment] Taxas calculadas:", { serviceFee, surcharge, totalToCustomer });
+      console.log("[createMercadoPagoPayment] Base (centavos):", baseCents);
+      console.log("[createMercadoPagoPayment] Base (reais):", baseCents / 100);
+      console.log("[createMercadoPagoPayment] Method para cálculo de taxas:", methodForFees);
+      console.log("[createMercadoPagoPayment] Taxas calculadas:", { 
+        serviceFee, 
+        surcharge, 
+        totalToCustomer,
+        serviceFeeReais: serviceFee / 100,
+        surchargeReais: surcharge / 100,
+        totalToCustomerReais: totalToCustomer / 100,
+      });
+      console.log("[createMercadoPagoPayment] ✅ Checkout mostrará TODAS as opções: PIX, cartão, boleto, etc.");
 
       const preference = getPreferenceClient();
       console.log("[createMercadoPagoPayment] Cliente do Mercado Pago criado");
@@ -487,6 +551,7 @@ export const createMercadoPagoPayment = onCall(
       
       // Calcular valor total que o cliente paga
       const totalReais = totalToCustomer / 100;
+      console.log("[createMercadoPagoPayment] Valor final que será cobrado (reais):", totalReais);
       
       const preferenceData = {
         items: [
@@ -505,25 +570,23 @@ export const createMercadoPagoPayment = onCall(
           // O payer será preenchido pelo usuário no checkout
         },
         // Configuração de métodos de pagamento
-        // No sandbox, simplificar para garantir que cartões funcionem
-        ...(isSandbox ? {
-          // Sandbox: configuração mínima para permitir todos os métodos
-          payment_methods: {
-            installments: method === "card" ? 12 : 1,
-            // Não excluir nada no sandbox para permitir testes
-          },
-        } : {
-          // Produção: configuração normal
-          payment_methods: {
-            // Para PIX: excluir apenas cartões de crédito e débito, mas permitir PIX
-            // Para cartão: permitir todos os métodos (PIX, cartão, boleto)
-            excluded_payment_methods: method === "pix" ? [{ id: "credit_card" }, { id: "debit_card" }] : [],
-            excluded_payment_types: method === "pix" ? [{ id: "credit_card" }, { id: "debit_card" }] : [],
-            installments: method === "card" ? 12 : 1, // Máximo de parcelas para cartão
-            // Nota: PIX deve estar habilitado na conta do Mercado Pago
-            // Se não aparecer, verifique as configurações da conta no painel
-          },
-        }),
+        // ✅ TODAS as opções habilitadas: PIX, cartão, boleto, etc.
+        // O cliente escolhe o método no checkout do Mercado Pago
+        payment_methods: {
+          // Não excluir nenhum método - mostrar todas as opções disponíveis
+          // PIX, cartão de crédito, cartão de débito, boleto, etc.
+          excluded_payment_methods: [], // Vazio = permitir todos
+          excluded_payment_types: [], // Vazio = permitir todos
+          installments: 12, // Máximo de parcelas para cartão
+          // IMPORTANTE: Para PIX aparecer, você precisa:
+          // 1. Ter uma Chave PIX cadastrada na conta do Mercado Pago
+          // 2. Usar credenciais de PRODUÇÃO (não de teste)
+          // 3. Ter a conta aprovada para receber pagamentos via PIX
+          // 4. Habilitar PIX nas configurações da conta: https://www.mercadopago.com.br/account/settings
+        },
+        // Configurações adicionais para melhorar compatibilidade
+        binary_mode: false, // Permite pagamentos pendentes (não apenas aprovados)
+        expires: false, // Não expira automaticamente (permite mais tempo para pagar)
         back_urls: {
           success: `${successUrl}?res=${reservationId}&status=success`,
           failure: `${cancelUrl}?res=${reservationId}&status=failure`,
@@ -552,6 +615,9 @@ export const createMercadoPagoPayment = onCall(
 
       console.log("[createMercadoPagoPayment] Chamando preference.create...");
       console.log("[createMercadoPagoPayment] Preference data:", JSON.stringify(preferenceData, null, 2));
+      console.log("[createMercadoPagoPayment] Payment methods config:", JSON.stringify(preferenceData.payment_methods, null, 2));
+      console.log("[createMercadoPagoPayment] ⚠️ IMPORTANTE: Para PIX aparecer, ele deve estar habilitado na conta do Mercado Pago");
+      console.log("[createMercadoPagoPayment] ⚠️ Verifique em: https://www.mercadopago.com.br/developers/panel > Suas integrações > Configurações");
       
       let response;
       try {
@@ -571,7 +637,14 @@ export const createMercadoPagoPayment = onCall(
         id: response.id,
         hasInitPoint: !!response.init_point,
         hasSandboxInitPoint: !!response.sandbox_init_point,
+        payment_methods: response.payment_methods,
       }, null, 2));
+      console.log("[createMercadoPagoPayment] Payment methods configurados:", JSON.stringify(response.payment_methods, null, 2));
+      console.log("[createMercadoPagoPayment] ⚠️ IMPORTANTE: Para PIX aparecer no checkout:");
+      console.log("[createMercadoPagoPayment] 1. Cadastre uma Chave PIX na conta: https://www.mercadopago.com.br/account/settings");
+      console.log("[createMercadoPagoPayment] 2. Use credenciais de PRODUÇÃO (APP_USR-...)");
+      console.log("[createMercadoPagoPayment] 3. Habilite PIX em: https://www.mercadopago.com.br/account/settings > Meios de pagamento");
+      console.log("[createMercadoPagoPayment] 4. Verifique se a conta está aprovada para receber pagamentos via PIX");
 
       // Salvar dados da preferência na reserva
       console.log("[createMercadoPagoPayment] Salvando dados na reserva...");
@@ -587,7 +660,7 @@ export const createMercadoPagoPayment = onCall(
           mercadoPagoSurchargeCents: surcharge,
           appFeeFromBaseCents: appFeeFromBase,
           expectedOwnerPayoutCents: ownerPayout,
-          paymentMethod: method,
+          // paymentMethod removido - o cliente escolhe no checkout do Mercado Pago
           updatedAt: TS(),
         },
         { merge: true }
@@ -1830,6 +1903,27 @@ export const createUserReview = onCall(
     if (reviewerRole === "owner" && targetRole === "renter") {
       reservationUpdate["reviewsOpen.ownerCanReviewRenter"] = false;
     }
+    
+    // Verificar se todas as avaliações foram feitas e fechar automaticamente
+    const updatedR = { ...r };
+    if (reviewerRole === "renter" && targetRole === "owner") {
+      updatedR.reviewsOpen = { ...(updatedR.reviewsOpen || {}), renterCanReviewOwner: false };
+    }
+    if (reviewerRole === "owner" && targetRole === "renter") {
+      updatedR.reviewsOpen = { ...(updatedR.reviewsOpen || {}), ownerCanReviewRenter: false };
+    }
+    
+    const reviewsOpen = updatedR.reviewsOpen || {};
+    const allReviewsDone = 
+      (reviewsOpen.renterCanReviewOwner === false || reviewsOpen.renterCanReviewOwner === undefined) &&
+      (reviewsOpen.renterCanReviewItem === false || reviewsOpen.renterCanReviewItem === undefined) &&
+      (reviewsOpen.ownerCanReviewRenter === false || reviewsOpen.ownerCanReviewRenter === undefined);
+    
+    // Se todas as avaliações foram feitas, fechar a reserva automaticamente
+    if (allReviewsDone && updatedR.status === "returned") {
+      reservationUpdate.status = "closed";
+    }
+    
     await resRef.update(reservationUpdate);
 
     return { ok: true, reviewId: reservationId };

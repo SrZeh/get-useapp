@@ -57,6 +57,9 @@ export function DropdownFilter({
   }
 
   // Determine which icon to use based on title
+  // Use darker green (#4CAF50) in light theme, default green (#96FF9A) in dark theme
+  const iconColor = isDark ? '#96FF9A' : '#4CAF50';
+  
   const getIcon = () => {
     if (!icon) return null;
     
@@ -66,6 +69,7 @@ export function DropdownFilter({
         <CidadeIcon
           width={18}
           height={18}
+          color={iconColor}
         />
       );
     }
@@ -74,6 +78,7 @@ export function DropdownFilter({
         <BairroIcon
           width={18}
           height={18}
+          color={iconColor}
         />
       );
     }

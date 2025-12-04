@@ -14,9 +14,7 @@ import HouseSvg from "@/assets/icons/house.svg";
 import ShippingBoxSvg from "@/assets/icons/shippingbox.svg";
 import { ProfileIcon as ProfileIconSvg } from "@/assets/icons/profile-icon";
 import { MegaphoneIcon } from "@/assets/icons/megaphone-icon";
-import { useTransactionsDot } from "@/hooks/features/transactions";
-import { useNotificationCounters } from "@/hooks/features/notifications";
-import { useUnreadMessagesDot } from "@/hooks/features/messages";
+import { useNotificationBadges } from "@/hooks/features/notifications";
 import { useAuth } from "@/providers/AuthProvider";
 import { useSidebar } from "@/providers/SidebarProvider";
 import * as Haptics from "expo-haptics";
@@ -47,10 +45,8 @@ export function GlobalSidebar({ style, opacity }: GlobalSidebarProps = {}) {
   const pathname = usePathname();
   const segments = useSegments();
   const insets = useSafeAreaInsets();
-  const showTxDotLegacy = useTransactionsDot();
-  const counters = useNotificationCounters();
-  const showTxDot = (counters.reservations + counters.payments) > 0 || showTxDotLegacy;
-  const showMessagesDot = useUnreadMessagesDot();
+  // Hook unificado para todos os badges de notificação
+  const badges = useNotificationBadges();
   const { user } = useAuth();
   const { isOpen, close } = useSidebar();
 
@@ -180,6 +176,18 @@ export function GlobalSidebar({ style, opacity }: GlobalSidebarProps = {}) {
     if (Platform.OS === "ios") {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
+    
+    // Marca como visto quando navega para a tab
+    if (tab.name === "transactions" && badges.transactions) {
+      badges.markAsSeen("transactions").catch(() => {
+        // Ignore errors, será sincronizado depois
+      });
+    } else if (tab.name === "messages" && badges.messages) {
+      badges.markAsSeen("messages").catch(() => {
+        // Ignore errors, será sincronizado depois
+      });
+    }
+    
     router.push(tab.route as any);
     // Close sidebar after navigation (better UX)
     close();
@@ -260,8 +268,17 @@ export function GlobalSidebar({ style, opacity }: GlobalSidebarProps = {}) {
           {[...tabs].sort((a, b) => (a.name === 'index' ? -1 : b.name === 'index' ? 1 : 0)).map((tab) => {
             const isActive = activeTab === tab.name;
             const tabColor = isActive ? brandColor : colors.text.secondary;
-            // Show dot for transactions (messages don't have a menu item yet)
-            const showDot = tab.name === "transactions" && showTxDot;
+            // Mostra dot baseado no tipo de tab usando o sistema unificado
+            const showDot = (() => {
+              switch (tab.name) {
+                case "transactions":
+                  return badges.transactions;
+                case "messages": // Para quando adicionar tab de mensagens
+                  return badges.messages;
+                default:
+                  return false;
+              }
+            })();
             return (
               <TouchableOpacity
                 key={tab.name}

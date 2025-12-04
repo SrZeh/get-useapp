@@ -117,5 +117,11 @@ export interface IReservationService {
     status: ReservationStatus,
     additionalData?: Record<string, unknown>
   ): Promise<void>;
+
+  /**
+   * Close a reservation (marks as closed, hiding it from user lists)
+   * @param reservationId - Reservation ID
+   */
+  closeReservation(reservationId: string): Promise<void>;
 }
 

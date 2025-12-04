@@ -9,6 +9,7 @@ import type { Reservation } from '../types';
 import { RequestActions } from './RequestActions';
 import { AcceptedActions } from './AcceptedActions';
 import { PaidActions } from './PaidActions';
+import { PaidOutActions } from './PaidOutActions';
 import { ReturnActions } from './ReturnActions';
 import { ReturnedActions } from './ReturnedActions';
 
@@ -16,7 +17,7 @@ interface OwnerReservationActionsProps {
   reservation: Reservation;
   onAccept: (id: string) => void;
   onReject: (id: string) => void;
-  onDelete: (id: string) => void;
+  onDelete: (id: string, reservation: Reservation) => void;
   onSyncStripe: () => void;
   onConfirmReturn: (id: string) => void;
   onReviewRenter: (id: string) => void;
@@ -67,8 +68,10 @@ export function OwnerReservationActions({
   if (reservation.status === 'accepted') {
     return (
       <AcceptedActions
+        reservation={reservation}
         paymentMethodType={reservation.paymentMethodType}
         onSyncStripe={onSyncStripe}
+        onDelete={onDelete}
         isSyncing={isSyncing}
       />
     );
@@ -76,7 +79,12 @@ export function OwnerReservationActions({
 
   // Paid status - waiting for pickup
   if (reservation.status === 'paid') {
-    return <PaidActions paymentMethodType={reservation.paymentMethodType} />;
+    return <PaidActions reservation={reservation} paymentMethodType={reservation.paymentMethodType} onDelete={onDelete} />;
+  }
+
+  // Paid out status - payout released, owner can access Mercado Pago
+  if (reservation.status === 'paid_out') {
+    return <PaidOutActions paymentMethodType={reservation.paymentMethodType} />;
   }
 
   // Can confirm return
@@ -96,9 +104,10 @@ export function OwnerReservationActions({
     const reviewsOpen = reservation.reviewsOpen as { ownerCanReviewRenter?: boolean } | undefined;
     return (
       <ReturnedActions
-        reservationId={reservation.id}
+        reservation={reservation}
         canReviewRenter={reviewsOpen?.ownerCanReviewRenter ?? true}
         onReviewRenter={onReviewRenter}
+        onDelete={onDelete}
       />
     );
   }

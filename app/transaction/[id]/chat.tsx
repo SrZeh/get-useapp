@@ -135,6 +135,16 @@ export default function ReservationChatScreen() {
           ) : (
             msgs.map((m) => {
               const mine = m.senderUid === uid;
+              // No dark mode: verde claro (#96ff9a) precisa de texto escuro, verde escuro (#08af0e) precisa de texto branco
+              // No light mode: verde escuro precisa de texto branco
+              const bgColor = mine ? colors.brand.dark : colors.brand.primary;
+              // Simplifica: se é dark mode e usa brand.primary (verde claro), texto escuro
+              // Se é dark mode e usa brand.dark (verde escuro), texto branco
+              // Se é light mode, sempre texto branco (usa verde escuro)
+              const textColor = colors.isDark 
+                ? (!mine ? colors.text.primary : '#ffffff') // Dark: mensagem recebida (verde claro) = texto escuro, enviada (verde escuro) = branco
+                : '#ffffff'; // Light: sempre branco
+              
               return (
                 <View
                   key={m.id}
@@ -146,10 +156,10 @@ export default function ReservationChatScreen() {
                     borderRadius: 12,
                     marginBottom: 8,
                     borderWidth: 2,
-                    backgroundColor: mine ? colors.brand.dark : colors.brand.primary,
+                    backgroundColor: bgColor,
                   }}
                 >
-                  <ThemedText style={{ color: colors.isDark ? colors.text.primary : colors.text.primary }}>
+                  <ThemedText style={{ color: textColor }}>
                     {m.text}
                   </ThemedText>
                 </View>
@@ -188,10 +198,17 @@ export default function ReservationChatScreen() {
               paddingVertical: 10,
               paddingHorizontal: 14,
               borderRadius: 10,
-              backgroundColor: colors.brand.dark,
+              // No dark mode usa verde claro, no light mode usa verde escuro
+              backgroundColor: colors.isDark ? colors.brand.primary : colors.brand.dark,
             }}
           >
-            <ThemedText type="defaultSemiBold" style={{ color: colors.isDark ? colors.text.primary : '#ffffff' }}>
+            <ThemedText 
+              type="defaultSemiBold" 
+              style={{ 
+                // No dark mode com verde claro, usa texto escuro. No light mode com verde escuro, usa branco
+                color: colors.isDark ? colors.text.primary : '#ffffff'
+              }}
+            >
               Enviar
             </ThemedText>
           </TouchableOpacity>

@@ -4,7 +4,7 @@
 import { ThemedText } from "@/components/themed-text";
 import React, { useMemo } from "react";
 import { Dimensions, Modal, Pressable, StyleSheet, View, ViewStyle } from "react-native";
-import { useThemeColors } from "@/utils/theme";
+import { useThemeColors, TEXT_ON_COLOR } from "@/utils/theme";
 import { Spacing, BorderRadius } from "@/constants/spacing";
 
 export function CoachmarkOverlay({ visible, rect, step, next }: { visible: boolean; rect: { x: number; y: number; width: number; height: number } | null; step: { text: string; align?: "top"|"bottom"|"left"|"right" } | null; next: () => void; }) {
@@ -70,14 +70,16 @@ function CoachBubble({ hole, text, align = "bottom", onNext }: { hole: { x: numb
     backgroundColor: colors.brand.primary,
   }), [colors.brand.primary]);
 
-return (
-<View style={[bubbleStyle, styles.bubble, base]}>
-<ThemedText type="subhead" style={{ marginBottom: Spacing.xs }}>{text}</ThemedText>
-<Pressable onPress={onNext} style={[btnStyle, styles.btn]}>
-<ThemedText style={{ fontWeight: "700" }}>Próximo</ThemedText>
-</Pressable>
-</View>
-);
+  const btnTextColor = colors.isDark ? colors.text.primary : TEXT_ON_COLOR.white;
+  
+  return (
+    <View style={[bubbleStyle, styles.bubble, base]}>
+      <ThemedText type="subhead" style={{ marginBottom: Spacing.xs }}>{text}</ThemedText>
+      <Pressable onPress={onNext} style={[btnStyle, styles.btn]}>
+        <ThemedText style={{ fontWeight: "700", color: btnTextColor }}>Próximo</ThemedText>
+      </Pressable>
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({

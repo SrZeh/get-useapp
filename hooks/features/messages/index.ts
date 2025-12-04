@@ -2,7 +2,9 @@
  * Messages Feature Hooks - Barrel Export
  */
 
-// Note: useUnreadMessages.ts actually exports useUnreadMessagesDot
-// Keep both exports for backward compatibility
-export { useUnreadMessagesDot } from './useUnreadMessages';
-export { useUnreadMessagesDot as useUnreadMessagesDotAlt } from './useUnreadMessagesDot';
+// Export principal: use collectionGroup query (mais eficiente)
+export { useUnreadMessagesDot } from './useUnreadMessagesDot';
+
+// Export legado (deprecated): mantido para compatibilidade
+// @deprecated Use useUnreadMessagesDot from './useUnreadMessagesDot' instead
+export { useUnreadMessagesDot as useUnreadMessagesDotLegacy } from './useUnreadMessages';

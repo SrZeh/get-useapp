@@ -47,8 +47,10 @@ export function OwnerInbox() {
       (reservations) => {
         console.log('[OwnerInbox] Received reservations:', reservations.length);
         console.log('[OwnerInbox] Reservations statuses:', reservations.map(r => ({ id: r.id, status: r.status })));
+        // Filtrar reservas closed (ocultas) e manter apenas status ativos
         const keep: Reservation[] = reservations.filter((r) =>
-          ['requested', 'accepted', 'paid', 'picked_up', 'paid_out', 'returned'].includes(r.status)
+          ['requested', 'accepted', 'paid', 'picked_up', 'paid_out', 'returned'].includes(r.status) &&
+          r.status !== 'closed'
         );
         console.log('[OwnerInbox] Filtered reservations:', keep.length, 'Statuses:', keep.map(r => r.status));
         setRows(keep);
@@ -92,13 +94,31 @@ export function OwnerInbox() {
     }
   };
 
-  const removeReq = async (id: string): Promise<void> => {
+  const removeReq = async (id: string, reservation: Reservation): Promise<void> => {
+    // Se pode deletar diretamente (requested, rejected, canceled)
+    const canDelete = ['requested', 'rejected', 'canceled'].includes(reservation.status);
+    
+    if (canDelete) {
+      try {
+        setBusyId(id);
+        await reservationService.deleteReservation(id);
+        Alert.alert('Excluída', 'Reserva removida.');
+      } catch (e: unknown) {
+        handleAsyncError(e, 'Falha ao excluir reserva', { reservationId: id, action: 'delete' });
+      } finally {
+        setBusyId(null);
+      }
+      return;
+    }
+
+    // Para outros status, apenas marca como closed (oculta da lista)
+    // Executa diretamente, igual ao rejectReservation
     try {
       setBusyId(id);
-      await reservationService.deleteReservation(id);
-      Alert.alert('Excluída', 'Reserva removida.');
+      await reservationService.closeReservation(id);
+      Alert.alert('Excluída', 'Reserva removida da sua lista.');
     } catch (e: unknown) {
-      handleAsyncError(e, 'Falha ao excluir reserva', { reservationId: id, action: 'delete' });
+      handleAsyncError(e, 'Falha ao excluir reserva', { reservationId: id, action: 'close' });
     } finally {
       setBusyId(null);
     }

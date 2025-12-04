@@ -2,6 +2,9 @@
  * useUnreadMessages - Hook to check for unread messages
  * 
  * Returns true if the current user has any unread messages.
+ * 
+ * @deprecated Use useUnreadMessagesDot from './useUnreadMessagesDot' instead.
+ * This hook is kept for backward compatibility but will be removed.
  */
 
 import { useEffect, useState } from "react";
@@ -10,6 +13,9 @@ import { db } from "@/lib/firebase";
 import { useAuth } from "@/providers/AuthProvider";
 import { logger } from "@/utils";
 
+/**
+ * @deprecated Use useUnreadMessagesDot from './useUnreadMessagesDot' instead
+ */
 export function useUnreadMessagesDot() {
   const { user } = useAuth();
   const [hasUnread, setHasUnread] = useState(false);

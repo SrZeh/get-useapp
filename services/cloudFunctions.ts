@@ -168,8 +168,9 @@ export async function createMercadoPagoPayment(
   reservationId: string,
   successUrl: string,
   cancelUrl: string,
-  paymentMethod?: "card" | "pix"
+  paymentMethod?: "card" | "pix" // Opcional - não usado mais, mantido para compatibilidade
 ): Promise<{ url: string; preferenceId: string }> {
+  // paymentMethod é opcional - o checkout mostrará TODAS as opções (PIX, cartão, boleto, etc.)
   return callCloudFunction<
     { reservationId: string; successUrl: string; cancelUrl: string; paymentMethod?: "card" | "pix" },
     { url: string; preferenceId: string }
@@ -209,6 +210,20 @@ export async function rejectReservation(reservationId: string, reason?: string):
     { reservationId: string; reason?: string },
     { ok: boolean; prevStatus: string; newStatus: string }
   >("rejectReservation", { reservationId, reason });
+}
+
+export async function closeReservation(reservationId: string): Promise<{ ok: boolean }> {
+  return callCloudFunction<
+    { reservationId: string },
+    { ok: boolean }
+  >("closeReservation", { reservationId });
+}
+
+export async function cancelAcceptedReservation(reservationId: string): Promise<{ ok: boolean; unblockedDays: number; prevStatus: string }> {
+  return callCloudFunction<
+    { reservationId: string },
+    { ok: boolean; unblockedDays: number; prevStatus: string }
+  >("cancelAcceptedReservation", { reservationId });
 }
 
 export async function getAccountStatus(): Promise<{ hasAccount: boolean; charges_enabled: boolean; payouts_enabled: boolean }> {

@@ -12,7 +12,7 @@ interface RequestActionsProps {
   reservation: Reservation;
   onAccept: (id: string) => void;
   onReject: (id: string) => void;
-  onDelete: (id: string) => void;
+  onDelete: (id: string, reservation: Reservation) => void;
   isBusy: boolean;
 }
 
@@ -53,7 +53,7 @@ export function RequestActions({
         <Button
           variant="ghost"
           size="sm"
-          onPress={() => onDelete(reservation.id)}
+          onPress={() => onDelete(reservation.id, reservation)}
           disabled={isBusy}
           loading={isBusy}
           style={{

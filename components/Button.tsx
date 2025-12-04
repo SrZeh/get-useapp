@@ -132,6 +132,10 @@ export function Button({
     };
 
     if (variant === 'premium') {
+      const colors = useThemeColors();
+      // Premium também usa gradiente brand (verde claro) que precisa de texto escuro no dark mode
+      const textColor = colors.isDark ? colors.text.primary : TEXT_ON_COLOR.white;
+      
       return (
         <LinearGradient
           colors={GradientTypes.premium.colors}
@@ -144,12 +148,17 @@ export function Button({
             style,
           ]}
         >
-          {renderButtonContent(TEXT_ON_COLOR.white)}
+          {renderButtonContent(textColor)}
         </LinearGradient>
       );
     }
 
     if (variant === 'primary') {
+      const colors = useThemeColors();
+      // No dark mode, o gradiente brand usa verde claro (#96ff9a) que precisa de texto escuro
+      // No light mode, usa verde escuro que precisa de texto branco
+      const textColor = colors.isDark ? colors.text.primary : TEXT_ON_COLOR.white;
+      
       return (
         <LinearGradient
           colors={GradientTypes.brand.colors}
@@ -162,7 +171,7 @@ export function Button({
             style,
           ]}
         >
-          {renderButtonContent(TEXT_ON_COLOR.white)}
+          {renderButtonContent(textColor)}
         </LinearGradient>
       );
     }

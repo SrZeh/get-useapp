@@ -8,6 +8,7 @@ import { LiquidGlassView } from '@/components/liquid-glass';
 import { ThemedText } from '@/components/themed-text';
 import { BorderRadius, Spacing } from '@/constants/spacing';
 import { useThemeColors } from '@/utils/theme';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Picker } from '@react-native-picker/picker';
 import React, { memo } from 'react';
 import { View, ViewStyle } from 'react-native';
@@ -51,6 +52,11 @@ export const PriceInputFilter = memo(function PriceInputFilter({
   style,
 }: PriceInputFilterProps) {
   const colors = useThemeColors();
+  const colorScheme = useColorScheme() ?? 'light';
+  const isDark = colorScheme === 'dark';
+  
+  // Use darker green (#4CAF50) in light theme, default green (#96FF9A) in dark theme
+  const iconColor = isDark ? '#96FF9A' : '#4CAF50';
 
   const minPriceId = getValueId(minPrice);
   const maxPriceId = getValueId(maxPrice);
@@ -76,6 +82,7 @@ export const PriceInputFilter = memo(function PriceInputFilter({
               <ValorMinIcon
                 width={18}
                 height={18}
+                color={iconColor}
               />
               <ThemedText
                 type="caption-1"
@@ -128,6 +135,7 @@ export const PriceInputFilter = memo(function PriceInputFilter({
               <ValorMaxIcon
                 width={18}
                 height={18}
+                color={iconColor}
               />
               <ThemedText
                 type="caption-1"

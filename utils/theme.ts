@@ -217,11 +217,13 @@ export function useChipColors(selected: boolean) {
   const colors = useThemeColors();
   
   // Theme-aware brand color for chips
-  const brandBgColor = colors.isDark ? ExtendedColors.brand.darkMode : ExtendedColors.brand.lightMode;
+  // No dark mode usa verde claro (#96ff9a), no light mode usa verde escuro (#08af0e)
+  const brandBgColor = colors.isDark ? colors.brand.primary : colors.brand.dark;
   
   return {
     bg: selected ? brandBgColor : 'transparent',
     border: selected ? 'transparent' : colors.border.default,
+    // No dark mode com verde claro, usa texto escuro. No light mode com verde escuro, usa branco
     text: selected
       ? (colors.isDark ? colors.text.primary : '#ffffff')
       : colors.text.tertiary,

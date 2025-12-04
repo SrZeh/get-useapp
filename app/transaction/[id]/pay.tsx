@@ -25,7 +25,6 @@ export default function PayScreen() {
   const insets = useSafeAreaInsets();
 
   const [busyCheckout, setBusyCheckout] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState<"card" | "pix">("card");
   const [preferenceId, setPreferenceId] = useState<string | null>(null);
   
   // Detectar retorno do pagamento via deep link
@@ -99,11 +98,12 @@ export default function PayScreen() {
       setBusyCheckout(true);
       console.log('[PayScreen] Iniciando checkout...');
       console.log('[PayScreen] Platform:', Platform.OS);
-      console.log('[PayScreen] Payment method:', paymentMethod);
+      console.log('[PayScreen] ✅ Checkout mostrará TODAS as opções (PIX, cartão, boleto, etc.)');
       console.log('[PayScreen] Chamando createMercadoPagoPayment...');
       
       console.log('[PayScreen] Aguardando resposta da função...');
-      const result = await createMercadoPagoPayment(id, successUrl, cancelUrl, paymentMethod);
+      // Não passar paymentMethod - o checkout mostrará todas as opções
+      const result = await createMercadoPagoPayment(id, successUrl, cancelUrl);
       console.log('[PayScreen] ✅ Resposta recebida:', result);
       
       if (!result?.url && !result?.preferenceId) {
@@ -137,31 +137,71 @@ export default function PayScreen() {
         // Resetar busyCheckout antes de abrir browser (para não travar UI)
         setBusyCheckout(false);
         
-        // Abrir browser de forma não-bloqueante
-        // Não usar await para não travar a UI
-        WebBrowser.openBrowserAsync(result.url, {
-          presentationStyle: WebBrowserPresentationStyle.AUTOMATIC,
-          enableBarCollapsing: false,
-        })
-          .then((browserResult) => {
-            console.log('[PayScreen] Browser aberto. Result:', browserResult);
-            console.log('[PayScreen] Tipo de resultado:', browserResult.type);
+        // No web, abrir checkout
+        if (Platform.OS === 'web' && typeof window !== 'undefined') {
+          // Para web mobile, abrir na mesma janela (melhor compatibilidade)
+          // Para desktop, tentar popup primeiro, se falhar abre na mesma janela
+          const isMobileWeb = window.innerWidth < 768;
+          
+          if (isMobileWeb) {
+            // Mobile web: abrir na mesma janela (evita problemas de CSP/cookies em popups)
+            console.log('[PayScreen] Web mobile detectado - abrindo na mesma janela');
+            window.location.href = result.url;
+          } else {
+            // Desktop: tentar popup primeiro
+            const width = Math.min(600, window.innerWidth - 40);
+            const height = Math.min(900, window.innerHeight - 40);
+            const left = (window.innerWidth - width) / 2;
+            const top = (window.innerHeight - height) / 2;
             
-            // Se o usuário cancelou, não é erro
-            if (browserResult.type === 'cancel') {
-              console.log('[PayScreen] Usuário cancelou o checkout');
-            }
-            
-            // Após pagar, o usuário será redirecionado automaticamente pelo Mercado Pago.
-            // O webhook do Mercado Pago marca como "paid" automaticamente.
-          })
-          .catch((browserError) => {
-            console.error('[PayScreen] Erro ao abrir browser:', browserError);
-            Alert.alert(
-              "Erro ao abrir checkout",
-              "Não foi possível abrir o checkout do Mercado Pago. Verifique sua conexão e tente novamente."
+            const newWindow = window.open(
+              result.url,
+              'mercadoPagoCheckout',
+              `width=${width},height=${height},left=${left},top=${top},resizable=yes,scrollbars=yes`
             );
-          });
+            
+            if (!newWindow) {
+              // Se popup foi bloqueado, abrir na mesma janela
+              console.log('[PayScreen] Popup bloqueado - abrindo na mesma janela');
+              window.location.href = result.url;
+            } else {
+              // Monitorar quando a janela fechar
+              const checkClosed = setInterval(() => {
+                if (newWindow.closed) {
+                  clearInterval(checkClosed);
+                  console.log('[PayScreen] Janela do checkout fechada');
+                }
+              }, 500);
+            }
+          }
+        } else {
+          // Mobile: usar WebBrowser
+          WebBrowser.openBrowserAsync(result.url, {
+            presentationStyle: Platform.OS === 'ios' 
+              ? WebBrowserPresentationStyle.FULLSCREEN 
+              : WebBrowserPresentationStyle.AUTOMATIC,
+            enableBarCollapsing: false,
+          })
+            .then((browserResult) => {
+              console.log('[PayScreen] Browser aberto. Result:', browserResult);
+              console.log('[PayScreen] Tipo de resultado:', browserResult.type);
+              
+              // Se o usuário cancelou, não é erro
+              if (browserResult.type === 'cancel') {
+                console.log('[PayScreen] Usuário cancelou o checkout');
+              }
+              
+              // Após pagar, o usuário será redirecionado automaticamente pelo Mercado Pago.
+              // O webhook do Mercado Pago marca como "paid" automaticamente.
+            })
+            .catch((browserError) => {
+              console.error('[PayScreen] Erro ao abrir browser:', browserError);
+              Alert.alert(
+                "Erro ao abrir checkout",
+                "Não foi possível abrir o checkout do Mercado Pago. Verifique sua conexão e tente novamente."
+              );
+            });
+        }
       } else {
         throw new Error('URL do checkout não foi retornada');
       }
@@ -201,66 +241,32 @@ export default function PayScreen() {
         <ThemedText type="title">Pagamento</ThemedText>
         <ThemedText style={{ marginTop: 8, opacity: 0.8 }}>
           Você será redirecionado ao Checkout seguro do Mercado Pago.
-          Escolha o método de pagamento e conclua sua compra.
+          Lá você poderá escolher entre PIX, cartão de crédito, cartão de débito, boleto e outros métodos disponíveis.
         </ThemedText>
 
         <View style={{ marginTop: 20, gap: 12 }}>
-          <ThemedText type="callout" style={{ marginBottom: 8 }}>
-            Escolha o método de pagamento:
-          </ThemedText>
-          
-          <View style={{ flexDirection: "row", gap: 12, marginBottom: 16 }}>
-            <TouchableOpacity
-              onPress={() => setPaymentMethod("card")}
-              style={{
-                flex: 1,
-                paddingVertical: 12,
-                paddingHorizontal: 16,
-                borderRadius: 10,
-                borderWidth: 2,
-                borderColor: paymentMethod === "card" ? colors.brand.primary : colors.border.default,
-                backgroundColor: paymentMethod === "card" ? `${colors.brand.primary}20` : "transparent",
-                alignItems: "center",
-              }}
-            >
-              <ThemedText type="defaultSemiBold">💳 Cartão</ThemedText>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              onPress={() => setPaymentMethod("pix")}
-              style={{
-                flex: 1,
-                paddingVertical: 12,
-                paddingHorizontal: 16,
-                borderRadius: 10,
-                borderWidth: 2,
-                borderColor: paymentMethod === "pix" ? colors.brand.primary : colors.border.default,
-                backgroundColor: paymentMethod === "pix" ? `${colors.brand.primary}20` : "transparent",
-                alignItems: "center",
-              }}
-            >
-              <ThemedText type="defaultSemiBold">🔷 PIX</ThemedText>
-            </TouchableOpacity>
-          </View>
 
           {/* No mobile, mostrar botão para abrir browser */}
           {Platform.OS !== 'web' && (
             <TouchableOpacity
               onPress={startCheckout}
-              disabled={busyCheckout}
+              disabled={busyCheckout || !id || !uid}
               style={{
                 alignSelf: "center",
                 paddingVertical: 14,
                 paddingHorizontal: 24,
                 borderRadius: 10,
-                backgroundColor: colors.brand.primary,
+                backgroundColor: (busyCheckout || !id || !uid) 
+                  ? colors.border.default 
+                  : colors.brand.primary,
                 minWidth: 200,
                 alignItems: "center",
+                opacity: (busyCheckout || !id || !uid) ? 0.6 : 1,
               }}
             >
               {busyCheckout
                 ? <ActivityIndicator color={colors.isDark ? colors.text.primary : "#ffffff"} />
-                : <ThemedText type="defaultSemiBold" style={{ color: colors.isDark ? colors.text.primary : "#ffffff" }}>
+                : <ThemedText type="defaultSemiBold" style={{ color: (busyCheckout || !id || !uid) ? colors.text.secondary : (colors.isDark ? colors.text.primary : "#ffffff") }}>
                     Pagar com Mercado Pago
                   </ThemedText>}
             </TouchableOpacity>
@@ -272,20 +278,23 @@ export default function PayScreen() {
               {!preferenceId ? (
                 <TouchableOpacity
                   onPress={startCheckout}
-                  disabled={busyCheckout}
+                  disabled={busyCheckout || !id || !uid}
                   style={{
                     alignSelf: "center",
                     paddingVertical: 14,
                     paddingHorizontal: 24,
                     borderRadius: 10,
-                    backgroundColor: colors.brand.primary,
+                    backgroundColor: (busyCheckout || !id || !uid) 
+                      ? colors.border.default 
+                      : colors.brand.primary,
                     minWidth: 200,
                     alignItems: "center",
+                    opacity: (busyCheckout || !id || !uid) ? 0.6 : 1,
                   }}
                 >
                   {busyCheckout
                     ? <ActivityIndicator color={colors.isDark ? colors.text.primary : "#ffffff"} />
-                    : <ThemedText type="defaultSemiBold" style={{ color: colors.isDark ? colors.text.primary : "#ffffff" }}>
+                    : <ThemedText type="defaultSemiBold" style={{ color: (busyCheckout || !id || !uid) ? colors.text.secondary : (colors.isDark ? colors.text.primary : "#ffffff") }}>
                         Iniciar Pagamento
                       </ThemedText>}
                 </TouchableOpacity>

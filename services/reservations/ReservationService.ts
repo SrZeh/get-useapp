@@ -458,12 +458,35 @@ export async function updateReservationStatus(
   status: ReservationStatus,
   additionalData?: Record<string, unknown>
 ): Promise<void> {
+  console.log('[ReservationService] updateReservationStatus called:', { reservationId, status, additionalData });
   const updateData: Record<string, unknown> = {
     status,
     updatedAt: serverTimestamp(),
     ...additionalData,
   };
 
-  await updateDoc(doc(db, RESERVATIONS_PATH, reservationId), updateData);
+  try {
+    await updateDoc(doc(db, RESERVATIONS_PATH, reservationId), updateData);
+    console.log('[ReservationService] updateReservationStatus succeeded');
+  } catch (error: any) {
+    console.error('[ReservationService] updateReservationStatus failed:', {
+      code: error?.code,
+      message: error?.message,
+      reservationId,
+      status,
+    });
+    throw error;
+  }
+}
+
+/**
+ * Close a reservation (marks as closed, hiding it from user lists)
+ * Can only be done before paid_out status
+ * Uses Cloud Function to ensure proper permissions
+ * @param reservationId - Reservation ID
+ */
+export async function closeReservation(reservationId: string): Promise<void> {
+  const { closeReservation: closeReservationCF } = await import('@/services/cloudFunctions');
+  await closeReservationCF(reservationId);
 }
 

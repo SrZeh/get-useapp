@@ -4,7 +4,7 @@ import { ThemedText } from '@/components/themed-text';
 import { LiquidGlassView } from '@/components/liquid-glass';
 import { ReservationCard } from '@/components/ReservationCard';
 import { auth } from '@/lib/firebase';
-import { markPickup, cancelWithRefund as cancelWithRefundService } from '@/services/cloudFunctions';
+import { markPickup, cancelWithRefund as cancelWithRefundService, cancelAcceptedReservation, releasePayoutToOwner } from '@/services/cloudFunctions';
 
 import type { Reservation } from './types';
 import { useReservationService, useNavigationService } from '@/providers/ServicesProvider';
@@ -47,18 +47,37 @@ export function MyReservations() {
         acc[r.status] = (acc[r.status] || 0) + 1;
         return acc;
       }, {} as Record<string, number>));
-      setRows(reservations);
+      // Filtrar reservas closed (ocultas)
+      const visible = reservations.filter((r) => r.status !== 'closed');
+      setRows(visible);
     });
     return () => unsub();
   }, [uid, reservationService]);
 
   const removeMine = async (id: string, reservation: Reservation): Promise<void> => {
+    // Se pode deletar diretamente (requested, rejected, canceled)
+    const canDelete = ['requested', 'rejected', 'canceled'].includes(reservation.status);
+    
+    if (canDelete) {
+      try {
+        await reservationService.deleteReservation(id);
+        Alert.alert('Excluída', 'Reserva removida da sua lista.');
+      } catch (e: unknown) {
+        const error = e as { message?: string };
+        Alert.alert('Falha ao excluir', error?.message ?? String(e));
+      }
+      return;
+    }
+
+    // Para outros status, apenas marca como closed (oculta da lista)
+    // Executa diretamente, igual ao rejectReservation
     try {
-      await reservationService.deleteReservation(id);
+      await reservationService.closeReservation(id);
       Alert.alert('Excluída', 'Reserva removida da sua lista.');
     } catch (e: unknown) {
-      const error = e as { message?: string };
-      Alert.alert('Falha ao excluir', error?.message ?? String(e));
+      const error = e as { message?: string; code?: string };
+      const errorMessage = error?.message ?? error?.code ?? String(e);
+      Alert.alert('Falha ao excluir', errorMessage);
     }
   };
 
@@ -88,6 +107,56 @@ export function MyReservations() {
     }
   }
 
+  const cancelAccepted = (reservationId: string) => {
+    console.log('[MyReservations] cancelAccepted called for:', reservationId);
+    Alert.alert(
+      'Cancelar reserva',
+      'Tem certeza que deseja cancelar esta reserva? A ação não pode ser desfeita.',
+      [
+        { text: 'Não', style: 'cancel' },
+        {
+          text: 'Sim, cancelar',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              console.log('[MyReservations] Calling cancelAcceptedReservation for:', reservationId);
+              await cancelAcceptedReservation(reservationId);
+              console.log('[MyReservations] cancelAcceptedReservation succeeded');
+              Alert.alert('Cancelada', 'Reserva cancelada com sucesso.');
+            } catch (e: unknown) {
+              console.error('[MyReservations] cancelAcceptedReservation error:', e);
+              const error = e as { message?: string };
+              Alert.alert('Não foi possível cancelar', error?.message ?? 'Tente novamente.');
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  async function releasePayout(reservationId: string): Promise<void> {
+    Alert.alert(
+      'Liberar valor para o dono',
+      'Confirme que você recebeu o item e está conforme o anúncio. Esta ação liberará o pagamento para o dono.',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Sim, liberar',
+          style: 'default',
+          onPress: async () => {
+            try {
+              await releasePayoutToOwner(reservationId);
+              Alert.alert('Liberado', 'O valor foi liberado para o dono. Ele pode acessar o Mercado Pago para sacar.');
+            } catch (e: unknown) {
+              const error = e as { message?: string };
+              Alert.alert('Não foi possível liberar', error?.message ?? 'Tente novamente.');
+            }
+          },
+        },
+      ]
+    );
+  }
+
 
   return (
     <ScrollView style={{ padding: Spacing.sm }} contentContainerStyle={{ paddingBottom: 0 }}>
@@ -108,7 +177,9 @@ export function MyReservations() {
                   reservation={r}
                   onPay={(id) => navigation.navigateToPayment(id)}
                   onMarkReceived={markReceived}
+                  onReleasePayout={releasePayout}
                   onCancelWithRefund={cancelWithRefund}
+                  onCancelAccepted={cancelAccepted}
                   onDelete={removeMine}
                   onReview={(id) => navigation.navigateToReview(id)}
                   isMarkingReceived={busyPickId === r.id}

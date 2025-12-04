@@ -1,8 +1,9 @@
 /**
  * TransactionsTabs - Tab switcher component for transactions screen
  * 
- * Handles tab switching between "Minhas reservas" (renter) and "Recebidas" (owner)
+ * Handles tab switching between "Recebidas" (owner) and "Minhas reservas" (renter)
  * with animated sliding pill indicator.
+ * Tabs are ordered: Recebidas (left), Minhas reservas (right)
  * 
  * Extracted from route file to follow thin route pattern.
  */
@@ -42,7 +43,8 @@ export function TransactionsTabs({ defaultTab = 'renter' }: TransactionsTabsProp
 
   // Update animation when tab changes
   useEffect(() => {
-    const target = tab === 'renter' ? tab0Layout.current : tab1Layout.current;
+    // Invertido: tab0 = owner, tab1 = renter
+    const target = tab === 'owner' ? tab0Layout.current : tab1Layout.current;
 
     Animated.parallel([
       Animated.spring(slidePosition, {
@@ -60,15 +62,16 @@ export function TransactionsTabs({ defaultTab = 'renter' }: TransactionsTabsProp
 
   const handleTabLayout = (index: number) => (event: LayoutChangeEvent) => {
     const { width, x } = event.nativeEvent.layout;
+    // Invertido: index 0 = owner (Recebidas), index 1 = renter (Minhas reservas)
     if (index === 0) {
       tab0Layout.current = { width, x };
-      if (tab === 'renter') {
+      if (tab === 'owner') {
         slidePosition.setValue(x);
         slideWidth.setValue(width);
       }
     } else {
       tab1Layout.current = { width, x };
-      if (tab === 'owner') {
+      if (tab === 'renter') {
         slidePosition.setValue(x);
         slideWidth.setValue(width);
       }
@@ -113,31 +116,10 @@ export function TransactionsTabs({ defaultTab = 'renter' }: TransactionsTabsProp
               }}
             />
 
-            {/* Tab Buttons */}
-            <TouchableOpacity
-              onPress={() => handleTabChange('renter')}
-              onLayout={handleTabLayout(0)}
-              style={{
-                flex: 1,
-                paddingVertical: Spacing.xs,
-                paddingHorizontal: Spacing.sm,
-                zIndex: 1,
-              }}
-            >
-              <ThemedText
-                type={tab === 'renter' ? 'defaultSemiBold' : 'default'}
-                style={{
-                  textAlign: 'center',
-                  color: tab === 'renter' ? brandColor : colors.text.secondary,
-                }}
-              >
-                Minhas reservas
-              </ThemedText>
-            </TouchableOpacity>
-
+            {/* Tab Buttons - Inverted: Recebidas first, Minhas reservas second */}
             <TouchableOpacity
               onPress={() => handleTabChange('owner')}
-              onLayout={handleTabLayout(1)}
+              onLayout={handleTabLayout(0)}
               style={{
                 flex: 1,
                 paddingVertical: Spacing.xs,
@@ -153,6 +135,27 @@ export function TransactionsTabs({ defaultTab = 'renter' }: TransactionsTabsProp
                 }}
               >
                 Recebidas
+              </ThemedText>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={() => handleTabChange('renter')}
+              onLayout={handleTabLayout(1)}
+              style={{
+                flex: 1,
+                paddingVertical: Spacing.xs,
+                paddingHorizontal: Spacing.sm,
+                zIndex: 1,
+              }}
+            >
+              <ThemedText
+                type={tab === 'renter' ? 'defaultSemiBold' : 'default'}
+                style={{
+                  textAlign: 'center',
+                  color: tab === 'renter' ? brandColor : colors.text.secondary,
+                }}
+              >
+                Minhas reservas
               </ThemedText>
             </TouchableOpacity>
           </View>
