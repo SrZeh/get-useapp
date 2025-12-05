@@ -4,31 +4,29 @@
  * Lists active help requests from the community
  */
 
-import React, { useMemo, useCallback, useState } from 'react';
-import { ScrollView, View, StyleSheet, TouchableOpacity, FlatList } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
-import { ThemedView } from '@/components/themed-view';
-import { ThemedText } from '@/components/themed-text';
-import { Spacing } from '@/constants/spacing';
-import { useThemeColors } from '@/utils';
-import { EmptyState } from '@/components/states';
 import { Button } from '@/components/Button';
-import { Ionicons } from '@expo/vector-icons';
-import { useItemList, useUserItems } from '@/hooks/features/items';
 import { ItemCard } from '@/components/features/items';
+import { EmptyState } from '@/components/states';
+import { ThemedText } from '@/components/themed-text';
+import { ThemedView } from '@/components/themed-view';
+import { FIRESTORE_COLLECTIONS } from '@/constants/api';
+import { Spacing } from '@/constants/spacing';
+import { useItemList, useItemOperations, useUserItems } from '@/hooks/features/items';
 import { useResponsive } from '@/hooks/useResponsive';
 import { auth, db } from '@/lib/firebase';
-import { doc, onSnapshot, updateDoc, serverTimestamp, getDoc } from 'firebase/firestore';
-import { callCloudFunction } from '@/services/cloudFunctions';
-import { FIRESTORE_COLLECTIONS } from '@/constants/api';
-import type { Item, Reservation } from '@/types';
-import { isRequestItem, isRequestExpired } from '@/utils/itemRequest';
-import { useItemOperations } from '@/hooks/features/items';
-import { repeatRequest } from '@/services/items/repeatRequest';
-import { HapticFeedback } from '@/utils';
-import { useItemsStore } from '@/stores/itemsStore';
 import { useReservationService } from '@/providers/ServicesProvider';
+import { callCloudFunction } from '@/services/cloudFunctions';
+import { repeatRequest } from '@/services/items/repeatRequest';
+import { useItemsStore } from '@/stores/itemsStore';
+import type { Item, Reservation } from '@/types';
+import { HapticFeedback, useThemeColors } from '@/utils';
+import { isRequestExpired, isRequestItem } from '@/utils/itemRequest';
+import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
+import { doc, getDoc, onSnapshot, serverTimestamp, updateDoc } from 'firebase/firestore';
+import React, { useCallback, useMemo, useState } from 'react';
+import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 /**
  * MyRequestCard - Component for displaying user's own request with offered items
@@ -305,9 +303,16 @@ export default function HelpRequestsScreen() {
       return request;
     });
     
-    // Update ref with current active request IDs
-    activeRequestIdsRef.current = new Set(merged.map(r => r.id));
-    console.log('[HelpRequestsScreen] Updated activeRequestIdsRef:', Array.from(activeRequestIdsRef.current));
+    // Update ref with current active request IDs - only update if we have requests
+    // This prevents clearing the ref when myRequests is temporarily empty during re-renders
+    if (merged.length > 0) {
+      activeRequestIdsRef.current = new Set(merged.map(r => r.id));
+      console.log('[HelpRequestsScreen] Updated activeRequestIdsRef:', Array.from(activeRequestIdsRef.current));
+    } else {
+      // Only clear if we're sure there are no requests (not just during a re-render)
+      // Keep the previous value to avoid race conditions
+      console.log('[HelpRequestsScreen] myRequestsWithUpdates is empty, keeping previous activeRequestIdsRef:', Array.from(activeRequestIdsRef.current));
+    }
     
     console.log('[HelpRequestsScreen] All merged requests:', merged.map(r => ({
       id: r.id,
@@ -351,9 +356,14 @@ export default function HelpRequestsScreen() {
   }, [myRequestsWithUpdates]);
 
   // Update ref when myRequestsWithUpdates changes (separate effect to ensure timing)
+  // Only update if we have requests to avoid clearing during re-renders
   React.useEffect(() => {
-    activeRequestIdsRef.current = new Set(myRequestsWithUpdates.map(r => r.id));
-    console.log('[HelpRequestsScreen] Updated activeRequestIdsRef via useEffect:', Array.from(activeRequestIdsRef.current));
+    if (myRequestsWithUpdates.length > 0) {
+      activeRequestIdsRef.current = new Set(myRequestsWithUpdates.map(r => r.id));
+      console.log('[HelpRequestsScreen] Updated activeRequestIdsRef via useEffect:', Array.from(activeRequestIdsRef.current));
+    } else {
+      console.log('[HelpRequestsScreen] myRequestsWithUpdates is empty in useEffect, keeping previous ref:', Array.from(activeRequestIdsRef.current));
+    }
   }, [myRequestsWithUpdates]);
 
   // Subscribe to help offer reservations (where user is the owner - needs help)
@@ -362,6 +372,7 @@ export default function HelpRequestsScreen() {
       me, 
       hasReservationService: !!reservationService,
       reservationServiceType: typeof reservationService,
+      activeRequestIds: Array.from(activeRequestIdsRef.current),
     });
     
     if (!me) {
@@ -372,9 +383,14 @@ export default function HelpRequestsScreen() {
       return;
     }
 
+    if (!reservationService) {
+      console.log('[HelpRequestsScreen] No reservationService yet, waiting...');
+      return;
+    }
+
     console.log('[HelpRequestsScreen] Subscribing to help offer reservations for user:', me);
     console.log('[HelpRequestsScreen] ReservationService check:', {
-      hasSubscribeToHelpOfferReservations: typeof reservationService.subscribeToHelpOfferReservations === 'function',
+      hasSubscribeToHelpOfferReservations: typeof reservationService?.subscribeToHelpOfferReservations === 'function',
       reservationServiceType: typeof reservationService,
       reservationServiceKeys: Object.keys(reservationService || {}),
       reservationServiceConstructor: reservationService?.constructor?.name,
@@ -391,6 +407,7 @@ export default function HelpRequestsScreen() {
     }
 
     console.log('[HelpRequestsScreen] ✅ Method exists, calling subscribeToHelpOfferReservations...');
+    console.log('[HelpRequestsScreen] Current activeRequestIds before subscription:', Array.from(activeRequestIdsRef.current));
     
     // Use the new dedicated function for help offers
     const unsubscribe = reservationService.subscribeToHelpOfferReservations(
@@ -408,33 +425,55 @@ export default function HelpRequestsScreen() {
           })),
         });
         
-        // Get active request IDs from ref (updated by myRequestsWithUpdates useMemo)
-        const activeRequestIds = activeRequestIdsRef.current;
-        console.log('[HelpRequestsScreen] Active request IDs:', Array.from(activeRequestIds));
+        // Get current active request IDs (use ref for latest value)
+        const currentActiveRequestIds = activeRequestIdsRef.current;
+        const currentDiscardedIds = discardedReservationIds;
+        
+        console.log('[HelpRequestsScreen] 📥 Help offer reservations callback received:', {
+          totalHelpOffers: helpOffers.length,
+          activeRequestIds: Array.from(currentActiveRequestIds),
+          activeRequestIdsSize: currentActiveRequestIds.size,
+          discardedIds: Array.from(currentDiscardedIds),
+          helpOffersDetails: helpOffers.map(r => ({
+            id: r.id,
+            itemId: r.itemId,
+            helpRequestId: (r as Reservation & { helpRequestId?: string }).helpRequestId,
+            status: r.status,
+            isHelpOffer: (r as Reservation & { isHelpOffer?: boolean }).isHelpOffer,
+          })),
+        });
         
         // Filter help offers:
         // 1. Only show those linked to active requests (helpRequestId must be in activeRequestIds)
         // 2. Exclude locally discarded reservations
+        // 3. Only show requested status (not rejected, accepted, etc.)
         const filteredHelpOffers = helpOffers.filter((r) => {
           const helpRequestId = (r as Reservation & { helpRequestId?: string }).helpRequestId;
-          const isLinkedToActiveRequest = helpRequestId && activeRequestIds.has(helpRequestId);
-          const isNotDiscarded = !discardedReservationIds.has(r.id);
+          const isLinkedToActiveRequest = helpRequestId && currentActiveRequestIds.has(helpRequestId);
+          const isNotDiscarded = !currentDiscardedIds.has(r.id);
+          const isRequested = r.status === 'requested';
           
-          if (!isLinkedToActiveRequest && helpRequestId) {
-            console.log('[HelpRequestsScreen] Filtering out help offer - request not active:', {
+          const shouldInclude = isLinkedToActiveRequest && isNotDiscarded && isRequested;
+          
+          if (!shouldInclude) {
+            console.log('[HelpRequestsScreen] ❌ Filtering out help offer:', {
               reservationId: r.id,
               helpRequestId,
-              activeRequestIds: Array.from(activeRequestIds),
+              isLinkedToActiveRequest,
+              isNotDiscarded,
+              isRequested,
+              activeRequestIds: Array.from(currentActiveRequestIds),
+              helpRequestIdInActive: helpRequestId ? currentActiveRequestIds.has(helpRequestId) : false,
             });
           }
           
-          return isLinkedToActiveRequest && isNotDiscarded;
+          return shouldInclude;
         });
         
         console.log('[HelpRequestsScreen] Filtered help offers:', {
           total: helpOffers.length,
           filtered: filteredHelpOffers.length,
-          activeRequests: activeRequestIds.size,
+          activeRequests: currentActiveRequestIds.size,
         });
         
         setHelpOfferReservations(filteredHelpOffers);
@@ -475,8 +514,11 @@ export default function HelpRequestsScreen() {
       }
     );
 
-    return () => unsubscribe();
-  }, [me, reservationService, getItem, discardedReservationIds]);
+    return () => {
+      console.log('[HelpRequestsScreen] Cleaning up help offers subscription');
+      unsubscribe();
+    };
+  }, [me, reservationService, getItem]);
 
   const handleCreatePress = () => {
     router.push('/help/new');
@@ -594,6 +636,8 @@ export default function HelpRequestsScreen() {
             
             const resData = resSnap.data();
             // Validação básica: verificar se o usuário tem permissão
+            // Para ofertas de ajuda (isHelpOffer), o itemOwnerUid é quem precisa de ajuda (pode rejeitar)
+            // Para reservas normais, o itemOwnerUid é o dono do item (pode rejeitar)
             if (resData.itemOwnerUid !== me) {
               throw new Error('Sem permissão para rejeitar esta reserva');
             }
@@ -822,7 +866,7 @@ export default function HelpRequestsScreen() {
                       <View style={{ 
                         marginTop: Spacing.xs, 
                         zIndex: 10, 
-                        height: 48, // Altura fixa para garantir consistência
+                        minHeight: 40,
                         justifyContent: 'center',
                         flexShrink: 0,
                       }}>
@@ -833,13 +877,7 @@ export default function HelpRequestsScreen() {
                                 console.log('[Button] Descartar - Already processing:', reservationId);
                                 return;
                               }
-                              console.log('[Button] Descartar pressed for reservation:', reservationId, {
-                                reservation: {
-                                  id: reservation.id,
-                                  itemId: reservation.itemId,
-                                  helpRequestId: (reservation as Reservation & { helpRequestId?: string }).helpRequestId,
-                                },
-                              });
+                              console.log('[Button] Descartar pressed for reservation:', reservationId);
                               handleDiscardHelpOffer(reservation);
                             }}
                             disabled={isProcessingOffer}
@@ -854,7 +892,7 @@ export default function HelpRequestsScreen() {
                                 justifyContent: 'center',
                                 flexDirection: 'row',
                                 gap: Spacing.xs,
-                                height: 40, // Altura fixa do botão
+                                minHeight: 40,
                               },
                             ]}
                             activeOpacity={0.7}
@@ -866,7 +904,7 @@ export default function HelpRequestsScreen() {
                           </TouchableOpacity>
                         ) : (
                           <View style={{ 
-                            height: 40, // Mesma altura do botão para manter consistência
+                            minHeight: 40,
                             justifyContent: 'center',
                             alignItems: 'center',
                           }}>

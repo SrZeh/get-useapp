@@ -201,26 +201,34 @@ export function subscribeToHelpOfferReservations(
     return () => {}; // Return no-op unsubscribe
   }
 
-  // Query for help offers: itemOwnerUid == ownerUid AND isHelpOffer == true
-  // Note: We can't use where('isHelpOffer', '==', true) directly because Firestore
-  // requires an index for compound queries. So we'll filter in memory.
-  const q = query(
-    collection(db, RESERVATIONS_PATH),
-    where('itemOwnerUid', '==', ownerUid)
-  );
+      // Query for help offers: itemOwnerUid == ownerUid AND isHelpOffer == true
+      // Para reservas de socorro: itemOwnerUid = quem precisa de ajuda (quem recebe a oferta)
+      // renterUid = quem oferece (quem está oferecendo o item)
+      // Note: We can't use where('isHelpOffer', '==', true) directly because Firestore
+      // requires an index for compound queries. So we'll filter in memory.
+      const q = query(
+        collection(db, RESERVATIONS_PATH),
+        where('itemOwnerUid', '==', ownerUid)
+      );
+
+  console.log('[ReservationService] Setting up onSnapshot listener for help offers', {
+    ownerUid,
+    queryPath: RESERVATIONS_PATH,
+  });
 
   return onSnapshot(
     q,
     (snap) => {
-      console.log('[ReservationService] Help offers snapshot received', { 
+      console.log('[ReservationService] 🔔 Help offers snapshot received', { 
         size: snap.size, 
         empty: snap.empty,
         hasPendingWrites: snap.metadata.hasPendingWrites,
-        fromCache: snap.metadata.fromCache
+        fromCache: snap.metadata.fromCache,
+        docsCount: snap.docs.length,
       });
       
       if (snap.empty) {
-        console.log('[ReservationService] Snapshot is empty - no reservations found');
+        console.log('[ReservationService] ⚠️ Snapshot is empty - no reservations found for ownerUid:', ownerUid);
         callback([]);
         return;
       }
@@ -228,21 +236,35 @@ export function subscribeToHelpOfferReservations(
       const all = snap.docs.map((d) => {
         const data = d.data();
         const reservation = { id: d.id, ...(data as Partial<Reservation>) } as Reservation;
+        const isHelpOffer = (reservation as Reservation & { isHelpOffer?: boolean }).isHelpOffer;
         console.log('[ReservationService] Reservation doc:', { 
           id: d.id, 
           status: reservation.status, 
           itemOwnerUid: reservation.itemOwnerUid,
           renterUid: reservation.renterUid,
-          isHelpOffer: (reservation as Reservation & { isHelpOffer?: boolean }).isHelpOffer,
+          isHelpOffer: isHelpOffer,
           itemId: reservation.itemId,
+          queryOwnerUid: ownerUid,
+          matchesItemOwnerUid: reservation.itemOwnerUid === ownerUid,
         });
         return reservation;
       });
 
       // Filter only help offers that are not rejected
-      const helpOffers = all.filter(
-        (r) => (r as Reservation & { isHelpOffer?: boolean }).isHelpOffer === true && r.status === 'requested'
-      );
+      const helpOffers = all.filter((r) => {
+        const isHelpOffer = (r as Reservation & { isHelpOffer?: boolean }).isHelpOffer === true;
+        const isRequested = r.status === 'requested';
+        const matches = isHelpOffer && isRequested;
+        if (!matches) {
+          console.log('[ReservationService] Filtered out reservation:', {
+            id: r.id,
+            isHelpOffer,
+            status: r.status,
+            reason: !isHelpOffer ? 'not help offer' : !isRequested ? 'not requested' : 'unknown',
+          });
+        }
+        return matches;
+      });
 
       console.log('[ReservationService] Filtered help offers:', {
         total: all.length,
@@ -337,36 +359,46 @@ export function subscribeToOwnerReservations(
             status: reservation.status, 
             itemOwnerUid: reservation.itemOwnerUid,
             renterUid: reservation.renterUid,
-            createdAt: reservation.createdAt 
+            createdAt: reservation.createdAt,
+            isHelpOffer: (reservation as Reservation & { isHelpOffer?: boolean }).isHelpOffer,
           });
           return reservation;
         }
       );
 
+      // Filter out help offers - these should only appear in the help section, not in regular transactions
+      const regularReservations = all.filter(
+        (r) => !(r as Reservation & { isHelpOffer?: boolean }).isHelpOffer
+      );
+
       // Sort by createdAt in memory (descending)
-      if (all.length > 0) {
-        all.sort((a, b) => {
+      if (regularReservations.length > 0) {
+        regularReservations.sort((a, b) => {
           const aTime = timestampToMillis(a.createdAt);
           const bTime = timestampToMillis(b.createdAt);
           return bTime - aTime; // desc
         });
       }
 
-      console.log('[ReservationService] Mapped and sorted reservations:', all.length);
+      console.log('[ReservationService] Mapped and sorted reservations:', {
+        total: all.length,
+        regular: regularReservations.length,
+        helpOffers: all.length - regularReservations.length,
+      });
 
       if (statusFilter && statusFilter.length > 0) {
-        const filtered = all.filter((r) => {
+        const filtered = regularReservations.filter((r) => {
           const included = statusFilter.includes(r.status);
           if (!included) {
             console.log('[ReservationService] Filtered out reservation:', { id: r.id, status: r.status });
           }
           return included;
         });
-        console.log('[ReservationService] Filtered reservations:', filtered.length, 'from', all.length);
+        console.log('[ReservationService] Filtered reservations:', filtered.length, 'from', regularReservations.length);
         callback(filtered);
       } else {
-        console.log('[ReservationService] Returning all reservations:', all.length);
-        callback(all);
+        console.log('[ReservationService] Returning all regular reservations:', regularReservations.length);
+        callback(regularReservations);
       }
     },
     (err) => {
@@ -407,10 +439,16 @@ export function subscribeToRenterReservations(
   return onSnapshot(
     q,
     (snap) => {
-      const reservations = snap.docs.map(
+      const all = snap.docs.map(
         (d) => ({ id: d.id, ...(d.data() as Partial<Reservation>) } as Reservation)
       );
-      callback(reservations);
+      
+      // Filter out help offers - these should only appear in the help section, not in regular reservations
+      const regularReservations = all.filter(
+        (r) => !(r as Reservation & { isHelpOffer?: boolean }).isHelpOffer
+      );
+      
+      callback(regularReservations);
     },
     (err) => logger.error('Renter reservations snapshot listener error', err, { code: err?.code, message: err?.message })
   );

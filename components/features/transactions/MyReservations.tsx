@@ -135,26 +135,13 @@ export function MyReservations() {
   };
 
   async function releasePayout(reservationId: string): Promise<void> {
-    Alert.alert(
-      'Liberar valor para o dono',
-      'Confirme que você recebeu o item e está conforme o anúncio. Esta ação liberará o pagamento para o dono.',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Sim, liberar',
-          style: 'default',
-          onPress: async () => {
-            try {
-              await releasePayoutToOwner(reservationId);
-              Alert.alert('Liberado', 'O valor foi liberado para o dono. Ele pode acessar o Mercado Pago para sacar.');
-            } catch (e: unknown) {
-              const error = e as { message?: string };
-              Alert.alert('Não foi possível liberar', error?.message ?? 'Tente novamente.');
-            }
-          },
-        },
-      ]
-    );
+    try {
+      await releasePayoutToOwner(reservationId);
+      Alert.alert('Pagamento liberado', 'O pagamento foi liberado para o dono. Ele pode sacar no Asaas.');
+    } catch (e: unknown) {
+      const error = e as { message?: string };
+      Alert.alert('Erro', error?.message ?? 'Não foi possível liberar o pagamento. Tente novamente.');
+    }
   }
 
 

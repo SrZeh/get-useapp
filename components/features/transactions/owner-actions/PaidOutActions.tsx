@@ -1,5 +1,5 @@
 /**
- * PaidOutActions - Actions when payout has been released (owner can access Mercado Pago)
+ * PaidOutActions - Actions when payout has been released (owner can access Asaas)
  */
 
 import React from 'react';
@@ -13,11 +13,11 @@ interface PaidOutActionsProps {
 }
 
 export function PaidOutActions({ paymentMethodType }: PaidOutActionsProps) {
-  const handleOpenMercadoPago = () => {
-    // Abrir painel do Mercado Pago para saques
-    const url = 'https://www.mercadopago.com.br/activities/balance';
+  const handleOpenAsaas = () => {
+    // Abrir painel do Asaas para saques
+    const url = 'https://app.asaas.com/';
     Linking.openURL(url).catch((error) => {
-      console.error('[PaidOutActions] Erro ao abrir Mercado Pago:', error);
+      console.error('[PaidOutActions] Erro ao abrir Asaas:', error);
     });
   };
 
@@ -27,12 +27,12 @@ export function PaidOutActions({ paymentMethodType }: PaidOutActionsProps) {
       <Button
         variant="primary"
         size="sm"
-        onPress={handleOpenMercadoPago}
+        onPress={handleOpenAsaas}
       >
-        💰 Acessar Mercado Pago
+        💰 Acessar Asaas
       </Button>
       <ThemedText type="caption-1" style={{ opacity: 0.7 }}>
-        Acesse seu painel para ver saldo e fazer saques
+        Acesse seu painel Asaas para ver saldo e fazer saques
       </ThemedText>
     </View>
   );

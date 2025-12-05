@@ -82,12 +82,24 @@ export function OwnerReservationActions({
     return <PaidActions reservation={reservation} paymentMethodType={reservation.paymentMethodType} onDelete={onDelete} />;
   }
 
-  // Paid out status - payout released, owner can access Mercado Pago
+  // Paid out status - payout released, owner can access Asaas
   if (reservation.status === 'paid_out') {
     return <PaidOutActions paymentMethodType={reservation.paymentMethodType} />;
   }
 
-  // Can confirm return
+  // Picked up status - can confirm return (antes de paid_out)
+  if (reservation.status === 'picked_up') {
+    return (
+      <ReturnActions
+        reservationId={reservation.id}
+        status={reservation.status}
+        onConfirmReturn={onConfirmReturn}
+        isConfirming={isConfirming}
+      />
+    );
+  }
+
+  // Can confirm return (fallback para outros casos)
   if (canConfirmReturn(reservation)) {
     return (
       <ReturnActions

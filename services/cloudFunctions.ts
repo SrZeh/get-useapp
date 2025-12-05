@@ -114,67 +114,27 @@ export async function callCloudFunction<TReq, TRes>(
   }
 }
 
-export async function releasePayoutToOwner(reservationId: string) {
-  const token = await idTokenOrThrow();
-  const res = await fetch(`${BASE}/releasePayoutToOwner`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify({ reservationId }),
-  });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) {
-    throw new Error(data?.message || "Falha ao liberar transferência");
-  }
-  return data; // { ok: true, transferId }
+// Liberar pagamento para o dono (marcar como paid_out)
+// Nota: O Asaas já faz split automático no momento do pagamento.
+// Esta função apenas marca a reserva como paid_out.
+export async function releasePayoutToOwner(reservationId: string): Promise<{ ok: boolean }> {
+  return callCloudFunction<
+    { reservationId: string },
+    { ok: boolean }
+  >("releasePayoutToOwner", { reservationId });
 }
 
-export async function createExpressLoginLink() {
-  const token = await idTokenOrThrow();
-  const res = await fetch(`${BASE}/createExpressLoginLink`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify({}), // se sua função aceitar body vazio
-  });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) {
-    throw new Error(data?.message || "Falha ao abrir painel Stripe");
-  }
-  return data as { url: string };
-}
+// REMOVIDO: createExpressLoginLink - Stripe removido
 
-// REMOVIDO: Stripe - usar createMercadoPagoPayment
-// export async function createCheckoutSession(reservationId: string, successUrl: string, cancelUrl: string): Promise<{ url: string }> {
-//   return callCloudFunction<
-//     { reservationId: string; successUrl: string; cancelUrl: string },
-//     { url: string }
-//   >("createCheckoutSession", { reservationId, successUrl, cancelUrl });
-// }
-
-// REMOVIDO: Stripe - webhook do Mercado Pago faz isso automaticamente
-// export async function confirmCheckoutSession(reservationId: string): Promise<{ ok: boolean }> {
-//   return callCloudFunction<
-//     { reservationId: string },
-//     { ok: boolean }
-//   >("confirmCheckoutSession", { reservationId });
-// }
-
-export async function createMercadoPagoPayment(
+export async function createAsaasPayment(
   reservationId: string,
   successUrl: string,
-  cancelUrl: string,
-  paymentMethod?: "card" | "pix" // Opcional - não usado mais, mantido para compatibilidade
-): Promise<{ url: string; preferenceId: string }> {
-  // paymentMethod é opcional - o checkout mostrará TODAS as opções (PIX, cartão, boleto, etc.)
+  cancelUrl: string
+): Promise<{ url: string; paymentId: string }> {
   return callCloudFunction<
-    { reservationId: string; successUrl: string; cancelUrl: string; paymentMethod?: "card" | "pix" },
-    { url: string; preferenceId: string }
-  >("createMercadoPagoPayment", { reservationId, successUrl, cancelUrl, paymentMethod });
+    { reservationId: string; successUrl: string; cancelUrl: string },
+    { url: string; paymentId: string }
+  >("createAsaasPayment", { reservationId, successUrl, cancelUrl });
 }
 
 export async function confirmReturn(reservationId: string, photoUrl: string): Promise<{ ok: boolean }> {
@@ -226,19 +186,8 @@ export async function cancelAcceptedReservation(reservationId: string): Promise<
   >("cancelAcceptedReservation", { reservationId });
 }
 
-export async function getAccountStatus(): Promise<{ hasAccount: boolean; charges_enabled: boolean; payouts_enabled: boolean }> {
-  return callCloudFunction<
-    {},
-    { hasAccount: boolean; charges_enabled: boolean; payouts_enabled: boolean }
-  >("getAccountStatus", {});
-}
-
-export async function createAccountLink(refreshUrl: string, returnUrl: string): Promise<{ url: string }> {
-  return callCloudFunction<
-    { refreshUrl: string; returnUrl: string },
-    { url: string }
-  >("createAccountLink", { refreshUrl, returnUrl });
-}
+// REMOVIDO: getAccountStatus - Stripe removido
+// REMOVIDO: createAccountLink - Stripe removido
 
 export async function createUserReview(input: {
   reservationId: string;

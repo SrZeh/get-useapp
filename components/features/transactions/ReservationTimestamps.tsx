@@ -20,7 +20,7 @@ type ReservationTimestampsProps = {
   createdAt?: unknown;
   updatedAt?: unknown;
   pickedUpBy?: string;
-  stripePaymentIntentId?: string;
+  asaasPaymentId?: string;
   transferGroup?: string;
   reviewsOpen?: {
     renterCanReviewOwner?: boolean;
@@ -40,7 +40,7 @@ export const ReservationTimestamps = React.memo(function ReservationTimestamps({
   createdAt,
   updatedAt,
   pickedUpBy,
-  stripePaymentIntentId,
+  asaasPaymentId,
   transferGroup,
   reviewsOpen,
   viewerRole,
@@ -72,7 +72,7 @@ export const ReservationTimestamps = React.memo(function ReservationTimestamps({
   }, [returnedAtFormatted, status, pickedUpAtFormatted, paidAtFormatted, acceptedAtFormatted, createdAtFormatted]);
 
   // If no timestamps, don't render
-  if (!statusTimestamp && !paidAtFormatted && !pickedUpAtFormatted && !returnedAtFormatted && !updatedAtFormatted && !pickedUpBy && !stripePaymentIntentId && !transferGroup && !reviewsOpen) {
+  if (!statusTimestamp && !paidAtFormatted && !pickedUpAtFormatted && !returnedAtFormatted && !updatedAtFormatted && !pickedUpBy && !asaasPaymentId && !transferGroup && !reviewsOpen) {
     return null;
   }
 
@@ -166,14 +166,14 @@ export const ReservationTimestamps = React.memo(function ReservationTimestamps({
         </View>
       )}
 
-      {/* Stripe Payment Intent ID */}
-      {stripePaymentIntentId && (
+      {/* Asaas Payment ID */}
+      {asaasPaymentId && (
         <View style={styles.row}>
           <ThemedText className="text-light-text-tertiary dark:text-dark-text-tertiary">
             🔐
           </ThemedText>
           <ThemedText type="caption-1" className="text-light-text-tertiary dark:text-dark-text-tertiary" style={styles.text}>
-            ID Pagamento: {stripePaymentIntentId.substring(0, 20)}...
+            ID Pagamento: {asaasPaymentId.substring(0, 20)}...
           </ThemedText>
         </View>
       )}

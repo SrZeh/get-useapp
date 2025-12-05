@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pagamento Cancelado - Get & Use</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      margin: 0;
+      padding: 20px;
+      background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+      color: white;
+      text-align: center;
+    }
+    .container {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(10px);
+      border-radius: 20px;
+      padding: 40px;
+      max-width: 400px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    }
+    h1 {
+      margin: 0 0 20px 0;
+      font-size: 28px;
+    }
+    p {
+      margin: 10px 0;
+      opacity: 0.9;
+    }
+    .button {
+      display: inline-block;
+      margin-top: 20px;
+      padding: 12px 24px;
+      background: white;
+      color: #f5576c;
+      text-decoration: none;
+      border-radius: 8px;
+      font-weight: 600;
+      transition: transform 0.2s;
+    }
+    .button:hover {
+      transform: scale(1.05);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>❌ Pagamento Cancelado</h1>
+    <p>O pagamento foi cancelado ou falhou.</p>
+    <p style="font-size: 14px; opacity: 0.7;">Você pode tentar novamente no app.</p>
+    <a href="#" id="deepLink" class="button">Voltar ao App</a>
+  </div>
+
+  <script>
+    // Obter parâmetros da URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const reservationId = urlParams.get('res') || urlParams.get('externalReference') || '';
+    const paymentId = urlParams.get('payment_id') || urlParams.get('id') || '';
+    const status = urlParams.get('status') || 'failure';
+    
+    // Construir deep link
+    const deepLink = `getanduseapp://transaction/${reservationId}/pay?status=${status}&payment_id=${paymentId}`;
+    
+    // Atualizar link do botão
+    document.getElementById('deepLink').href = deepLink;
+  </script>
+</body>
+</html>
+

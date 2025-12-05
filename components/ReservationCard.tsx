@@ -65,7 +65,7 @@ export const ReservationCard = React.memo(function ReservationCard({
   // Additional fields (accessed dynamically as they might not be in type)
   const reservation = r as unknown as Record<string, unknown>;
   const pickedUpBy = reservation.pickedUpBy as string | undefined;
-  const stripePaymentIntentId = reservation.stripePaymentIntentId as string | undefined;
+  const asaasPaymentId = reservation.asaasPaymentId as string | undefined;
   const transferGroup = reservation.transferGroup as string | undefined;
   const reviewsOpen = reservation.reviewsOpen as {
     renterCanReviewOwner?: boolean;
@@ -188,7 +188,7 @@ export const ReservationCard = React.memo(function ReservationCard({
               createdAt={r.createdAt}
               updatedAt={reservation.updatedAt as FirestoreTimestamp}
               pickedUpBy={pickedUpBy}
-              stripePaymentIntentId={stripePaymentIntentId}
+              asaasPaymentId={asaasPaymentId}
               transferGroup={transferGroup}
               reviewsOpen={reviewsOpen}
               viewerRole={viewerRole}
@@ -227,7 +227,7 @@ export const ReservationCard = React.memo(function ReservationCard({
     prevProps.reservation.returnedAt === nextProps.reservation.returnedAt &&
     prevProps.reservation.isFree === nextProps.reservation.isFree &&
     prevRes.pickedUpBy === nextRes.pickedUpBy &&
-    prevRes.stripePaymentIntentId === nextRes.stripePaymentIntentId &&
+    prevRes.asaasPaymentId === nextRes.asaasPaymentId &&
     prevRes.transferGroup === nextRes.transferGroup &&
     prevRes.reviewsOpen === nextRes.reviewsOpen &&
     prevRes.updatedAt === nextRes.updatedAt &&

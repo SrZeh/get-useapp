@@ -5,7 +5,7 @@ import { LiquidGlassView } from '@/components/liquid-glass';
 import { ReservationCard } from '@/components/ReservationCard';
 import { auth } from '@/lib/firebase';
 import { confirmReturn } from '@/services/cloudFunctions';
-// Removido: syncStripeAccount - agora usando Mercado Pago
+// Removido: syncStripeAccount - agora usando Asaas
 
 import { handleAsyncError } from '@/utils';
 import type { Reservation } from './types';
@@ -19,7 +19,7 @@ import { Footer } from '@/components/Footer';
  * 
  * Features:
  * - Accept/reject reservation requests
- * - Stripe onboarding sync
+ * - Asaas account management
  * - Confirm returns
  * - Deposit messages
  */
@@ -124,10 +124,10 @@ export function OwnerInbox() {
     }
   };
 
-  // Função vazia - botão agora abre Mercado Pago diretamente
+  // Função vazia - Asaas faz split automático
   // Mantida para compatibilidade com OwnerReservationActions
   const syncStripe = () => {
-    // Não faz nada - o botão em AcceptedActions abre o Mercado Pago diretamente
+    // Não faz nada - Asaas faz split automático, não precisa de sync
   };
 
   // Confirmar devolução (sem foto)

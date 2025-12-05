@@ -1,11 +1,10 @@
 // app/transaction/[id]/pay.tsx
-import { MercadoPagoCheckout } from "@/components/features/payments/MercadoPagoCheckout";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Spacing } from "@/constants/spacing";
 import { auth } from "@/lib/firebase";
 import {
-  createMercadoPagoPayment,
+  createAsaasPayment,
 } from "@/services/cloudFunctions";
 import { useThemeColors } from "@/utils";
 import * as Linking from "expo-linking";
@@ -25,11 +24,9 @@ export default function PayScreen() {
   const insets = useSafeAreaInsets();
 
   const [busyCheckout, setBusyCheckout] = useState(false);
-  const [preferenceId, setPreferenceId] = useState<string | null>(null);
   
   // Detectar retorno do pagamento via deep link
   const paymentStatus = params.status as string | string[] | undefined;
-  const paymentId = params.payment_id as string | string[] | undefined;
   
   // Listener para deep links (iOS - fechar Safari View Controller)
   useEffect(() => {
@@ -85,8 +82,8 @@ export default function PayScreen() {
   // URLs de retorno - redirecionam para deep links do app
   // O domínio padrão é o Firebase Hosting, mas pode ser configurado via EXPO_PUBLIC_SITE_URL
   const SITE_URL = process.env.EXPO_PUBLIC_SITE_URL ?? "https://upperreggae.web.app";
-  const successUrl = useMemo(() => `${SITE_URL}/mercadopago/success`, [SITE_URL]);
-  const cancelUrl  = useMemo(() => `${SITE_URL}/mercadopago/cancel`, [SITE_URL]);
+  const successUrl = useMemo(() => `${SITE_URL}/asaas/success`, [SITE_URL]);
+  const cancelUrl  = useMemo(() => `${SITE_URL}/asaas/cancel`, [SITE_URL]);
 
   async function startCheckout() {
     if (!uid || !id) {
@@ -96,31 +93,16 @@ export default function PayScreen() {
     
     try {
       setBusyCheckout(true);
-      console.log('[PayScreen] Iniciando checkout...');
+      console.log('[PayScreen] Iniciando checkout Asaas...');
       console.log('[PayScreen] Platform:', Platform.OS);
-      console.log('[PayScreen] ✅ Checkout mostrará TODAS as opções (PIX, cartão, boleto, etc.)');
-      console.log('[PayScreen] Chamando createMercadoPagoPayment...');
       
-      console.log('[PayScreen] Aguardando resposta da função...');
-      // Não passar paymentMethod - o checkout mostrará todas as opções
-      const result = await createMercadoPagoPayment(id, successUrl, cancelUrl);
+      console.log('[PayScreen] Chamando createAsaasPayment...');
+      const result = await createAsaasPayment(id, successUrl, cancelUrl);
       console.log('[PayScreen] ✅ Resposta recebida:', result);
       
-      if (!result?.url && !result?.preferenceId) {
-        console.error('[PayScreen] ❌ Resposta inválida - sem URL e sem preferenceId');
-        throw new Error('URL ou Preference ID do checkout não foi retornada');
-      }
-
-      // Por enquanto, sempre abrir browser (SDK não está configurado ainda)
-      // No futuro, quando SDK estiver configurado, usar preferenceId no web
-      const shouldUseSDK = Platform.OS === 'web' && result.preferenceId && process.env.EXPO_PUBLIC_MERCADO_PAGO_PUBLIC_KEY;
-      
-      if (shouldUseSDK) {
-        console.log('[PayScreen] Web detectado com SDK configurado - Usando SDK com preferenceId:', result.preferenceId);
-        setPreferenceId(result.preferenceId);
-        setBusyCheckout(false);
-        // O componente MercadoPagoCheckout renderizará o botão
-        return;
+      if (!result?.url) {
+        console.error('[PayScreen] ❌ Resposta inválida - sem URL');
+        throw new Error('URL do checkout não foi retornada');
       }
 
       // Sempre abrir browser (web ou mobile)
@@ -156,7 +138,7 @@ export default function PayScreen() {
             
             const newWindow = window.open(
               result.url,
-              'mercadoPagoCheckout',
+              'asaasCheckout',
               `width=${width},height=${height},left=${left},top=${top},resizable=yes,scrollbars=yes`
             );
             
@@ -191,14 +173,14 @@ export default function PayScreen() {
                 console.log('[PayScreen] Usuário cancelou o checkout');
               }
               
-              // Após pagar, o usuário será redirecionado automaticamente pelo Mercado Pago.
-              // O webhook do Mercado Pago marca como "paid" automaticamente.
+              // Após pagar, o usuário será redirecionado automaticamente pelo Asaas.
+              // O webhook do Asaas marca como "paid" automaticamente.
             })
             .catch((browserError) => {
               console.error('[PayScreen] Erro ao abrir browser:', browserError);
               Alert.alert(
                 "Erro ao abrir checkout",
-                "Não foi possível abrir o checkout do Mercado Pago. Verifique sua conexão e tente novamente."
+                "Não foi possível abrir o checkout do Asaas. Verifique sua conexão e tente novamente."
               );
             });
         }
@@ -240,7 +222,7 @@ export default function PayScreen() {
       >
         <ThemedText type="title">Pagamento</ThemedText>
         <ThemedText style={{ marginTop: 8, opacity: 0.8 }}>
-          Você será redirecionado ao Checkout seguro do Mercado Pago.
+          Você será redirecionado ao Checkout seguro do Asaas.
           Lá você poderá escolher entre PIX, cartão de crédito, cartão de débito, boleto e outros métodos disponíveis.
         </ThemedText>
 
@@ -267,52 +249,35 @@ export default function PayScreen() {
               {busyCheckout
                 ? <ActivityIndicator color={colors.isDark ? colors.text.primary : "#ffffff"} />
                 : <ThemedText type="defaultSemiBold" style={{ color: (busyCheckout || !id || !uid) ? colors.text.secondary : (colors.isDark ? colors.text.primary : "#ffffff") }}>
-                    Pagar com Mercado Pago
+                    Pagar com Asaas
                   </ThemedText>}
             </TouchableOpacity>
           )}
 
-          {/* No web, mostrar botão para inicializar SDK ou SDK já renderizado */}
+          {/* No web, mostrar botão para abrir checkout */}
           {Platform.OS === 'web' && (
-            <>
-              {!preferenceId ? (
-                <TouchableOpacity
-                  onPress={startCheckout}
-                  disabled={busyCheckout || !id || !uid}
-                  style={{
-                    alignSelf: "center",
-                    paddingVertical: 14,
-                    paddingHorizontal: 24,
-                    borderRadius: 10,
-                    backgroundColor: (busyCheckout || !id || !uid) 
-                      ? colors.border.default 
-                      : colors.brand.primary,
-                    minWidth: 200,
-                    alignItems: "center",
-                    opacity: (busyCheckout || !id || !uid) ? 0.6 : 1,
-                  }}
-                >
-                  {busyCheckout
-                    ? <ActivityIndicator color={colors.isDark ? colors.text.primary : "#ffffff"} />
-                    : <ThemedText type="defaultSemiBold" style={{ color: (busyCheckout || !id || !uid) ? colors.text.secondary : (colors.isDark ? colors.text.primary : "#ffffff") }}>
-                        Iniciar Pagamento
-                      </ThemedText>}
-                </TouchableOpacity>
-              ) : (
-                <MercadoPagoCheckout
-                  preferenceId={preferenceId}
-                  onPaymentComplete={() => {
-                    console.log('[PayScreen] Pagamento completo via SDK');
-                    router.replace(`/transaction/${id}` as any);
-                  }}
-                  onPaymentError={(error) => {
-                    console.error('[PayScreen] Erro no pagamento via SDK:', error);
-                    Alert.alert("Erro no pagamento", error.message);
-                    setPreferenceId(null);
-                  }}
-                />
-              )}
-            </>
+            <TouchableOpacity
+              onPress={startCheckout}
+              disabled={busyCheckout || !id || !uid}
+              style={{
+                alignSelf: "center",
+                paddingVertical: 14,
+                paddingHorizontal: 24,
+                borderRadius: 10,
+                backgroundColor: (busyCheckout || !id || !uid) 
+                  ? colors.border.default 
+                  : colors.brand.primary,
+                minWidth: 200,
+                alignItems: "center",
+                opacity: (busyCheckout || !id || !uid) ? 0.6 : 1,
+              }}
+            >
+              {busyCheckout
+                ? <ActivityIndicator color={colors.isDark ? colors.text.primary : "#ffffff"} />
+                : <ThemedText type="defaultSemiBold" style={{ color: (busyCheckout || !id || !uid) ? colors.text.secondary : (colors.isDark ? colors.text.primary : "#ffffff") }}>
+                    Iniciar Pagamento
+                  </ThemedText>}
+            </TouchableOpacity>
           )}
         </View>
       </ScrollView>

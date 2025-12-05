@@ -8,25 +8,24 @@
  * - Optimizes pending transactions queries
  */
 
-import { create } from 'zustand';
-import {
-  collection,
-  doc,
-  getDoc,
-  getDocs,
-  onSnapshot,
-  orderBy,
-  query,
-  where,
-  type DocumentSnapshot,
-  type QuerySnapshot,
-  type Unsubscribe,
-} from 'firebase/firestore';
-import { auth, db } from '@/lib/firebase';
 import { FIRESTORE_COLLECTIONS } from '@/constants/api';
-import { onAuthStateChanged } from 'firebase/auth';
+import { auth, db } from '@/lib/firebase';
+import type { Reservation, Transaction } from '@/types';
 import { logger } from '@/utils';
-import type { Transaction, Reservation } from '@/types';
+import { onAuthStateChanged } from 'firebase/auth';
+import {
+    collection,
+    doc,
+    getDoc,
+    onSnapshot,
+    orderBy,
+    query,
+    where,
+    type DocumentSnapshot,
+    type QuerySnapshot,
+    type Unsubscribe
+} from 'firebase/firestore';
+import { create } from 'zustand';
 
 interface TransactionCache {
   transaction: Transaction | Reservation;
@@ -355,6 +354,7 @@ export const useTransactionsStore = create<TransactionsStore>((set, get) => ({
       const uid = user.uid;
       
       // Query 1: Owner pending (requested)
+      // Excluir reservas de socorro (isHelpOffer) - elas aparecem apenas na seção de socorro
       const qOwner = query(
         collection(db, FIRESTORE_COLLECTIONS.RESERVATIONS),
         where('itemOwnerUid', '==', uid),
@@ -376,7 +376,11 @@ export const useTransactionsStore = create<TransactionsStore>((set, get) => ({
       ownerUnsub = onSnapshot(
         qOwner,
         (snap) => {
-          hasOwnerPending = !snap.empty;
+          // Filter out help offers - they should only appear in help section
+          const regularReservations = snap.docs.filter(
+            (doc) => !(doc.data() as { isHelpOffer?: boolean }).isHelpOffer
+          );
+          hasOwnerPending = regularReservations.length > 0;
           checkPending();
         },
         (err) => {

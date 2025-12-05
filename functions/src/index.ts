@@ -9,8 +9,8 @@ import { onDocumentCreated } from "firebase-functions/v2/firestore";
 import { HttpsError, onCall, onRequest } from "firebase-functions/v2/https";
 import { onSchedule } from "firebase-functions/v2/scheduler";
 
+import { createAsaasCustomer as createAsaasCustomerAPI, createAsaasPayment as createAsaasPaymentAPI, type AsaasPaymentRequest, type AsaasWebhookEvent } from "./asaas";
 import { computeFees } from "./fees";
-import { getPaymentClient, getPreferenceClient } from "./mercadopago";
 import { createNotification, dispatchExternalNotify, markAsSeenCallable, saveWebPushTokenCallable } from "./notifications";
 
 
@@ -163,7 +163,7 @@ export const acceptReservation = onCall(
       const total = Number(r.total) || 0;
       const isFree = total === 0 || r.isFree === true;
 
-      // If free item, automatically block dates and mark as accepted (skip Stripe payment)
+      // If free item, automatically block dates and mark as accepted (skip payment)
       if (isFree) {
         const days = eachDateKeysExclusive(r.startDate, r.endDate);
         const bookedCol = db.collection("items").doc(r.itemId).collection("bookedDays");
@@ -421,32 +421,29 @@ export const cancelAcceptedReservation = onCall(
 });
 
 // =====================================================
-// === Mercado Pago Payment (Preference)              ===
+// === Asaas Payment                                    ===
 // =====================================================
-export const createMercadoPagoPayment = onCall(
-  { region: "southamerica-east1", secrets: ["MERCADO_PAGO_ACCESS_TOKEN"] },
+export const createAsaasPayment = onCall(
+  { region: "southamerica-east1", secrets: ["ASAAS_API_KEY"] },
   async ({ auth, data }) => {
-    console.log("[createMercadoPagoPayment] ========== FUNCTION CHAMADA ==========");
-    console.log("[createMercadoPagoPayment] Auth:", auth?.uid ? "autenticado" : "não autenticado");
-    console.log("[createMercadoPagoPayment] Data recebida:", JSON.stringify(data));
+    console.log("[createAsaasPayment] ========== FUNCTION CHAMADA ==========");
+    console.log("[createAsaasPayment] Auth:", auth?.uid ? "autenticado" : "não autenticado");
+    console.log("[createAsaasPayment] Data recebida:", JSON.stringify(data));
     
     try {
       const uid = auth?.uid;
       if (!uid) {
-        console.log("[createMercadoPagoPayment] ❌ Usuário não autenticado");
+        console.log("[createAsaasPayment] ❌ Usuário não autenticado");
         throw new HttpsError("unauthenticated", "Faça login.");
       }
 
-      const { reservationId, successUrl, cancelUrl, paymentMethod } =
-        (data ?? {}) as {
-          reservationId?: string;
-          successUrl?: string;
-          cancelUrl?: string;
-          paymentMethod?: "card" | "pix"; // Opcional - não usado mais, mantido para compatibilidade
-        };
+      const { reservationId, successUrl, cancelUrl } = (data ?? {}) as {
+        reservationId?: string;
+        successUrl?: string;
+        cancelUrl?: string;
+      };
 
-      console.log("[createMercadoPagoPayment] Parâmetros:", { reservationId, successUrl, cancelUrl, paymentMethod });
-      console.log("[createMercadoPagoPayment] ⚠️ paymentMethod é opcional - checkout mostrará TODAS as opções (PIX, cartão, boleto, etc.)");
+      console.log("[createAsaasPayment] Parâmetros:", { reservationId, successUrl, cancelUrl });
 
       assertString(reservationId, "reservationId");
       assertString(successUrl, "successUrl");
@@ -455,6 +452,19 @@ export const createMercadoPagoPayment = onCall(
       const isHttp = (u: string) => /^https?:\/\//i.test(u);
       if (!isHttp(successUrl) || !isHttp(cancelUrl)) {
         throw new HttpsError("failed-precondition", "successUrl/cancelUrl devem ser http(s).");
+      }
+
+      // Log das URLs para debug
+      console.log("[createAsaasPayment] URLs de callback:", {
+        successUrl,
+        cancelUrl,
+        successDomain: new URL(successUrl).hostname,
+        cancelDomain: new URL(cancelUrl).hostname,
+      });
+      
+      // Verificar se o domínio está usando HTTPS (Asaas exige HTTPS)
+      if (!successUrl.startsWith('https://') || !cancelUrl.startsWith('https://')) {
+        throw new HttpsError("failed-precondition", "As URLs de callback devem usar HTTPS.");
       }
 
       const resRef = db.doc(`reservations/${reservationId}`);
@@ -478,7 +488,7 @@ export const createMercadoPagoPayment = onCall(
         }
       })();
 
-      console.log("[createMercadoPagoPayment] Dados da reserva:", {
+      console.log("[createAsaasPayment] Dados da reserva:", {
         baseAmountCents: r.baseAmountCents,
         priceCents: r.priceCents,
         total: r.total,
@@ -488,15 +498,11 @@ export const createMercadoPagoPayment = onCall(
 
       let baseCents = Number(r.baseAmountCents);
       if (!Number.isInteger(baseCents) || baseCents <= 0) {
-        // Se baseAmountCents não existe, calcular a partir do total
-        // IMPORTANTE: r.total já é o valor total (diária × dias), não a diária!
         const totalCents = Number(r.priceCents) || toCents(r.total) || 0;
         
         if (totalCents > 0 && Number.isFinite(daysCount) && daysCount > 0) {
-          // Se temos o total e os dias, o baseAmountCents é o próprio total
-          // (não dividir, pois o total já está correto)
           baseCents = totalCents;
-          console.log("[createMercadoPagoPayment] Calculado baseCents a partir do total:", {
+          console.log("[createAsaasPayment] Calculado baseCents a partir do total:", {
             totalCents,
             daysCount,
             baseCents,
@@ -510,202 +516,189 @@ export const createMercadoPagoPayment = onCall(
         throw new HttpsError("failed-precondition", "Valor base inválido.");
       }
       
-      console.log("[createMercadoPagoPayment] Valor base final (centavos):", baseCents);
-      console.log("[createMercadoPagoPayment] Valor base final (reais):", baseCents / 100);
+      console.log("[createAsaasPayment] Valor base final (centavos):", baseCents);
+      console.log("[createAsaasPayment] Valor base final (reais):", baseCents / 100);
 
-      // Calcular taxas (Mercado Pago)
-      // Usar "card" como padrão para cálculo de taxas (mais conservador - garante que sempre teremos valor suficiente)
-      // O cliente escolherá o método no checkout do Mercado Pago
-      const methodForFees = paymentMethod || "card";
+      // Calcular taxas (Asaas) - usar PIX como padrão (mais barato)
       const { serviceFee, surcharge, appFeeFromBase, ownerPayout, totalToCustomer } = computeFees(
         baseCents,
-        { paymentProvider: "mercadopago", paymentMethod: methodForFees }
+        { paymentProvider: "asaas", paymentMethod: "pix" }
       );
 
-      // Verificar se está em modo sandbox (para logs)
-      const mpAccessToken = process.env.MERCADO_PAGO_ACCESS_TOKEN || '';
-      const isSandbox = mpAccessToken.startsWith('TEST-');
-      console.log("[createMercadoPagoPayment] Modo sandbox:", isSandbox);
-
-      console.log("[createMercadoPagoPayment] Calculando taxas...");
-      console.log("[createMercadoPagoPayment] Base (centavos):", baseCents);
-      console.log("[createMercadoPagoPayment] Base (reais):", baseCents / 100);
-      console.log("[createMercadoPagoPayment] Method para cálculo de taxas:", methodForFees);
-      console.log("[createMercadoPagoPayment] Taxas calculadas:", { 
+      console.log("[createAsaasPayment] Calculando taxas...");
+      console.log("[createAsaasPayment] Base (centavos):", baseCents);
+      console.log("[createAsaasPayment] Base (reais):", baseCents / 100);
+      console.log("[createAsaasPayment] Taxas calculadas:", { 
         serviceFee, 
         surcharge, 
         totalToCustomer,
         serviceFeeReais: serviceFee / 100,
         surchargeReais: surcharge / 100,
         totalToCustomerReais: totalToCustomer / 100,
+        appFeeFromBase,
+        ownerPayout,
       });
-      console.log("[createMercadoPagoPayment] ✅ Checkout mostrará TODAS as opções: PIX, cartão, boleto, etc.");
 
-      const preference = getPreferenceClient();
-      console.log("[createMercadoPagoPayment] Cliente do Mercado Pago criado");
-
-      // Criar preferência de pagamento
-      // NOTA: marketplace_fee só funciona com OAuth configurado
-      // Por enquanto, vamos criar preferência sem split e fazer transferência manual depois
-      console.log("[createMercadoPagoPayment] Criando preferência...");
+      // Buscar ou criar cliente Asaas do locatário
+      const renterRef = db.collection("users").doc(uid);
+      const renterSnap = await renterRef.get();
+      const renterData = renterSnap.exists ? renterSnap.data() as any : null;
       
-      // Calcular valor total que o cliente paga
+      let customerId: string;
+      if (renterData?.asaasCustomerId) {
+        customerId = renterData.asaasCustomerId;
+        console.log("[createAsaasPayment] Usando cliente Asaas existente:", customerId);
+      } else {
+        // Criar cliente no Asaas (dados básicos)
+        // Nota: Cliente precisa completar cadastro depois para receber, mas pode pagar
+        const renterName = renterData?.name || renterData?.displayName || "Cliente";
+        const renterEmail = renterData?.email || "";
+        const renterCpf = renterData?.cpf || "";
+        
+        try {
+          const customer = await createAsaasCustomerAPI({
+            name: renterName,
+            email: renterEmail || undefined,
+            cpfCnpj: renterCpf ? renterCpf.replace(/\D/g, '') : undefined,
+            externalReference: uid,
+          });
+          customerId = customer.id;
+          
+          // Salvar customerId no Firestore
+          await renterRef.set({
+            asaasCustomerId: customerId,
+            updatedAt: TS(),
+          }, { merge: true });
+          
+          console.log("[createAsaasPayment] ✅ Cliente Asaas criado:", customerId);
+        } catch (customerError: any) {
+          console.error("[createAsaasPayment] Erro ao criar cliente:", customerError);
+          throw new HttpsError("failed-precondition", `Erro ao criar cliente no Asaas: ${customerError?.message || "Erro desconhecido"}`);
+        }
+      }
+
+      // Buscar wallet do dono do item
+      const ownerRef = db.collection("users").doc(r.itemOwnerUid);
+      const ownerSnap = await ownerRef.get();
+      const ownerData = ownerSnap.exists ? ownerSnap.data() as any : null;
+      
+      const ownerWalletId = ownerData?.asaasWalletId;
+      const platformWalletId = process.env.ASAAS_PLATFORM_WALLET_ID || "4881db74-e297-4a8b-9c05-ebb9508c03dd";
+      
+      if (!ownerWalletId) {
+        console.warn("[createAsaasPayment] ⚠️ Dono não tem wallet Asaas. Pagamento será criado sem split.");
+        console.warn("[createAsaasPayment] ⚠️ Dono precisa criar conta Asaas para receber valores.");
+      }
+
+      // Criar pagamento no Asaas
       const totalReais = totalToCustomer / 100;
-      console.log("[createMercadoPagoPayment] Valor final que será cobrado (reais):", totalReais);
+      const dueDate = new Date();
+      dueDate.setDate(dueDate.getDate() + 3); // Vencimento em 3 dias
+      const dueDateStr = dueDate.toISOString().split('T')[0]; // YYYY-MM-DD
       
-      const preferenceData = {
-        items: [
-          {
-            id: `item-${reservationId}`,
-            title: r.itemTitle ?? "Aluguel de item",
-            quantity: 1,
-            unit_price: totalReais, // Valor total (base + taxas) em reais
-            currency_id: "BRL",
-          },
-        ],
-        // marketplace_fee removido temporariamente - requer OAuth configurado
-        // TODO: Implementar OAuth para usar split automático
-        // marketplace_fee: marketplaceFeeReais, // Só funciona com OAuth
-        payer: {
-          // O payer será preenchido pelo usuário no checkout
+      console.log("[createAsaasPayment] Criando pagamento no Asaas...");
+      console.log("[createAsaasPayment] Valor total (reais):", totalReais);
+      console.log("[createAsaasPayment] Vencimento:", dueDateStr);
+      
+      const paymentData: AsaasPaymentRequest = {
+        customer: customerId,
+        billingType: "UNDEFINED", // Cliente escolhe no checkout
+        value: totalReais,
+        dueDate: dueDateStr,
+        description: `Aluguel de item - ${r.itemTitle || "Reserva"}`,
+        externalReference: reservationId,
+        callback: {
+          successUrl: `${successUrl}?res=${reservationId}&status=success`,
+          autoRedirect: true,
         },
-        // Configuração de métodos de pagamento
-        // ✅ TODAS as opções habilitadas: PIX, cartão, boleto, etc.
-        // O cliente escolhe o método no checkout do Mercado Pago
-        payment_methods: {
-          // Não excluir nenhum método - mostrar todas as opções disponíveis
-          // PIX, cartão de crédito, cartão de débito, boleto, etc.
-          excluded_payment_methods: [], // Vazio = permitir todos
-          excluded_payment_types: [], // Vazio = permitir todos
-          installments: 12, // Máximo de parcelas para cartão
-          // IMPORTANTE: Para PIX aparecer, você precisa:
-          // 1. Ter uma Chave PIX cadastrada na conta do Mercado Pago
-          // 2. Usar credenciais de PRODUÇÃO (não de teste)
-          // 3. Ter a conta aprovada para receber pagamentos via PIX
-          // 4. Habilitar PIX nas configurações da conta: https://www.mercadopago.com.br/account/settings
-        },
-        // Configurações adicionais para melhorar compatibilidade
-        binary_mode: false, // Permite pagamentos pendentes (não apenas aprovados)
-        expires: false, // Não expira automaticamente (permite mais tempo para pagar)
-        back_urls: {
-          success: `${successUrl}?res=${reservationId}&status=success`,
-          failure: `${cancelUrl}?res=${reservationId}&status=failure`,
-          pending: `${successUrl}?res=${reservationId}&status=pending`,
-        },
-        auto_return: "approved", // Redireciona automaticamente após pagamento aprovado
-        external_reference: reservationId, // ID da reserva para identificar no webhook
-        notification_url: `https://southamerica-east1-${process.env.GCLOUD_PROJECT || "upperreggae"}.cloudfunctions.net/mercadoPagoWebhook`,
-        statement_descriptor: "Get & Use",
-        metadata: {
-          reservationId: String(reservationId),
-          baseCents: String(baseCents),
-          serviceFee: String(serviceFee),
-          surcharge: String(surcharge),
-          appFeeFromBase: String(appFeeFromBase),
-          ownerPayout: String(ownerPayout),
-          totalToCustomer: String(totalToCustomer),
-          renterUid: String(uid),
-          itemOwnerUid: String(r.itemOwnerUid),
-        },
-        // NOTA: Split de Pagamentos requer OAuth configurado
-        // Por enquanto, o pagamento vai para a conta do marketplace
-        // Depois, precisamos fazer transferência manual para o vendedor
-        // TODO: Implementar OAuth para usar marketplace_fee e split automático
       };
 
-      console.log("[createMercadoPagoPayment] Chamando preference.create...");
-      console.log("[createMercadoPagoPayment] Preference data:", JSON.stringify(preferenceData, null, 2));
-      console.log("[createMercadoPagoPayment] Payment methods config:", JSON.stringify(preferenceData.payment_methods, null, 2));
-      console.log("[createMercadoPagoPayment] ⚠️ IMPORTANTE: Para PIX aparecer, ele deve estar habilitado na conta do Mercado Pago");
-      console.log("[createMercadoPagoPayment] ⚠️ Verifique em: https://www.mercadopago.com.br/developers/panel > Suas integrações > Configurações");
-      
-      let response;
+      // Adicionar split se dono tem wallet
+      if (ownerWalletId) {
+        paymentData.split = [
+          {
+            walletId: ownerWalletId,
+            fixedValue: ownerPayout / 100,
+            description: "Repasse para dono do item",
+          },
+          {
+            walletId: platformWalletId,
+            fixedValue: appFeeFromBase / 100,
+            description: "Taxa da plataforma",
+          },
+        ];
+        console.log("[createAsaasPayment] ✅ Split configurado:", paymentData.split);
+      } else {
+        console.log("[createAsaasPayment] ⚠️ Split não configurado - dono não tem wallet");
+      }
+
+      // Log final antes de criar pagamento
+      console.log("[createAsaasPayment] 📋 Dados do pagamento que serão enviados ao Asaas:", {
+        customer: customerId,
+        value: totalReais,
+        dueDate: dueDateStr,
+        externalReference: reservationId,
+        callback: paymentData.callback,
+        split: paymentData.split ? `${paymentData.split.length} wallets` : 'sem split',
+      });
+
+      let payment;
       try {
-        response = await preference.create({ body: preferenceData });
-        console.log("[createMercadoPagoPayment] ✅ Preferência criada:", response.id);
-      } catch (mpError: any) {
-        console.error("[createMercadoPagoPayment] ❌ Erro ao criar preferência no Mercado Pago:", mpError);
-        console.error("[createMercadoPagoPayment] Erro completo:", JSON.stringify(mpError, null, 2));
+        payment = await createAsaasPaymentAPI(paymentData);
+        console.log("[createAsaasPayment] ✅ Pagamento criado:", payment.id);
+        console.log("[createAsaasPayment] Status:", payment.status);
+        console.log("[createAsaasPayment] Payment Link:", payment.paymentLink);
+        console.log("[createAsaasPayment] Invoice URL:", payment.invoiceUrl);
+      } catch (asaasError: any) {
+        console.error("[createAsaasPayment] ❌ Erro ao criar pagamento no Asaas:", asaasError);
+        console.error("[createAsaasPayment] Erro completo:", JSON.stringify(asaasError?.response?.data || asaasError, null, 2));
+        console.error("[createAsaasPayment] URL de callback usada:", paymentData.callback?.successUrl);
+        console.error("[createAsaasPayment] ⚠️ IMPORTANTE: Verifique se o domínio está cadastrado no Asaas:");
+        console.error("[createAsaasPayment] 1. Acesse: https://app.asaas.com/");
+        console.error("[createAsaasPayment] 2. Vá em: Minha Conta > Informações");
+        console.error("[createAsaasPayment] 3. Cadastre o domínio:", new URL(successUrl).hostname);
+        console.error("[createAsaasPayment] 4. O domínio deve ser cadastrado EXATAMENTE como:", new URL(successUrl).hostname);
+        
+        const errorMessage = asaasError?.response?.data?.errors?.[0]?.description || asaasError?.message || "Erro desconhecido";
         throw new HttpsError(
           "failed-precondition",
-          `Erro ao criar pagamento no Mercado Pago: ${mpError?.message || mpError?.toString() || "Erro desconhecido"}`
+          `Erro ao criar pagamento no Asaas: ${errorMessage}`
         );
       }
-      console.log("[createMercadoPagoPayment] Init point (PRODUÇÃO):", response.init_point);
-      console.log("[createMercadoPagoPayment] Sandbox init point (TESTE):", response.sandbox_init_point);
-      console.log("[createMercadoPagoPayment] Response completa:", JSON.stringify({
-        id: response.id,
-        hasInitPoint: !!response.init_point,
-        hasSandboxInitPoint: !!response.sandbox_init_point,
-        payment_methods: response.payment_methods,
-      }, null, 2));
-      console.log("[createMercadoPagoPayment] Payment methods configurados:", JSON.stringify(response.payment_methods, null, 2));
-      console.log("[createMercadoPagoPayment] ⚠️ IMPORTANTE: Para PIX aparecer no checkout:");
-      console.log("[createMercadoPagoPayment] 1. Cadastre uma Chave PIX na conta: https://www.mercadopago.com.br/account/settings");
-      console.log("[createMercadoPagoPayment] 2. Use credenciais de PRODUÇÃO (APP_USR-...)");
-      console.log("[createMercadoPagoPayment] 3. Habilite PIX em: https://www.mercadopago.com.br/account/settings > Meios de pagamento");
-      console.log("[createMercadoPagoPayment] 4. Verifique se a conta está aprovada para receber pagamentos via PIX");
 
-      // Salvar dados da preferência na reserva
-      console.log("[createMercadoPagoPayment] Salvando dados na reserva...");
+      // Salvar dados do pagamento na reserva
+      console.log("[createAsaasPayment] Salvando dados na reserva...");
       await resRef.set(
         {
-          mercadoPagoPreferenceId: response.id,
-          mercadoPagoInitPoint: response.init_point,
-          mercadoPagoSandboxInitPoint: response.sandbox_init_point,
-          // Mantém compatibilidade com campos antigos
+          asaasPaymentId: payment.id,
+          asaasPaymentLink: payment.paymentLink,
+          asaasInvoiceUrl: payment.invoiceUrl,
+          asaasBankSlipUrl: payment.bankSlipUrl,
           totalCents: totalToCustomer,
           baseAmountCents: baseCents,
           serviceFeeCents: serviceFee,
-          mercadoPagoSurchargeCents: surcharge,
+          asaasSurchargeCents: surcharge,
           appFeeFromBaseCents: appFeeFromBase,
           expectedOwnerPayoutCents: ownerPayout,
-          // paymentMethod removido - o cliente escolhe no checkout do Mercado Pago
           updatedAt: TS(),
         },
         { merge: true }
       );
 
-      // Retornar URL do checkout (PRIORIDADE: init_point = produção, sandbox_init_point = teste)
-      // IMPORTANTE: Se init_point existir, SEMPRE usar ele (produção)
-      // Só usar sandbox_init_point se init_point não existir
-      const checkoutUrl = response.init_point || response.sandbox_init_point;
-      const isProduction = !!response.init_point;
-      
-      console.log("[createMercadoPagoPayment] ========== URLS DISPONÍVEIS ==========");
-      console.log("[createMercadoPagoPayment] init_point (PRODUÇÃO):", response.init_point || "NÃO DISPONÍVEL");
-      console.log("[createMercadoPagoPayment] sandbox_init_point (TESTE):", response.sandbox_init_point || "NÃO DISPONÍVEL");
-      console.log("[createMercadoPagoPayment] URL escolhida:", checkoutUrl);
-      console.log("[createMercadoPagoPayment] Modo:", isProduction ? "✅ PRODUÇÃO" : "⚠️ SANDBOX (TESTE)");
-      
-      // Verificar o Access Token usado
-      const accessToken = process.env.MERCADO_PAGO_ACCESS_TOKEN || '';
-      const tokenType = accessToken.startsWith('APP_USR-') ? 'PRODUÇÃO' : accessToken.startsWith('TEST-') ? 'TESTE' : 'DESCONHECIDO';
-      console.log("[createMercadoPagoPayment] Token usado:", tokenType);
-      console.log("[createMercadoPagoPayment] Token prefixo:", accessToken.substring(0, 10) + '...');
+      // Retornar URL do checkout
+      const checkoutUrl = payment.paymentLink || payment.invoiceUrl;
       
       if (!checkoutUrl) {
-        throw new HttpsError("failed-precondition", "URL do checkout não foi retornada pelo Mercado Pago");
-      }
-      
-      if (!isProduction) {
-        console.warn("[createMercadoPagoPayment] ⚠️ ATENÇÃO: Usando SANDBOX!");
-        console.warn("[createMercadoPagoPayment] ⚠️ Para produção, certifique-se de:");
-        console.warn("[createMercadoPagoPayment] 1. Usar Access Token de PRODUÇÃO (APP_USR-...)");
-        console.warn("[createMercadoPagoPayment] 2. Conta do Mercado Pago estar aprovada para produção");
-        console.warn("[createMercadoPagoPayment] 3. Verificar se a preferência foi criada com sucesso");
-      } else {
-        console.log("[createMercadoPagoPayment] ✅ Usando URL de PRODUÇÃO (sem marca d'água)");
+        throw new HttpsError("failed-precondition", "URL do checkout não foi retornada pelo Asaas");
       }
 
-      const result = { url: checkoutUrl, preferenceId: response.id };
-      console.log("[createMercadoPagoPayment] ✅ Retornando resultado:", result);
-      return result;
+      console.log("[createAsaasPayment] ✅ Retornando resultado:", { url: checkoutUrl, paymentId: payment.id });
+      return { url: checkoutUrl, paymentId: payment.id };
     } catch (err: any) {
-      console.error("[createMercadoPagoPayment] ❌ ERRO:", err);
-      console.error("[createMercadoPagoPayment] Stack:", err?.stack);
+      console.error("[createAsaasPayment] ❌ ERRO:", err);
+      console.error("[createAsaasPayment] Stack:", err?.stack);
       const msg = err?.message || err?.cause?.message || err?.toString() || "Falha ao criar pagamento.";
-      console.error("[createMercadoPagoPayment] Mensagem de erro:", msg);
+      console.error("[createAsaasPayment] Mensagem de erro:", msg);
       throw new HttpsError("failed-precondition", msg);
     }
   }
@@ -989,273 +982,7 @@ export const deleteReservationMessages = onCall({ region: "southamerica-east1" }
 // =====================================================
 // === Cancelar reserva paga com estorno (até 7 dias) ===
 // =====================================================
-// REMOVIDO: Função Stripe - implementar refunds via Mercado Pago no futuro
-/*
-export const cancelWithRefund = onCall(
-  { region: "southamerica-east1", secrets: ["STRIPE_SECRET_KEY", "SENDGRID_API_KEY", "SENDGRID_FROM"] },
-  async ({ auth, data }) => {
-    const uid = auth?.uid;
-    if (!uid) throw new HttpsError("unauthenticated", "Faça login.");
-
-    const { reservationId } = (data ?? {}) as { reservationId?: string };
-    assertString(reservationId, "reservationId");
-
-    const resRef = db.doc(`reservations/${reservationId}`);
-    const snap = await resRef.get();
-    if (!snap.exists) throw new HttpsError("not-found", "Reserva não encontrada.");
-    const r = snap.data() as any;
-
-    // Somente o LOCATÁRIO pode solicitar estorno
-    if (r.renterUid !== uid) throw new HttpsError("permission-denied", "Somente o locatário pode cancelar com estorno.");
-
-    // Precisa ter sido paga
-    if (r.status !== "paid") {
-      // Para 'accepted' (não paga), use o fluxo existente de cancelamento:
-      throw new HttpsError("failed-precondition", "Esta reserva não está paga. Use o cancelamento normal.");
-    }
-
-    // Se já marcou recebido, não pode estornar
-    if (r.pickedUpAt) {
-      throw new HttpsError("failed-precondition", "Não é possível estornar após marcar 'Recebido!'.");
-    }
-
-    // Janela de 7 dias a partir do paidAt
-    const paidAt: Date | null =
-      r.paidAt?.toDate ? r.paidAt.toDate() :
-      (typeof r.paidAt === "string" ? new Date(r.paidAt) : null);
-
-    if (!paidAt || isNaN(paidAt.getTime())) {
-      throw new HttpsError("failed-precondition", "Data de pagamento inválida.");
-    }
-    const nowMs = Date.now();
-    const diffMs = nowMs - paidAt.getTime();
-    const SEVEN_DAYS = 7 * 24 * 60 * 60 * 1000;
-    if (diffMs > SEVEN_DAYS) {
-      throw new HttpsError("failed-precondition", "Prazo de 7 dias para estorno expirado.");
-    }
-
-    // Precisamos do Payment Intent para estornar
-    const paymentIntentId: string | undefined = r.stripePaymentIntentId;
-    if (!paymentIntentId) {
-      throw new HttpsError("failed-precondition", "Pagamento não localizado para estorno.");
-    }
-
-    // Valor total: reembolsar 100% do cobrado
-    const totalCents = Number(r.totalCents ?? 0);
-    if (!Number.isInteger(totalCents) || totalCents <= 0) {
-      // fallback: Stripe aceita refund sem amount (total)
-    }
-
-    // Datas bloqueadas: liberar ao cancelar
-    const daysToFree = (() => {
-      try {
-        const days = eachDateKeysExclusive(String(r.startDate), String(r.endDate));
-        return Array.isArray(days) ? days : [];
-      } catch {
-        return [];
-      }
-    })();
-    const bookedCol = db.collection("items").doc(String(r.itemId)).collection("bookedDays");
-
-    const stripe = getStripe();
-
-    try {
-      // 1) Criar refund no Stripe
-      const refund = await stripe.refunds.create({
-        payment_intent: paymentIntentId,
-        // amount: totalCents > 0 ? totalCents : undefined, // total (opcional: Stripe já faz full-refund se omitir)
-      });
-
-      // 2) Liberar os dias e marcar reserva como cancelada + estornada
-      await db.runTransaction(async (trx) => {
-        const latest = await trx.get(resRef);
-        if (!latest.exists) throw new HttpsError("not-found", "Reserva não encontrada.");
-
-        const curr = latest.data() as any;
-
-        // Se alguém marcou "Recebido!" no meio do caminho, interrompe
-        if (curr.pickedUpAt) {
-          throw new HttpsError("failed-precondition", "A reserva foi marcada como 'Recebida' durante o processo.");
-        }
-
-        // Desbloqueia todos os dias (se existirem)
-        for (const d of daysToFree) {
-          trx.delete(bookedCol.doc(d));
-        }
-
-        // Atualiza a reserva
-        trx.update(resRef, {
-          status: "canceled",
-          canceledBy: uid,
-          canceledAt: TS(),
-          refundId: refund.id,
-          refundStatus: refund.status ?? null,
-          refundCreatedAt: TS(),
-          updatedAt: TS(),
-        });
-      });
-
-      // Notificar dono sobre o estorno
-      try {
-        const resRef = db.doc(`reservations/${reservationId}`);
-        const rs = await resRef.get();
-        if (rs.exists) {
-          const r = rs.data() as any;
-          const refundAmountFormatted = new Intl.NumberFormat('pt-BR', {
-            style: 'currency',
-            currency: 'BRL'
-          }).format(refund.amount / 100);
-
-          await createNotification({
-            recipientId: String(r.itemOwnerUid),
-            type: "payment_update",
-            entityType: "reservation",
-            entityId: String(reservationId),
-            title: "Estorno processado",
-            body: `Um estorno de ${refundAmountFormatted} foi processado para esta reserva.`,
-            metadata: { reservationId, refundId: refund.id, refundAmount: refund.amount },
-          });
-          await dispatchExternalNotify(String(r.itemOwnerUid), {
-            type: "payment_update",
-            title: "Estorno processado",
-            body: `Um estorno de ${refundAmountFormatted} foi processado para esta reserva.`,
-            deepLink: `/reservation/${reservationId}`,
-          });
-
-          // Notificar locatário também
-          await createNotification({
-            recipientId: String(r.renterUid),
-            type: "payment_update",
-            entityType: "reservation",
-            entityId: String(reservationId),
-            title: "Estorno aprovado",
-            body: `Seu estorno de ${refundAmountFormatted} foi processado e será creditado em breve.`,
-            metadata: { reservationId, refundId: refund.id },
-          });
-          await dispatchExternalNotify(String(r.renterUid), {
-            type: "payment_update",
-            title: "Estorno aprovado",
-            body: `Seu estorno de ${refundAmountFormatted} foi processado e será creditado em breve.`,
-            deepLink: `/reservation/${reservationId}`,
-          });
-        }
-      } catch (e) {
-        console.warn("notify(refund) failed", e);
-      }
-
-      return {
-        ok: true,
-        refundId: refund.id,
-        refundStatus: refund.status,
-        unblockedDays: daysToFree.length,
-      };
-    } catch (err: any) {
-      // Erros Stripe ou Firestore
-      if (err instanceof HttpsError) throw err;
-      const msg = err?.raw?.message || err?.message || "Falha ao estornar";
-      throw new HttpsError("failed-precondition", msg);
-    }
-  }
-);
-*/
-
-// =====================================================
-// === Confirmar sessão manualmente (fallback)        ===
-// =====================================================
-// REMOVIDO: Função Stripe - usar Mercado Pago
-/*
-export const confirmCheckoutSession = onCall(
-  { region: "southamerica-east1", secrets: ["STRIPE_SECRET_KEY", "SENDGRID_API_KEY", "SENDGRID_FROM"] },
-  async ({ auth, data }) => {
-    const uid = auth?.uid;
-    if (!uid) throw new HttpsError("unauthenticated", "Faça login.");
-
-    const { reservationId } = (data ?? {}) as { reservationId?: string };
-    assertString(reservationId, "reservationId");
-
-    const resRef = db.doc(`reservations/${reservationId}`);
-    const snap = await resRef.get();
-    if (!snap.exists) throw new HttpsError("not-found", "Reserva não encontrada.");
-    const r = snap.data() as any;
-
-    if (r.renterUid !== uid) throw new HttpsError("permission-denied", "Somente o locatário pode confirmar.");
-    if (r.status === "paid") return { ok: true, already: true };
-
-    const sessionId = r.checkoutSessionId as string | undefined;
-    if (!sessionId) throw new HttpsError("failed-precondition", "checkoutSessionId ausente.");
-
-    const stripe = getStripe();
-    const session = await stripe.checkout.sessions.retrieve(sessionId);
-    const paymentStatus = session.payment_status;
-    const status = session.status;
-    const paymentIntentId = typeof session.payment_intent === "string" ? session.payment_intent : session.payment_intent?.id;
-
-    if (!(paymentStatus === "paid" || status === "complete")) {
-      throw new HttpsError("failed-precondition", `Sessão não paga ainda: ${paymentStatus ?? status ?? "unknown"}`);
-    }
-
-    const days = eachDateKeysExclusive(r.startDate, r.endDate);
-    const bookedCol = db.collection("items").doc(r.itemId).collection("bookedDays");
-
-    await db.runTransaction(async (trx) => {
-      for (const d of days) {
-        const dRef = bookedCol.doc(d);
-        const dSnap = await trx.get(dRef);
-        if (dSnap.exists) {
-          const curr = dSnap.data() as any;
-          if (curr.resId && curr.resId !== reservationId) throw new HttpsError("already-exists", `Conflito ${d}`);
-        }
-      }
-      for (const d of days) {
-        trx.set(bookedCol.doc(d), { resId: reservationId, renterUid: r.renterUid, itemOwnerUid: r.itemOwnerUid, status: "booked", createdAt: TS() });
-      }
-      trx.update(resRef, { status: "paid", paidAt: TS(), stripePaymentIntentId: paymentIntentId ?? null, updatedAt: TS() });
-    });
-
-    // notificar dono e locatário que foi pago
-    try {
-      await Promise.all([
-        createNotification({
-          recipientId: String(r.itemOwnerUid),
-          type: "payment_update",
-          entityType: "reservation",
-          entityId: String(reservationId),
-          title: "Pagamento confirmado",
-          body: "Uma reserva sua foi paga. Prepare-se para a entrega/retirada.",
-          metadata: { reservationId },
-        }).then(() =>
-          dispatchExternalNotify(String(r.itemOwnerUid), {
-            type: "payment_update",
-            title: "Pagamento confirmado",
-            body: "Uma reserva sua foi paga.",
-            deepLink: `/reservation/${reservationId}`,
-          })
-        ),
-        createNotification({
-          recipientId: String(r.renterUid),
-          type: "payment_update",
-          entityType: "reservation",
-          entityId: String(reservationId),
-          title: "Pagamento aprovado",
-          body: "Seu pagamento foi aprovado. Confira os próximos passos.",
-          metadata: { reservationId },
-        }).then(() =>
-          dispatchExternalNotify(String(r.renterUid), {
-            type: "payment_update",
-            title: "Pagamento aprovado",
-            body: "Seu pagamento foi aprovado.",
-            deepLink: `/reservation/${reservationId}`,
-          })
-        ),
-      ]);
-    } catch (e) {
-      console.warn("notify(paid manual confirm) failed", e);
-    }
-
-    return { ok: true, marked: "paid" };
-  }
-);
-*/
+// TODO: Implementar estorno via Asaas quando necessário
 
 // ==== Callable: markAsSeen (counters + lastSeenAt) ====
 export const markAsSeen = markAsSeenCallable;
@@ -1378,198 +1105,43 @@ export const getUserThreads = onCall(
   }
 );
 // =====================================================
-// === Webhook Stripe: marca paid e bloqueia datas    ===
+// === Webhook Stripe: REMOVIDO - usando Asaas agora ===
 // =====================================================
-// REMOVIDO: Função Stripe - usar mercadoPagoWebhook
-/*
-export const stripeWebhook = onRequest(
+
+// =====================================================
+// === Webhook Asaas: marca paid e bloqueia datas ===
+// =====================================================
+export const asaasWebhook = onRequest(
   {
     region: "southamerica-east1",
     cors: true,
     maxInstances: 10,
-    secrets: ["STRIPE_WEBHOOK_SECRET", "STRIPE_SECRET_KEY", "SENDGRID_API_KEY", "SENDGRID_FROM"],
-  },
-  async (req, res) => {
-    const stripe = getStripe();
-    const secret = process.env.STRIPE_WEBHOOK_SECRET;
-    let event: Stripe.Event;
-
-    try {
-      const sig = req.headers["stripe-signature"] as string;
-      if (!secret) throw new Error("STRIPE_WEBHOOK_SECRET ausente.");
-      const raw = (req as any).rawBody as Buffer;
-      event = stripe.webhooks.constructEvent(raw, sig, secret);
-    } catch (err: any) {
-      console.error("Webhook signature verification failed.", err?.message);
-      res.status(400).send(`Webhook Error: ${err.message}`);
-      return;
-    }
-
-    try {
-      if (event.type === "checkout.session.completed") {
-        const session = event.data.object as Stripe.Checkout.Session;
-
-        let reservationId = session.metadata?.reservationId as string | undefined;
-        const paymentIntentId =
-          typeof session.payment_intent === "string" ? session.payment_intent : session.payment_intent?.id;
-
-        if (!reservationId && typeof session.payment_intent !== "string" && session.payment_intent) {
-          const pi = session.payment_intent as Stripe.PaymentIntent;
-          reservationId = (pi.metadata?.reservationId as string | undefined) ?? undefined;
-        }
-
-        if (!reservationId) {
-          console.warn("[Webhook] Sem reservationId");
-          res.json({ received: true }); return;
-        }
-
-        const resRef = db.doc(`reservations/${reservationId}`);
-        const snap = await resRef.get();
-        if (!snap.exists) {
-          console.warn("[Webhook] Reserva não encontrada:", reservationId);
-          res.json({ received: true }); return;
-        }
-
-        const r = snap.data() as any;
-        if (r.status === "paid") {
-          res.json({ received: true }); return;
-        }
-
-        // opcional: coletar método de pagamento para mensagem de previsão
-        let paymentMethodType: string | null = null;
-        if (paymentIntentId) {
-          const pi = await stripe.paymentIntents.retrieve(paymentIntentId);
-          const chargeId = typeof pi.latest_charge === "string"
-            ? pi.latest_charge
-            : (pi.latest_charge as Stripe.Charge | null)?.id;
-          if (chargeId) {
-            const charge = await stripe.charges.retrieve(chargeId);
-            // @ts-ignore
-            paymentMethodType = charge.payment_method_details?.type ?? null;
-          }
-        }
-
-        const days = eachDateKeysExclusive(r.startDate, r.endDate);
-        const bookedCol = db.collection("items").doc(r.itemId).collection("bookedDays");
-
-        await db.runTransaction(async (trx) => {
-          for (const d of days) {
-            const dRef = bookedCol.doc(d);
-            const dSnap = await trx.get(dRef);
-            if (dSnap.exists) {
-              const curr = dSnap.data() as any;
-              if (curr.resId && curr.resId !== reservationId) throw new Error(`Conflito de data ${d}`);
-            }
-          }
-          for (const day of days) {
-            const dayRef = bookedCol.doc(day);
-            trx.set(dayRef, {
-              resId: reservationId,
-              renterUid: r.renterUid,
-              itemOwnerUid: r.itemOwnerUid,
-              status: "booked",
-              createdAt: TS(),
-            });
-          }
-          trx.update(resRef, {
-            status: "paid",
-            paidAt: TS(),
-            stripePaymentIntentId: paymentIntentId ?? null,
-            paymentMethodType: paymentMethodType,
-            updatedAt: TS(),
-          });
-        });
-
-        // notificar dono e locatário que foi pago
-        try {
-          await Promise.all([
-            createNotification({
-              recipientId: String(r.itemOwnerUid),
-              type: "payment_update",
-              entityType: "reservation",
-              entityId: String(reservationId),
-              title: "Pagamento confirmado",
-              body: "Uma reserva sua foi paga. Prepare-se para a entrega/retirada.",
-              metadata: { reservationId },
-            }).then(() =>
-              dispatchExternalNotify(String(r.itemOwnerUid), {
-                type: "payment_update",
-                title: "Pagamento confirmado",
-                body: "Uma reserva sua foi paga.",
-                deepLink: `/reservation/${reservationId}`,
-              })
-            ),
-            createNotification({
-              recipientId: String(r.renterUid),
-              type: "payment_update",
-              entityType: "reservation",
-              entityId: String(reservationId),
-              title: "Pagamento aprovado",
-              body: "Seu pagamento foi aprovado. Confira os próximos passos.",
-              metadata: { reservationId },
-            }).then(() =>
-              dispatchExternalNotify(String(r.renterUid), {
-                type: "payment_update",
-                title: "Pagamento aprovado",
-                body: "Seu pagamento foi aprovado.",
-                deepLink: `/reservation/${reservationId}`,
-              })
-            ),
-          ]);
-        } catch (e) {
-          console.warn("notify(paid webhook) failed", e);
-        }
-      }
-
-      res.json({ received: true }); return;
-    } catch (e: any) {
-      console.error("[Webhook] Handler error:", e?.message, e);
-      res.status(500).send("Webhook handler error");
-    }
-  }
-);
-*/
-
-// =====================================================
-// === Webhook Mercado Pago: marca paid e bloqueia datas ===
-// =====================================================
-export const mercadoPagoWebhook = onRequest(
-  {
-    region: "southamerica-east1",
-    cors: true,
-    maxInstances: 10,
-    secrets: ["MERCADO_PAGO_ACCESS_TOKEN", "SENDGRID_API_KEY", "SENDGRID_FROM"],
+    secrets: ["ASAAS_API_KEY", "SENDGRID_API_KEY", "SENDGRID_FROM"],
   },
   async (req, res) => {
     try {
-      // Mercado Pago envia notificações via POST com query parameter "topic" e "id"
-      const { topic, id } = req.query as { topic?: string; id?: string };
+      const event = req.body as AsaasWebhookEvent;
+      const { event: eventType, payment } = event;
 
-      console.log("[MercadoPagoWebhook] Recebido:", { topic, id });
+      console.log("[AsaasWebhook] Recebido:", { eventType, paymentId: payment?.id });
 
-      if (topic !== "payment" || !id) {
-        console.log("[MercadoPagoWebhook] Ignorando notificação:", topic);
+      // Apenas processar eventos de pagamento
+      if (!payment || !eventType?.includes('PAYMENT')) {
+        console.log("[AsaasWebhook] Ignorando evento:", eventType);
         res.json({ received: true });
         return;
       }
 
-      // Buscar informações do pagamento
-      const paymentClient = getPaymentClient();
-      const payment = await paymentClient.get({ id: String(id) });
-
-      console.log("[MercadoPagoWebhook] Payment status:", payment.status);
-      console.log("[MercadoPagoWebhook] Payment external_reference:", payment.external_reference);
-
-      // Apenas processar se estiver aprovado
-      if (payment.status !== "approved") {
-        console.log("[MercadoPagoWebhook] Pagamento não aprovado:", payment.status);
+      // Apenas processar pagamentos confirmados
+      if (payment.status !== "RECEIVED" && payment.status !== "CONFIRMED") {
+        console.log("[AsaasWebhook] Pagamento não confirmado:", payment.status);
         res.json({ received: true });
         return;
       }
 
-      const reservationId = payment.external_reference;
+      const reservationId = payment.externalReference;
       if (!reservationId || typeof reservationId !== "string") {
-        console.warn("[MercadoPagoWebhook] Sem reservationId no external_reference");
+        console.warn("[AsaasWebhook] Sem reservationId no externalReference");
         res.json({ received: true });
         return;
       }
@@ -1577,20 +1149,20 @@ export const mercadoPagoWebhook = onRequest(
       const resRef = db.doc(`reservations/${reservationId}`);
       const snap = await resRef.get();
       if (!snap.exists) {
-        console.warn("[MercadoPagoWebhook] Reserva não encontrada:", reservationId);
+        console.warn("[AsaasWebhook] Reserva não encontrada:", reservationId);
         res.json({ received: true });
         return;
       }
 
       const r = snap.data() as any;
       if (r.status === "paid") {
-        console.log("[MercadoPagoWebhook] Reserva já está paga");
+        console.log("[AsaasWebhook] Reserva já está paga");
         res.json({ received: true });
         return;
       }
 
       // Obter método de pagamento
-      const paymentMethodType = payment.payment_method_id || "unknown";
+      const paymentMethodType = payment.billingType?.toLowerCase() || "unknown";
 
       const days = eachDateKeysExclusive(r.startDate, r.endDate);
       const bookedCol = db.collection("items").doc(r.itemId).collection("bookedDays");
@@ -1622,7 +1194,7 @@ export const mercadoPagoWebhook = onRequest(
         trx.update(resRef, {
           status: "paid",
           paidAt: TS(),
-          mercadoPagoPaymentId: String(id),
+          asaasPaymentId: payment.id,
           paymentMethodType: paymentMethodType,
           updatedAt: TS(),
         });
@@ -1665,127 +1237,20 @@ export const mercadoPagoWebhook = onRequest(
           ),
         ]);
       } catch (e) {
-        console.warn("[MercadoPagoWebhook] notify(paid) failed", e);
+        console.warn("[AsaasWebhook] notify(paid) failed", e);
       }
 
       res.json({ received: true });
     } catch (e: any) {
-      console.error("[MercadoPagoWebhook] Handler error:", e?.message, e);
+      console.error("[AsaasWebhook] Handler error:", e?.message, e);
       res.status(500).send("Webhook handler error");
     }
   }
 );
 
 // =====================================================
-// === Repasse 90% para o dono (LEGADO)              ===
+// === Repasse para o dono: REMOVIDO - Asaas faz split automático ===
 // =====================================================
-// REMOVIDO: Função Stripe - Mercado Pago faz split automático
-/*
-export const releasePayoutToOwner = onCall(
-  { region: "southamerica-east1", secrets: ["STRIPE_SECRET_KEY", "SENDGRID_API_KEY", "SENDGRID_FROM"] },
-  async ({ auth, data }) => {
-    const uid = auth?.uid;
-    if (!uid) throw new HttpsError("unauthenticated", "Faça login.");
-
-    const { reservationId } = (data ?? {}) as { reservationId?: string };
-    assertString(reservationId, "reservationId");
-
-    const resRef = db.doc(`reservations/${reservationId}`);
-    const snap = await resRef.get();
-    if (!snap.exists) throw new HttpsError("not-found", "Reserva não encontrada.");
-    const r = snap.data() as any;
-
-    if (r.itemOwnerUid !== uid) throw new HttpsError("permission-denied", "Somente o dono pode sacar.");
-    if (r.status === "paid_out") return { ok: true, alreadyPaidOut: true };
-
-    // apenas se já retirado
-    if (!(r.status === "picked_up" || (r.status === "paid" && !!r.pickedUpAt))) {
-      throw new HttpsError("failed-precondition", "Aguardando o locatário marcar 'Recebido!'.");
-    }
-
-    const baseCents = Number(r.baseAmountCents ?? 0);
-    if (!Number.isInteger(baseCents) || baseCents <= 0) {
-      throw new HttpsError("failed-precondition", "baseAmountCents inválido.");
-    }
-
-    let ownerStripeAccountId: string | undefined = r.ownerStripeAccountId;
-    if (!ownerStripeAccountId) {
-      const ownerSnap = await db.doc(`users/${r.itemOwnerUid}`).get();
-      ownerStripeAccountId = ownerSnap.exists ? (ownerSnap.data() as any)?.stripeAccountId : undefined;
-      if (ownerStripeAccountId) await resRef.update({ ownerStripeAccountId, updatedAt: TS() });
-    }
-    if (!ownerStripeAccountId) throw new HttpsError("failed-precondition", "Conecte sua conta Stripe para sacar.");
-
-    const stripe = getStripe();
-    const paymentIntentId: string | undefined =
-      r.stripePaymentIntentId || r.paymentIntentId || (typeof r.checkoutPaymentIntentId === "string" ? r.checkoutPaymentIntentId : undefined);
-    if (!paymentIntentId) throw new HttpsError("failed-precondition", "paymentIntentId ausente na reserva.");
-
-    try {
-      const pi = await stripe.paymentIntents.retrieve(paymentIntentId);
-      const chargeId =
-        typeof pi.latest_charge === "string" ? pi.latest_charge : (pi.latest_charge as Stripe.Charge | null)?.id;
-      if (!chargeId) throw new HttpsError("failed-precondition", "Charge ainda não existe para este pagamento.");
-
-      const charge = await stripe.charges.retrieve(chargeId);
-      const bt = await stripe.balanceTransactions.retrieve(charge.balance_transaction as string);
-      const availableOnMs = (bt.available_on || 0) * 1000;
-      if (Date.now() < availableOnMs) {
-        const when = new Date(availableOnMs).toISOString();
-        throw new HttpsError("failed-precondition", `Fundos ainda não disponíveis para transferência. Disponível em: ${when}`);
-      }
-
-      const transferAmount = Math.round(baseCents * 0.90); // 90% do anúncio
-
-      const transfer = await stripe.transfers.create({
-        amount: transferAmount,
-        currency: "brl",
-        destination: ownerStripeAccountId,
-        source_transaction: charge.id,
-        metadata: { reservationId: String(reservationId), role: "owner_payout_legacy" },
-      });
-
-      await resRef.update({
-        ownerPayoutTransferId: transfer.id,
-        status: "paid_out",
-        paidOutAt: TS(),
-        updatedAt: TS(),
-      });
-
-      // Notificar dono que pagamento foi liberado
-      try {
-        const amountFormatted = new Intl.NumberFormat('pt-BR', {
-          style: 'currency',
-          currency: 'BRL'
-        }).format(transferAmount / 100);
-
-        await createNotification({
-          recipientId: String(r.itemOwnerUid),
-          type: "payment_update",
-          entityType: "reservation",
-          entityId: String(reservationId),
-          title: "Pagamento liberado",
-          body: `Seu pagamento de ${amountFormatted} foi liberado e transferido para sua conta.`,
-          metadata: { reservationId, transferId: transfer.id, amount: transferAmount },
-        });
-        await dispatchExternalNotify(String(r.itemOwnerUid), {
-          type: "payment_update",
-          title: "Pagamento liberado",
-          body: `Seu pagamento de ${amountFormatted} foi liberado e transferido para sua conta.`,
-          deepLink: `/reservation/${reservationId}`,
-        });
-      } catch (e) {
-        console.warn("notify(payout) failed", e);
-      }
-
-      return { ok: true, transferId: transfer.id, amount: transferAmount };
-    } catch (err: any) {
-      const msg = err?.raw?.message || err?.message || "Erro Stripe";
-      throw new HttpsError("failed-precondition", msg);
-    }
-  }
-);
-*/
 
 // =====================================================
 // === Locatário marca "Recebido!" (picked_up)        ===
@@ -1913,6 +1378,67 @@ export const markPickup = onCall({ region: "southamerica-east1", secrets: ["SEND
   return { ok: true, flow: "paid" };
 });
 
+// =====================================================
+// === Liberar pagamento para o dono (marcar paid_out) ===
+// =====================================================
+// Nota: O Asaas já faz split automático no momento do pagamento.
+// Esta função apenas marca a reserva como paid_out para indicar
+// que o locatário confirmou o recebimento e liberou o pagamento.
+export const releasePayoutToOwner = onCall(
+  { region: "southamerica-east1", secrets: ["SENDGRID_API_KEY", "SENDGRID_FROM"] },
+  async ({ auth, data }) => {
+    const uid = auth?.uid;
+    if (!uid) throw new HttpsError("unauthenticated", "Faça login.");
+
+    const { reservationId } = (data ?? {}) as { reservationId?: string };
+    assertString(reservationId, "reservationId");
+
+    const resRef = db.doc(`reservations/${reservationId}`);
+    const snap = await resRef.get();
+    if (!snap.exists) throw new HttpsError("not-found", "Reserva não encontrada.");
+    const r = snap.data() as any;
+
+    // Apenas o locatário pode liberar o pagamento
+    if (r.renterUid !== uid) {
+      throw new HttpsError("permission-denied", "Somente o locatário pode liberar o pagamento.");
+    }
+
+    // Deve estar picked_up para liberar
+    if (r.status !== "picked_up") {
+      throw new HttpsError("failed-precondition", `Reserva precisa estar 'picked_up'. Status atual: '${r.status ?? "?"}'`);
+    }
+
+    // Marcar como paid_out
+    await resRef.update({
+      status: "paid_out",
+      paidOutAt: TS(),
+      updatedAt: TS(),
+    });
+
+    // Notificar dono que o pagamento foi liberado
+    try {
+      await createNotification({
+        recipientId: String(r.itemOwnerUid),
+        type: "reservation_status",
+        entityType: "reservation",
+        entityId: String(reservationId),
+        title: "Pagamento liberado",
+        body: "O locatário liberou o pagamento. Você pode sacar no Asaas.",
+        metadata: { reservationId },
+      });
+      await dispatchExternalNotify(String(r.itemOwnerUid), {
+        type: "reservation_status",
+        title: "Pagamento liberado",
+        body: "O locatário liberou o pagamento. Você pode sacar no Asaas.",
+        deepLink: `/reservation/${reservationId}`,
+      });
+    } catch (e) {
+      console.warn("notify(paid_out) failed", e);
+    }
+
+    return { ok: true };
+  }
+);
 
 // =====================================================
 // === Confirmar devolução (sem foto)                 ===
@@ -2318,14 +1844,16 @@ export const offerItemToRequest = onCall(
   });
 
   // Create a special reservation so it appears in "Ajuda Recebida!" section
+  // Para reservas de socorro: itemOwnerUid = quem precisa de ajuda (quem recebe a oferta)
+  // renterUid = quem oferece (quem está oferecendo o item)
   const requestOwnerUid = requestItemData.ownerUid;
   const offeredItemTitle = offeredItemData?.title || "Item oferecido";
   
   const reservationData = {
     itemId: offeredItemId,
     itemTitle: offeredItemTitle,
-    itemOwnerUid: requestOwnerUid, // Person who needs help
-    renterUid: uid, // Person offering the item
+    itemOwnerUid: requestOwnerUid, // Person who needs help (will receive the item)
+    renterUid: uid, // Person offering the item (owner of the item)
     startDate: new Date().toISOString().split("T")[0],
     endDate: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split("T")[0],
     days: 1,

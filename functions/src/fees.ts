@@ -3,8 +3,8 @@ const round = (n: number) => Math.round(n);
 
 export type ComputeFeesOpts = {
   servicePct?: number;       // 0.07 = 7%
-  paymentProvider?: 'mercadopago'; // Stripe removido
-  paymentMethod?: 'card' | 'pix';
+  paymentProvider?: 'asaas' | 'mercadopago'; // Asaas é o padrão agora
+  paymentMethod?: 'card' | 'pix' | 'boleto';
 };
 
 /**
@@ -16,8 +16,8 @@ export type ComputeFeesOpts = {
 export function computeFees(baseCents: number, opts: ComputeFeesOpts = {}) {
   const {
     servicePct = 0.07,
-    paymentProvider = 'mercadopago',
-    paymentMethod = 'card',
+    paymentProvider = 'asaas',
+    paymentMethod = 'pix',
   } = opts;
 
   // Taxa de serviço da plataforma (7%)
@@ -25,12 +25,23 @@ export function computeFees(baseCents: number, opts: ComputeFeesOpts = {}) {
 
   // Taxa do provedor de pagamento
   let providerFee = 0;
-  if (paymentProvider === 'mercadopago') {
+  
+  if (paymentProvider === 'asaas') {
     if (paymentMethod === 'pix') {
-      // PIX: ~1,99% (sem taxa fixa)
+      // PIX: R$ 1,99 fixo
+      providerFee = 199; // R$ 1,99 em centavos
+    } else if (paymentMethod === 'card') {
+      // Cartão à vista: 1,99% + R$ 0,49
+      providerFee = round((baseCents + serviceFee) * 0.0199) + 49;
+    } else if (paymentMethod === 'boleto') {
+      // Boleto: R$ 1,99 fixo
+      providerFee = 199; // R$ 1,99 em centavos
+    }
+  } else if (paymentProvider === 'mercadopago') {
+    // Mantido para compatibilidade (será removido)
+    if (paymentMethod === 'pix') {
       providerFee = round((baseCents + serviceFee) * 0.0199);
     } else {
-      // Cartão: ~3,99% + R$0,39
       providerFee = round((baseCents + serviceFee) * 0.0399) + 39;
     }
   }
