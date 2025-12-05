@@ -118,3 +118,5 @@ function MyPaymentScreen() {
 - [Credenciais do Mercado Pago](https://www.mercadopago.com.br/developers/panel/credentials)
 
 
+
+

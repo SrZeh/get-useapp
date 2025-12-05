@@ -19,3 +19,5 @@ echo Agora volte para o terminal do projeto e execute:
 echo firebase deploy --only functions
 echo.
 
+
+

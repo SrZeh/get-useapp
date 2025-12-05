@@ -29,6 +29,7 @@ export default function EditProfile() {
   const [saving, setSaving] = useState(false);
 
   const [name, setName] = useState(""); 
+  const [displayName, setDisplayName] = useState(""); // Nome público (opcional)
   const [phone, setPhone] = useState("");
   
   // Structured address fields
@@ -72,6 +73,7 @@ export default function EditProfile() {
       
       if (d) {
         setName(d.name ?? "");
+        setDisplayName(d.displayName ?? ""); // Nome público
         // Format phone for display if it exists
         setPhone(d.phone ? displayPhone(d.phone) : "");
         
@@ -170,6 +172,7 @@ export default function EditProfile() {
 
       await updateDoc(doc(db, "users", uid), {
         name: name.trim(),
+        displayName: displayName.trim() || null, // Nome público (opcional)
         phone: phoneClean,
         address: formattedAddress || null,
         // email no auth/credencial; aqui mantemos referência
@@ -257,6 +260,16 @@ export default function EditProfile() {
                 error={nameError}
                 helperText={!nameError ? "Como você gostaria de ser chamado" : undefined}
                 leftElement={<Ionicons name="person" size={20} color={colors.icon.default} />}
+              />
+
+              <Input
+                label="Nome público (opcional)"
+                placeholder="Ex: João, @joaosilva, etc."
+                value={displayName}
+                onChangeText={setDisplayName}
+                autoCapitalize="words"
+                helperText="Nome que aparecerá no seu perfil público. Se não preencher, será usado apenas seu primeiro nome."
+                leftElement={<Ionicons name="eye-outline" size={20} color={colors.icon.default} />}
               />
 
               <Input

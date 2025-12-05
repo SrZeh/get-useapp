@@ -28,3 +28,5 @@ Write-Host ""
 Write-Host "Próximo passo: Fazer deploy das functions" -ForegroundColor Yellow
 Write-Host "Execute: cd functions && npm run build && firebase deploy --only functions" -ForegroundColor Gray
 
+
+

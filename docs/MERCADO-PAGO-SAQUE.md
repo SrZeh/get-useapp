@@ -211,3 +211,5 @@ Com OAuth implementado, podemos:
 - [Período de Liberação](https://www.mercadopago.com.br/developers/pt/docs/checkout-pro/payment-methods)
 
 
+
+

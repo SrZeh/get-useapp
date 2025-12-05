@@ -14,10 +14,16 @@ import HouseSvg from "@/assets/icons/house.svg";
 import ShippingBoxSvg from "@/assets/icons/shippingbox.svg";
 import { ProfileIcon as ProfileIconSvg } from "@/assets/icons/profile-icon";
 import { MegaphoneIcon } from "@/assets/icons/megaphone-icon";
+import { Ionicons } from "@expo/vector-icons";
 import { useNotificationBadges } from "@/hooks/features/notifications";
 import { useAuth } from "@/providers/AuthProvider";
 import { useSidebar } from "@/providers/SidebarProvider";
 import * as Haptics from "expo-haptics";
+
+// Simple Messages Icon component
+const MessagesIcon = ({ width = 22, height = 22, color }: { width?: number; height?: number; color?: string }) => (
+  <Ionicons name="chatbubbles-outline" size={width} color={color} />
+);
 
 type TabConfig = {
   name: string;
@@ -36,6 +42,7 @@ const tabs: TabConfig[] = [
   { name: "items", route: "/items", title: "Meus Itens", Icon: ShippingBoxSvg, size: 22 },
   { name: "index", route: "/", title: "Início", Icon: HouseSvg, size: 24 },
   { name: "help", route: "/help", title: "Socorro!", Icon: MegaphoneIcon, size: 22 },
+  { name: "messages", route: "/messages", title: "Mensagens", Icon: MessagesIcon, size: 22 },
   { name: "transactions", route: "/transactions", title: "Transações", Icon: ArrowsSvg, size: 22 },
   { name: "profile", route: "/profile", title: "Perfil", Icon: ProfileIconSvg, size: 24 },
 ];
@@ -69,6 +76,7 @@ export function GlobalSidebar({ style, opacity }: GlobalSidebarProps = {}) {
     const currentSegments = segments;
     if (normalizedPath === "/items" || currentSegments.includes("items")) return "items";
     if (normalizedPath === "/help" || currentSegments.includes("help")) return "help";
+    if (normalizedPath === "/messages" || currentSegments.includes("messages")) return "messages";
     if (normalizedPath === "/transactions" || currentSegments.includes("transactions")) return "transactions";
     if (normalizedPath.includes("/profile") || currentSegments.includes("profile")) return "profile";
     if (normalizedPath === "/" || normalizedPath === "") {

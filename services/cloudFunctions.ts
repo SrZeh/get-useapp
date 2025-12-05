@@ -274,3 +274,92 @@ export async function createUserReview(input: {
     throw error;
   }
 }
+
+/**
+ * Get public user profile via Cloud Function (bypasses Firestore security rules)
+ */
+export async function getPublicUserProfile(uid: string): Promise<{
+  uid: string;
+  name: string | null;
+  email: string | null;
+  photoURL: string | null;
+  ratingAvg: number | null;
+  ratingCount: number | null;
+  transactionsTotal: number | null;
+} | null> {
+  try {
+    // Esta função não requer autenticação, então vamos chamar diretamente
+    const fn = httpsCallable<{ uid: string }, {
+      uid: string;
+      name: string | null;
+      email: string | null;
+      photoURL: string | null;
+      ratingAvg: number | null;
+      ratingCount: number | null;
+      transactionsTotal: number | null;
+    } | null>(functions, 'getPublicUserProfile');
+    
+    const res = await fn({ uid });
+    return res.data;
+  } catch (error: any) {
+    console.error('[cloudFunctions] getPublicUserProfile error:', error);
+    throw error;
+  }
+}
+
+/**
+ * Get or create a thread for messaging
+ */
+export async function getOrCreateThread(itemId: string, ownerUid: string): Promise<{ threadId: string }> {
+  return callCloudFunction<
+    { itemId: string; ownerUid: string },
+    { threadId: string }
+  >('getOrCreateThread', { itemId, ownerUid });
+}
+
+/**
+ * Get or create a profile thread for direct user-to-user messaging
+ */
+export async function getOrCreateProfileThread(targetUid: string): Promise<{ threadId: string }> {
+  return callCloudFunction<
+    { targetUid: string },
+    { threadId: string }
+  >('getOrCreateProfileThread', { targetUid });
+}
+
+/**
+ * Delete user's messages from a reservation
+ */
+export async function deleteReservationMessages(reservationId: string): Promise<{ deletedCount: number; message: string }> {
+  return callCloudFunction<
+    { reservationId: string },
+    { deletedCount: number; message: string }
+  >('deleteReservationMessages', { reservationId });
+}
+
+/**
+ * Get user threads via Cloud Function
+ */
+export async function getUserThreads(): Promise<Array<{
+  threadId: string;
+  otherUserUid: string;
+  lastMessage?: { text: string; createdAt: any };
+  unreadCount: number;
+  itemId?: string;
+}>> {
+  try {
+    const fn = httpsCallable<{}, Array<{
+      threadId: string;
+      otherUserUid: string;
+      lastMessage?: { text: string; createdAt: any };
+      unreadCount: number;
+      itemId?: string;
+    }>>(functions, 'getUserThreads');
+    
+    const res = await fn({});
+    return res.data;
+  } catch (error: any) {
+    console.error('[cloudFunctions] getUserThreads error:', error);
+    throw error;
+  }
+}

@@ -10,7 +10,8 @@
  */
 
 import React, { useMemo } from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, TouchableOpacity } from 'react-native';
+import { router } from 'expo-router';
 import { ThemedText } from '@/components/themed-text';
 import { AnimatedCard } from '@/components/AnimatedCard';
 import { LiquidGlassView } from '@/components/liquid-glass';
@@ -26,6 +27,7 @@ import { ReservationDates } from '@/components/features/transactions/Reservation
 import { ReservationPrice } from '@/components/features/transactions/ReservationPrice';
 import { ReservationTimestamps } from '@/components/features/transactions/ReservationTimestamps';
 import { ReservationActions } from '@/components/features/transactions/ReservationActions';
+import { Ionicons } from '@expo/vector-icons';
 import type { FirestoreTimestamp } from '@/types/firestore';
 
 type ReservationCardProps = BaseCardProps & {
@@ -95,8 +97,18 @@ export const ReservationCard = React.memo(function ReservationCard({
         ownerName: {
           textAlign: 'center',
         },
+        userLinkContainer: {
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: Spacing.xs,
+          marginTop: Spacing.xs,
+          paddingVertical: Spacing['3xs'],
+        },
+        userLinkText: {
+          fontWeight: '600',
+        },
       }),
-    []
+    [colors]
   );
 
   return (
@@ -110,11 +122,38 @@ export const ReservationCard = React.memo(function ReservationCard({
               <ThemedText type="title-3" style={styles.headerTitle}>
                 {item?.title ?? 'Carregando item...'}
               </ThemedText>
-              {displayName && (
+              {/* Link para perfil do locatário quando dono visualiza */}
+              {viewerRole === 'owner' && r.renterUid ? (
+                <TouchableOpacity
+                  onPress={() => router.push(`/user/${r.renterUid}`)}
+                  activeOpacity={0.7}
+                  style={styles.userLinkContainer}
+                >
+                  <Ionicons 
+                    name="person-outline" 
+                    size={16} 
+                    color={colors.isDark ? colors.brand.primary : colors.brand.dark} 
+                  />
+                  <ThemedText 
+                    type="caption-1" 
+                    style={[styles.userLinkText, {
+                      color: colors.isDark ? colors.brand.primary : colors.brand.dark,
+                    }]}
+                  >
+                    {displayName ? `Solicitado por ${displayName}` : 'Informações do usuário'}
+                  </ThemedText>
+                  <Ionicons 
+                    name="chevron-forward-outline" 
+                    size={14} 
+                    color={colors.isDark ? colors.brand.primary : colors.brand.dark} 
+                  />
+                </TouchableOpacity>
+              ) : displayName ? (
+                // Texto simples quando locatário visualiza
                 <ThemedText type="caption-1" style={styles.ownerName} className="text-light-text-tertiary dark:text-dark-text-tertiary">
                   👤 {displayLabel}: {displayName}
                 </ThemedText>
-              )}
+              ) : null}
             </View>
 
             {/* Status Badge */}

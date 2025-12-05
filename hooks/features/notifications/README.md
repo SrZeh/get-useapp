@@ -205,3 +205,5 @@ O hook usa `useMemo` para otimizar re-renders. Se você notar problemas de perfo
 1. Verifique quantas vezes o hook está sendo chamado
 2. Considere usar `React.memo` nos componentes que usam o hook
 
+
+

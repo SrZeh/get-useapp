@@ -109,3 +109,5 @@ firebase deploy --only functions
 - [Google Cloud Service Identity](https://cloud.google.com/iam/docs/service-accounts)
 - [Habilitar APIs do Google Cloud](https://console.cloud.google.com/apis/library)
 
+
+

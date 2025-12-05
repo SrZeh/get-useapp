@@ -1,17 +1,21 @@
 // app/user/[uid].tsx
 import React, { useEffect, useState } from 'react';
 import { ScrollView, View, ActivityIndicator } from 'react-native';
-import { useLocalSearchParams, router } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { LiquidGlassView } from '@/components/liquid-glass';
 import { useThemeColors } from '@/utils';
 import { Spacing, BorderRadius } from '@/constants/spacing';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useUserProfileStore } from '@/stores/userProfileStore';
 import { useReviewService } from '@/providers/ServicesProvider';
 import { ProfileHeader, ProfileStats } from '@/components/features/profile';
 import { UserReviewList, StarRating } from '@/components/review';
+import { ItemCard } from '@/components/features/items';
+import { useUserPublicItems } from '@/hooks/features/items';
+import { useResponsiveGrid } from '@/hooks/features/items';
+import { auth } from '@/lib/firebase';
+import { getPublicUserProfile } from '@/services/cloudFunctions';
 import type { UserProfile, UserReview } from '@/types';
 
 export default function PublicUserProfileScreen() {
@@ -19,14 +23,20 @@ export default function PublicUserProfileScreen() {
   const colors = useThemeColors();
   const insets = useSafeAreaInsets();
   const reviewService = useReviewService();
-  
-  const getProfile = useUserProfileStore((state) => state.getProfile);
+  const currentUserId = auth.currentUser?.uid;
   
   const [user, setUser] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [reviews, setReviews] = useState<UserReview[]>([]);
+  
+  // Fetch user's public items
+  const { items: userItems, loading: itemsLoading } = useUserPublicItems(uid, true);
+  const grid = useResponsiveGrid(12);
+  
+  // Check if viewing own profile
+  const isOwnProfile = uid === currentUserId;
 
-  // Load user profile
+  // Load user profile via Cloud Function (bypasses Firestore security rules)
   useEffect(() => {
     if (!uid) {
       setLoading(false);
@@ -37,12 +47,41 @@ export default function PublicUserProfileScreen() {
     (async () => {
       try {
         setLoading(true);
-        const profile = await getProfile(uid, false);
+        console.log('[PublicUserProfile] Loading profile for uid:', uid);
+        
+        // Buscar perfil via Cloud Function (contorna regras do Firestore)
+        const profileData = await getPublicUserProfile(uid);
+        
+        if (!alive) return;
+        
+        if (!profileData) {
+          console.warn('[PublicUserProfile] Profile not found for uid:', uid);
+          setUser(null);
+          setLoading(false);
+          return;
+        }
+
+        console.log('[PublicUserProfile] Profile data loaded:', profileData);
+        
+        // Converter para UserProfile format
+        const profile: UserProfile = {
+          uid: profileData.uid,
+          name: profileData.name || '(Sem nome)',
+          email: profileData.email || '',
+          photoURL: profileData.photoURL,
+          ratingAvg: profileData.ratingAvg ?? undefined,
+          ratingCount: profileData.ratingCount ?? undefined,
+          transactionsTotal: profileData.transactionsTotal ?? undefined,
+        };
+        
         if (alive) {
           setUser(profile);
         }
-      } catch (error) {
-        console.error('Error loading user profile:', error);
+      } catch (error: any) {
+        console.error('[PublicUserProfile] Error loading user profile:', error);
+        console.error('[PublicUserProfile] Error code:', error?.code);
+        console.error('[PublicUserProfile] Error message:', error?.message);
+        
         if (alive) {
           setUser(null);
         }
@@ -56,7 +95,7 @@ export default function PublicUserProfileScreen() {
     return () => {
       alive = false;
     };
-  }, [uid, getProfile]);
+  }, [uid]);
 
   // Subscribe to user reviews
   useEffect(() => {
@@ -147,12 +186,52 @@ export default function PublicUserProfileScreen() {
         )}
 
         {reviews.length === 0 && user.ratingCount === 0 && (
-          <LiquidGlassView intensity="subtle" cornerRadius={BorderRadius.md} style={{ padding: Spacing.md, alignItems: 'center' }}>
+          <LiquidGlassView intensity="subtle" cornerRadius={BorderRadius.md} style={{ padding: Spacing.md, alignItems: 'center', marginBottom: Spacing.md }}>
             <ThemedText type="callout" className="text-light-text-tertiary dark:text-dark-text-tertiary" style={{ textAlign: 'center' }}>
               Este usuário ainda não recebeu avaliações.
             </ThemedText>
           </LiquidGlassView>
         )}
+
+        {/* Produtos do usuário */}
+        <View style={{ marginTop: Spacing.lg }}>
+          <ThemedText 
+            type="title-2" 
+            style={{ 
+              marginBottom: Spacing.md,
+              fontWeight: '700',
+            }}
+          >
+            Produtos disponíveis
+          </ThemedText>
+          
+          {itemsLoading ? (
+            <View style={{ padding: Spacing.lg, alignItems: 'center' }}>
+              <ActivityIndicator size="small" />
+              <ThemedText type="callout" className="text-light-text-tertiary dark:text-dark-text-tertiary" style={{ marginTop: Spacing.sm }}>
+                Carregando produtos…
+              </ThemedText>
+            </View>
+          ) : userItems.length > 0 ? (
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: grid.cardSpacing }}>
+              {userItems.map((item) => (
+                <View key={item.id} style={{ width: grid.numColumns > 1 ? grid.cardWidth : '100%' }}>
+                  <ItemCard
+                    item={item}
+                    width={grid.numColumns > 1 ? grid.cardWidth : undefined}
+                    isMine={isOwnProfile}
+                  />
+                </View>
+              ))}
+            </View>
+          ) : (
+            <LiquidGlassView intensity="subtle" cornerRadius={BorderRadius.md} style={{ padding: Spacing.md, alignItems: 'center' }}>
+              <ThemedText type="callout" className="text-light-text-tertiary dark:text-dark-text-tertiary" style={{ textAlign: 'center' }}>
+                Este usuário ainda não possui produtos disponíveis para alugar/emprestar.
+              </ThemedText>
+            </LiquidGlassView>
+          )}
+        </View>
       </ScrollView>
     </ThemedView>
   );

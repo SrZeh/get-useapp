@@ -5,7 +5,12 @@
  * Wraps Firestore operations with consistent error handling.
  */
 
+import { FIRESTORE_COLLECTIONS } from '@/constants/api';
 import { auth, db } from '@/lib/firebase';
+import { acceptReservation as acceptReservationCF, rejectReservation as rejectReservationCF } from '@/services/cloudFunctions';
+import type { FirestoreTimestamp, NewReservationInput, Reservation, ReservationStatus } from '@/types';
+import { toDate } from '@/types/firestore';
+import { logger } from '@/utils';
 import {
   addDoc,
   collection,
@@ -21,12 +26,18 @@ import {
   where,
   type Unsubscribe,
 } from 'firebase/firestore';
-import type { Reservation, ReservationStatus, NewReservationInput } from '@/types';
-import { logger } from '@/utils';
-import { FIRESTORE_COLLECTIONS } from '@/constants/api';
-import { acceptReservation as acceptReservationCF, rejectReservation as rejectReservationCF } from '@/services/cloudFunctions';
 
 const RESERVATIONS_PATH = FIRESTORE_COLLECTIONS.RESERVATIONS || 'reservations';
+
+/**
+ * Convert timestamp to milliseconds for sorting
+ * Handles Timestamp, Date, string, or undefined/null
+ */
+function timestampToMillis(timestamp?: FirestoreTimestamp | null): number {
+  if (!timestamp) return 0;
+  const date = toDate(timestamp);
+  return date ? date.getTime() : 0;
+}
 
 /**
  * Create a new reservation
@@ -242,8 +253,8 @@ export function subscribeToHelpOfferReservations(
       // Sort by createdAt in memory (descending)
       if (helpOffers.length > 0) {
         helpOffers.sort((a, b) => {
-          const aTime = a.createdAt?.toMillis?.() ?? a.createdAt ?? 0;
-          const bTime = b.createdAt?.toMillis?.() ?? b.createdAt ?? 0;
+          const aTime = timestampToMillis(a.createdAt);
+          const bTime = timestampToMillis(b.createdAt);
           return bTime - aTime; // desc
         });
       }
@@ -335,8 +346,8 @@ export function subscribeToOwnerReservations(
       // Sort by createdAt in memory (descending)
       if (all.length > 0) {
         all.sort((a, b) => {
-          const aTime = a.createdAt?.toMillis?.() ?? a.createdAt ?? 0;
-          const bTime = b.createdAt?.toMillis?.() ?? b.createdAt ?? 0;
+          const aTime = timestampToMillis(a.createdAt);
+          const bTime = timestampToMillis(b.createdAt);
           return bTime - aTime; // desc
         });
       }

@@ -36,6 +36,20 @@ export const db: Firestore = (() => {
     try {
       const firestore = getFirestore(app, "appdb");
       console.log("✅ Firestore web inicializado com 'appdb'");
+      // Tentar verificar o database ID na web também
+      try {
+        const dbInternal = firestore as any;
+        const dbId = dbInternal._databaseId?.databaseId 
+          || dbInternal._delegate?._databaseId?.databaseId
+          || dbInternal._settings?.databaseId
+          || "unknown";
+        console.log("🔍 Database ID detectado na web:", dbId);
+        if (dbId !== "appdb" && dbId !== "unknown") {
+          console.warn("⚠️ ATENÇÃO: Database ID na web é:", dbId, "- esperado: appdb");
+        }
+      } catch (e) {
+        console.log("ℹ️ Não foi possível verificar database ID na web (normal)");
+      }
       return firestore;
     } catch (error: any) {
       console.error("❌ Erro ao obter Firestore na web:", error);

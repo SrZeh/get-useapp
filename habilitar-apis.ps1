@@ -79,3 +79,5 @@ Write-Host "Agora você pode tentar o deploy novamente:" -ForegroundColor Yellow
 Write-Host "firebase deploy --only functions" -ForegroundColor Gray
 Write-Host ""
 
+
+

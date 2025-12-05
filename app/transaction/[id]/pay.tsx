@@ -1,20 +1,20 @@
 // app/transaction/[id]/pay.tsx
+import { MercadoPagoCheckout } from "@/components/features/payments/MercadoPagoCheckout";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
+import { Spacing } from "@/constants/spacing";
 import { auth } from "@/lib/firebase";
-import { useLocalSearchParams, router } from "expo-router";
-import * as WebBrowser from "expo-web-browser";
-import { WebBrowserPresentationStyle } from "expo-web-browser";
-import * as Linking from "expo-linking";
-import React, { useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, Alert, ScrollView, TouchableOpacity, View, Platform } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useThemeColors } from "@/utils";
 import {
   createMercadoPagoPayment,
 } from "@/services/cloudFunctions";
-import { Spacing } from "@/constants/spacing";
-import { MercadoPagoCheckout } from "@/components/features/payments/MercadoPagoCheckout";
+import { useThemeColors } from "@/utils";
+import * as Linking from "expo-linking";
+import { router, useLocalSearchParams } from "expo-router";
+import * as WebBrowser from "expo-web-browser";
+import { WebBrowserPresentationStyle } from "expo-web-browser";
+import React, { useEffect, useMemo, useState } from "react";
+import { ActivityIndicator, Alert, Platform, ScrollView, TouchableOpacity, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function PayScreen() {
   const params = useLocalSearchParams();
@@ -62,7 +62,7 @@ export default function PayScreen() {
           [
             {
               text: "Ver Reserva",
-              onPress: () => router.replace(`/transaction/${id}`),
+              onPress: () => router.replace(`/transaction/${id}` as any),
             },
           ]
         );
@@ -178,7 +178,7 @@ export default function PayScreen() {
           // Mobile: usar WebBrowser
           WebBrowser.openBrowserAsync(result.url, {
             presentationStyle: Platform.OS === 'ios' 
-              ? WebBrowserPresentationStyle.FULLSCREEN 
+              ? WebBrowserPresentationStyle.FULL_SCREEN 
               : WebBrowserPresentationStyle.AUTOMATIC,
             enableBarCollapsing: false,
           })
@@ -303,7 +303,7 @@ export default function PayScreen() {
                   preferenceId={preferenceId}
                   onPaymentComplete={() => {
                     console.log('[PayScreen] Pagamento completo via SDK');
-                    router.replace(`/transaction/${id}`);
+                    router.replace(`/transaction/${id}` as any);
                   }}
                   onPaymentError={(error) => {
                     console.error('[PayScreen] Erro no pagamento via SDK:', error);

@@ -94,3 +94,5 @@ Se você receber um erro dizendo que o PIX não está disponível:
 - [Configurações de Meios de Pagamento](https://www.mercadopago.com.br/account/settings)
 - [Documentação PIX - Mercado Pago](https://www.mercadopago.com.br/developers/pt/docs/checkout-api/integration-configuration/available-payment-methods)
 
+
+

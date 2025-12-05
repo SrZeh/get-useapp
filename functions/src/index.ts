@@ -902,6 +902,89 @@ export const getOrCreateThread = onCall({ region: "southamerica-east1" }, async 
   return { threadId };
 });
 
+// =====================================================
+// === getOrCreateProfileThread (conversas de perfil) ===
+// =====================================================
+export const getOrCreateProfileThread = onCall({ region: "southamerica-east1" }, async ({ auth, data }) => {
+  const uid = auth?.uid;
+  if (!uid) throw new HttpsError("unauthenticated", "Faça login.");
+  const { targetUid } = (data ?? {}) as { targetUid?: string };
+  assertString(targetUid, "targetUid");
+  if (uid === targetUid) throw new HttpsError("failed-precondition", "Não é possível conversar consigo mesmo.");
+
+  const participants = [uid, targetUid].sort();
+  const threadId = `profile_chat_${participants[0]}_${participants[1]}`;
+  const tRef = db.doc(`threads/${threadId}`);
+  const tSnap = await tRef.get();
+
+  if (!tSnap.exists) {
+    await tRef.set({
+      itemId: 'profile_chat',
+      ownerUid: targetUid,
+      renterUid: uid, // iniciador
+      participants,
+      createdAt: TS(),
+      lastMsgAt: TS(),
+    }, { merge: true });
+
+    // zera unread do criador e cria doc do outro
+    await Promise.all([
+      tRef.collection("participants").doc(uid).set({ unreadCount: 0, lastReadAt: TS() }, { merge: true }),
+      tRef.collection("participants").doc(targetUid).set({ unreadCount: 0 }, { merge: true }),
+    ]);
+  }
+
+  return { threadId };
+});
+
+// =====================================================
+// === deleteReservationMessages (deletar mensagens do usuário) ===
+// =====================================================
+export const deleteReservationMessages = onCall({ region: "southamerica-east1" }, async ({ auth, data }) => {
+  const uid = auth?.uid;
+  if (!uid) throw new HttpsError("unauthenticated", "Faça login.");
+  const { reservationId } = (data ?? {}) as { reservationId?: string };
+  assertString(reservationId, "reservationId");
+
+  try {
+    // Verificar se o usuário é participante da reserva
+    const resRef = db.doc(`reservations/${reservationId}`);
+    const resSnap = await resRef.get();
+    if (!resSnap.exists) throw new HttpsError("not-found", "Reserva não encontrada.");
+    const r = resSnap.data() as any;
+    
+    if (r.itemOwnerUid !== uid && r.renterUid !== uid) {
+      throw new HttpsError("permission-denied", "Você não é participante desta reserva.");
+    }
+
+    // Buscar todas as mensagens da reserva
+    const messagesRef = resRef.collection("messages");
+    const messagesSnap = await messagesRef.get();
+    
+    let deletedCount = 0;
+    const batch = db.batch();
+    
+    messagesSnap.forEach((msgDoc) => {
+      const msgData = msgDoc.data();
+      // Só deleta mensagens do próprio usuário
+      if (msgData.senderUid === uid) {
+        batch.delete(msgDoc.ref);
+        deletedCount++;
+      }
+    });
+    
+    if (deletedCount === 0) {
+      return { deletedCount: 0, message: "Nenhuma mensagem para deletar." };
+    }
+    
+    await batch.commit();
+    
+    return { deletedCount, message: `${deletedCount} mensagem(ns) deletada(s).` };
+  } catch (err: any) {
+    if (err instanceof HttpsError) throw err;
+    throw new HttpsError("internal", `Erro ao deletar mensagens: ${err?.message ?? "erro desconhecido"}`);
+  }
+});
 
 // =====================================================
 // === Cancelar reserva paga com estorno (até 7 dias) ===
@@ -1179,6 +1262,121 @@ export const markAsSeen = markAsSeenCallable;
 
 // ==== Callable: save web push token (FCM) ==============
 export const saveWebPushToken = saveWebPushTokenCallable;
+
+// ==== Callable: getPublicUserProfile (buscar perfil público) ==============
+export const getPublicUserProfile = onCall(
+  { region: "southamerica-east1" },
+  async ({ data }) => {
+    const { uid } = (data ?? {}) as { uid?: string };
+    if (!uid || typeof uid !== "string" || uid.trim() === "") {
+      throw new HttpsError("invalid-argument", "UID inválido ou ausente.");
+    }
+
+    try {
+      const userRef = db.doc(`users/${uid}`);
+      const snap = await userRef.get();
+      
+      if (!snap.exists) {
+        return null;
+      }
+
+      const userData = snap.data() as any;
+      
+      // Determinar nome público: displayName > primeiro nome > email prefix
+      let publicName: string | null = null;
+      if (userData.displayName) {
+        publicName = userData.displayName;
+      } else if (userData.name) {
+        // Pegar apenas o primeiro nome
+        const firstName = userData.name.trim().split(/\s+/)[0];
+        publicName = firstName || null;
+      } else if (userData.email) {
+        // Fallback: prefixo do email
+        publicName = userData.email.split('@')[0];
+      }
+      
+      // Retornar apenas dados públicos (sem informações sensíveis)
+      return {
+        uid: snap.id,
+        name: publicName,
+        email: null, // Não expor email no perfil público
+        photoURL: userData.photoURL || null,
+        ratingAvg: userData.ratingAvg || null,
+        ratingCount: userData.ratingCount || null,
+        transactionsTotal: userData.transactionsTotal || null,
+      };
+    } catch (err: any) {
+      console.error("[getPublicUserProfile] Error:", err);
+      throw new HttpsError("internal", `Erro ao buscar perfil: ${err?.message ?? "erro desconhecido"}`);
+    }
+  }
+);
+
+// ==== Callable: getUserThreads (buscar threads do usuário) ==============
+export const getUserThreads = onCall(
+  { region: "southamerica-east1" },
+  async ({ auth }) => {
+    const uid = auth?.uid;
+    if (!uid) throw new HttpsError("unauthenticated", "Faça login.");
+
+    try {
+      // Buscar threads onde o usuário é participante
+      // Como threads têm participants array, vamos buscar todas e filtrar
+      const threadsRef = db.collection("threads");
+      const threadsSnap = await threadsRef.get();
+      
+      const userThreads: {
+        threadId: string;
+        otherUserUid: string;
+        lastMessage?: { text: string; createdAt: any };
+        unreadCount: number;
+        itemId?: string;
+      }[] = [];
+
+      for (const threadDoc of threadsSnap.docs) {
+        const threadData = threadDoc.data();
+        const participants = threadData.participants || [];
+        
+        // Verificar se o usuário é participante
+        if (!participants.includes(uid)) continue;
+
+        const otherUserUid = participants.find((p: string) => p !== uid);
+        if (!otherUserUid) continue;
+
+        // Buscar última mensagem
+        const messagesRef = threadDoc.ref.collection("messages");
+        const lastMsgQuery = messagesRef.orderBy("createdAt", "desc").limit(1);
+        const lastMsgSnap = await lastMsgQuery.get();
+        const lastMsg = lastMsgSnap.docs[0]?.data();
+
+        // Buscar unreadCount do participante
+        const participantRef = threadDoc.ref.collection("participants").doc(uid);
+        const participantSnap = await participantRef.get();
+        const unreadCount = participantSnap.exists ? (participantSnap.data()?.unreadCount || 0) : 0;
+
+        userThreads.push({
+          threadId: threadDoc.id,
+          otherUserUid,
+          lastMessage: lastMsg ? { text: lastMsg.text || '', createdAt: lastMsg.createdAt } : undefined,
+          unreadCount,
+          itemId: threadData.itemId,
+        });
+      }
+
+      // Ordenar por última mensagem
+      userThreads.sort((a, b) => {
+        const aTime = a.lastMessage?.createdAt?.toMillis?.() || 0;
+        const bTime = b.lastMessage?.createdAt?.toMillis?.() || 0;
+        return bTime - aTime;
+      });
+
+      return userThreads;
+    } catch (err: any) {
+      console.error("[getUserThreads] Error:", err);
+      throw new HttpsError("internal", `Erro ao buscar threads: ${err?.message ?? "erro desconhecido"}`);
+    }
+  }
+);
 // =====================================================
 // === Webhook Stripe: marca paid e bloqueia datas    ===
 // =====================================================

@@ -21,7 +21,7 @@ import type { Review, UserReview } from "@/types";
 import { CalendarSection } from "@/components/reservation";
 import { ReviewSection, ReviewList, UserReviewList, StarRating } from "@/components/review";
 import { useUserProfileStore } from "@/stores/userProfileStore";
-import { ItemHeader } from "@/components/features/items";
+import { ItemHeader, OwnerInfo } from "@/components/features/items";
 import { LoadingState } from "@/components/states";
 import { useReviewService } from "@/providers/ServicesProvider";
 import { Spacing, BorderRadius } from "@/constants/spacing";
@@ -135,6 +135,11 @@ export default function ItemDetailScreen() {
         >
           {/* HEADER DO ITEM */}
           <ItemHeader item={item} />
+
+          {/* INFORMAÇÕES DO DONO */}
+          {item.ownerUid && (
+            <OwnerInfo ownerUid={item.ownerUid} />
+          )}
 
           {/* CALENDÁRIO / RESERVA */}
           <CalendarSection

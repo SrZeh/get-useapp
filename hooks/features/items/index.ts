@@ -31,3 +31,6 @@ export { useItemReservation } from './useItemReservation';
 // Offered items hook
 export { useOfferedItems } from './useOfferedItems';
 
+// User public items hook (for public profiles)
+export { useUserPublicItems } from './useUserPublicItems';
+

@@ -17,6 +17,9 @@ export interface UserProfile {
   address?: string;
   photoURL?: string | null;
   
+  // Public display name (opcional - se não tiver, usa primeiro nome)
+  displayName?: string;
+  
   // Rating fields
   ratingAvg?: number;
   ratingCount?: number;

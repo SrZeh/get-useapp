@@ -30,3 +30,5 @@ echo Execute: cd functions ^&^& npm run build ^&^& firebase deploy --only functi
 
 pause
 
+
+
